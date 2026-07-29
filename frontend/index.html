@@ -113,7 +113,7 @@ td .up{color:var(--ok);font-weight:700}
   #view-crm .board{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:82vw;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:8px 16px 20px}
   #view-crm .col{scroll-snap-align:start;max-height:calc(100vh - 250px)}
   #view-renov .wrap,#view-qual .wrap{padding:12px 14px}
-  #view-renov table,#view-qual table{display:block;overflow-x:auto;white-space:nowrap}
+  #view-renov table,#view-qual table,#view-tarefas table{display:block;overflow-x:auto;white-space:nowrap}
   .wrap{padding:12px 14px}
   .kpis{gap:10px}
 }
@@ -136,6 +136,7 @@ td .up{color:var(--ok);font-weight:700}
     <button data-v="crm"><span class="ic">🗂️</span> CRM · Kanban</button>
     <button data-v="renov"><span class="ic">🔄</span> Renovações</button>
     <button data-v="qual"><span class="ic">🎯</span> Qualificação</button>
+    <button data-v="tarefas"><span class="ic">✅</span> Tarefas</button>
     <button data-v="cadastro"><span class="ic">➕</span> Cadastro</button>
   </nav>
   <div class="foot">ElevaLife · Ergonomos<br>15 anos elevando pessoas e resultados</div>
@@ -307,6 +308,19 @@ td .up{color:var(--ok);font-weight:700}
       </div>
       <table><thead><tr><th>Score</th><th>Lead</th><th>ICP</th><th>Serviço</th><th>Consultor</th><th>Estágio</th><th>Valor</th><th></th></tr></thead><tbody id="q-body"></tbody></table>
       <p class="hint">Score = ICP + proposta enviada + valor + estágio + recência + cliente atual. Ranqueia quem chamar primeiro. <b>Sincronizar</b> registra o lead no canal e prepara envio ao ActiveCampaign.</p>
+    </div>
+  </section>
+
+  <section class="view" id="view-tarefas" hidden>
+    <div class="wrap">
+      <div class="kpis">
+        <div class="kpi"><div class="l">Tarefas (total)</div><div class="v" id="tk-total">–</div></div>
+        <div class="kpi"><div class="l">Pendentes</div><div class="v" id="tk-pend">–</div></div>
+        <div class="kpi"><div class="l">Concluídas</div><div class="v" id="tk-feito">–</div></div>
+        <div class="kpi"><div class="l">Atrasadas</div><div class="v" id="tk-atraso">–</div></div>
+      </div>
+      <table><thead><tr><th>✓</th><th>Tipo</th><th>Título</th><th>Lead</th><th>Consultor</th><th>Quando</th><th>Responsável</th><th></th></tr></thead><tbody id="tk-body"></tbody></table>
+      <p class="hint">Tarefas de todos os leads (respeita os filtros mestres). Para <b>criar</b> ou editar em detalhe, use “abrir no CRM”. <b>Concluir</b> e <b>excluir</b> podem ser feitos aqui — tudo é salvo na base viva.</p>
     </div>
   </section>
 
@@ -508,6 +522,7 @@ function renderActive(force){
     try{ CRM.render(filteredLeads); }catch(e){console.error('crm',e);}
   }else if(ACTIVE==='renov'){ renderRenov();
   }else if(ACTIVE==='qual'){ renderQual();
+  }else if(ACTIVE==='tarefas'){ renderTarefas();
   }else if(ACTIVE==='cadastro'){ renderRecentes(); }
 }
 function applyF(fromPreset){
@@ -569,6 +584,48 @@ function acSync(idx){const o=QRANK[idx]; if(!o)return; const l=o.l, s=o.s, lbl=c
   postCard('\U0001f3af Lead qualificado → ActiveCampaign',facts,'Enviar ao AC para nutrição/qualificação automática.').then(ok=>{
     alert(window.getTeamsWebhook()?(ok?'Lead registrado no canal. Push ao ActiveCampaign ocorre quando a conexão AC estiver ativa.':'Falha ao notificar — revise ⚙ Automação.'):'Conecte a automação em ⚙ Automação. O envio ao ActiveCampaign entra quando a conexão AC estiver ativa.');});}
 
+/* ---- TAREFAS (unificadas, lidas do STORE via tarefasJson) ---- */
+function _parseTasks(l){ try{ return (l&&l.tarefasJson)?(JSON.parse(l.tarefasJson)||[]):[]; }catch(e){ return []; } }
+function _taskWhen(t){ return t.data?(t.data.split('-').reverse().join('/')+(t.hora?' '+t.hora:'')):''; }
+function _isLate(t){ if(t.feito||!t.data)return false; try{ return new Date((t.data)+'T'+((t.hora||'23:59'))+':00') < new Date(); }catch(e){ return false; } }
+const _TKICON={'Tarefa':'📌','Ligação':'📞','WhatsApp':'🟢','Reunião':'👥'};
+function _leadBySpid(spid){ return (STORE.leads||[]).find(x=>x.__id===spid); }
+function renderTarefas(){
+  const rows=[];
+  (filteredLeads||[]).forEach(l=>{ _parseTasks(l).forEach((t,i)=>rows.push({l:l,t:t,i:i})); });
+  const total=rows.length, feito=rows.filter(r=>r.t.feito).length, atraso=rows.filter(r=>_isLate(r.t)).length;
+  q('tk-total').textContent=total; q('tk-pend').textContent=(total-feito); q('tk-feito').textContent=feito; q('tk-atraso').textContent=atraso;
+  const tb=q('tk-body'); tb.innerHTML='';
+  rows.sort((a,b)=>String(a.t.data||'').localeCompare(String(b.t.data||'')));
+  rows.forEach(({l,t,i})=>{
+    const tr=document.createElement('tr'); if(_isLate(t))tr.style.background='#FBECEC';
+    tr.innerHTML='<td>'+(t.feito?'✅':'⬜')+'</td>'+
+      '<td>'+(_TKICON[t.tipo]||'📌')+' '+(t.tipo||'Tarefa')+'</td>'+
+      '<td><b>'+(t.titulo||'(sem título)')+'</b>'+(t.conteudo?'<br><span style="font-size:11px;color:var(--mut)">'+t.conteudo+'</span>':'')+'</td>'+
+      '<td>'+(l.cliente||'—')+(l.unidade?' · '+l.unidade:'')+'</td>'+
+      '<td>'+(l.cons||'–')+'</td>'+
+      '<td>'+(_taskWhen(t)||'—')+'</td>'+
+      '<td>'+(t.resp||t.email||'—')+'</td>'+
+      '<td style="white-space:nowrap"><button class="btn gh" onclick="tkToggle(\''+l.__id+'\','+i+')">'+(t.feito?'reabrir':'concluir')+'</button> <button class="btn gh" onclick="tkDel(\''+l.__id+'\','+i+')">excluir</button> <button class="btn gh" onclick="tkOpen(\''+l.__id+'\')">abrir no CRM</button></td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length)tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma tarefa nos filtros atuais.</td></tr>';
+}
+function tkToggle(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; arr[i].feito=!arr[i].feito; persistLeadTasks(spid,arr,function(){renderTarefas();}); }
+function tkDel(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; if(!confirm('Excluir esta tarefa?'))return; arr.splice(i,1); persistLeadTasks(spid,arr,function(){renderTarefas();}); }
+function tkOpen(spid){ const l=_leadBySpid(spid); if(!l)return; const btn=document.querySelector('.nav button[data-v=\"crm\"]'); if(btn)btn.click(); setTimeout(function(){ try{ if(window.openDrawer&&l._sid!=null)window.openDrawer(l._sid); }catch(e){} },80); }
+async function persistLeadTasks(spid,tasksArr,onOk,onFail){
+  if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
+  try{
+    const r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:spid,fields:{tarefasJson:JSON.stringify(tasksArr||[])}})});
+    let j=null; try{ j=await r.json(); }catch(e){}
+    if(r.ok&&j&&j.ok){ const it=_leadBySpid(spid); if(it)it.tarefasJson=JSON.stringify(tasksArr||[]); DATA_VER++; if(onOk)onOk(); toast('Tarefa salva ✓'); }
+    else { toast('Falha ao salvar tarefa — revertido'); if(onFail)onFail(); }
+  }catch(e){ toast('Falha ao salvar tarefa — revertido'); if(onFail)onFail(); }
+}
+window.persistLeadTasks=persistLeadTasks;
+Object.assign(window,{tkToggle:tkToggle,tkDel:tkDel,tkOpen:tkOpen});
+
 /* ---- CADASTRO ---- */
 function elevaiPropTgl(){const p=q('cad-prop').value;const e=q('cad-envio');e.disabled=(p!=='SIM');if(p!=='SIM')e.value='';}
 function populateCadDatalists(){
@@ -626,8 +683,8 @@ function bindNav(){
   document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     const v=b.dataset.v; ACTIVE=v;
-    ['painel','crm','renov','qual','cadastro'].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
-    q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',cadastro:'Cadastro'}[v];
+    ['painel','crm','renov','qual','tarefas','cadastro'].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
+    q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro'}[v];
     q('fltbar').hidden=(v==='cadastro');
     renderActive();
   });
@@ -1171,9 +1228,10 @@ function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.dat
   else ac+=` · <a href="#" onclick="scheduleTask(${curId},${i});return false">📅 ${CAL_FLOW_URL?'reenviar ao calendário':'baixar .ics'}</a>`;
   return `<div class="task"><div class="t1">${ic} ${t.titulo||'(sem título)'} ${t.feito?'✅':''}</div><div class="t2">${t.tipo||'Tarefa'}${t.resp?' · '+t.resp:''}${quando?' · '+quando:''}${t.tipo==='Reunião'?' · '+(t.dur||30)+'min':''}</div>${t.conteudo?`<div class="t2">${t.conteudo}</div>`:''}<div class="t2">${ac}</div></div>`;}
 function onTipo(){const b=el('t-rbox');if(b)b.style.display=(el('t-tipo').value==='Reunião')?'block':'none';}
+function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});if(l&&window.persistLeadTasks)window.persistLeadTasks(l.spid,tasks[id]||[]);}catch(e){}}
 function addTask(id){const tipo=el('t-tipo')?el('t-tipo').value:'Tarefa';
   const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:el('t-email').value,data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false};
-  if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);openDrawer(id);render();}
+  if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);openDrawer(id);render();}
 function _startEnd(t){const dur=t.tipo==='Reunião'?(t.dur||30):30;const base=(t.data||new Date().toISOString().slice(0,10))+'T'+(t.hora||'09:00')+':00';const dt=new Date(base);const e=new Date(dt.getTime()+dur*60000);const f=x=>{const p=n=>(''+n).padStart(2,'0');return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())+'T'+p(x.getHours())+p(x.getMinutes())+'00';};return[f(dt),f(e),dur];}
 function scheduleTask(id,i,silent){const l=LEADS.find(x=>x.id===id),t=(tasks[id]||[])[i];if(!t)return;
   if(t.tipo==='WhatsApp'){if(!silent)waOpen(id,i);return;}
@@ -1190,8 +1248,8 @@ function dlEventICS(l,t,start,end){const uid='eleva-'+Date.now()+'@elevalife';co
   L.push('BEGIN:VALARM','TRIGGER:-PT15M','ACTION:DISPLAY','DESCRIPTION:Lembrete ElevaLife','END:VALARM','END:VEVENT','END:VCALENDAR');
   const b=new Blob([L.join('\r\n')],{type:'text/calendar'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(t.tipo||'evento')+'_elevalife.ics';a.click();}
 function waOpen(id,i){const l=LEADS.find(x=>x.id===id),t=(tasks[id]||[])[i]||{};const msg=encodeURIComponent('Follow-up ElevaLife — '+(l.cliente||'')+' ('+(l.serv||'')+'). '+(t.titulo||''));window.open('https://web.whatsapp.com/send?phone='+WA_NUMBER+'&text='+msg,'_blank');}
-function toggleTask(id,i){tasks[id][i].feito=!tasks[id][i].feito;openDrawer(id);render();}
-function delTask(id,i){tasks[id].splice(i,1);openDrawer(id);render();}
+function toggleTask(id,i){tasks[id][i].feito=!tasks[id][i].feito;persistTasks(id);openDrawer(id);render();}
+function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
 function setStatus(id,v){const l=LEADS.find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
       function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; if(curId===id)openDrawer(id); },
@@ -1204,8 +1262,9 @@ function crmRender(leads){
   LEADS=(leads||[]).map(function(Lx,i){return {
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
-    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte,
+    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, tarefasJson:Lx.tarefasJson,
     alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };});
+  tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}
   render();
 }

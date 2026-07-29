@@ -25,6 +25,7 @@ const LISTS = {
       { name: 'dias', type: 'number' },       // int | null
       { name: 'tc', type: 'text' },
       { name: 'status', type: 'text' },
+      { name: 'tarefasJson', type: 'text' },   // tarefas do lead (JSON) — persistencia da aba Tarefas/CRM
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
