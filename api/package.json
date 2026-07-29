@@ -1,0 +1,8 @@
+{
+  "name": "elevai-api",
+  "version": "1.0.0",
+  "description": "Backend ElevAI — base viva no SharePoint via Microsoft Graph (Leads/Vendas/Eventos).",
+  "main": "",
+  "engines": { "node": "18.x" },
+  "dependencies": {}
+}

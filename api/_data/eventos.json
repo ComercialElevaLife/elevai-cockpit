@@ -1,0 +1,58 @@
+[
+  {
+    "nome": "CBQV",
+    "data": "10/2025",
+    "leads": 118,
+    "reunioes": 4,
+    "propostas": 4,
+    "fechamentos": 1
+  },
+  {
+    "nome": "AMCHAM (CN)",
+    "data": "09/2025",
+    "leads": 6,
+    "reunioes": 1,
+    "propostas": 1,
+    "fechamentos": 0
+  },
+  {
+    "nome": "SINDUSFARMA",
+    "data": "09/2025",
+    "leads": 4,
+    "reunioes": 0,
+    "propostas": 1,
+    "fechamentos": null
+  },
+  {
+    "nome": "AMCHAM (BENCH)",
+    "data": "10/2025",
+    "leads": null,
+    "reunioes": null,
+    "propostas": null,
+    "fechamentos": null
+  },
+  {
+    "nome": "EVENTO JB VP",
+    "data": "11/2025",
+    "leads": null,
+    "reunioes": null,
+    "propostas": null,
+    "fechamentos": 1
+  },
+  {
+    "nome": "CPMT",
+    "data": "05/2026",
+    "leads": 54,
+    "reunioes": null,
+    "propostas": 1,
+    "fechamentos": null
+  },
+  {
+    "nome": "AON",
+    "data": "06/2026",
+    "leads": 5,
+    "reunioes": 1,
+    "propostas": null,
+    "fechamentos": null
+  }
+]
