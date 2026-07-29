@@ -372,10 +372,12 @@ td .up{color:var(--ok);font-weight:700}
   <div class="mh"><h3>Conectar automação (Teams)</h3><button class="x" onclick="document.getElementById('ov3').classList.remove('on')">&times;</button></div>
   <div class="mb">
     <p class="hint" style="margin:0">Cole a <b>HTTP URL</b> do fluxo Power Automate. Fica salva só neste navegador. Deixe vazio para usar o webhook padrão embutido. Este mesmo webhook alimenta o CRM.</p>
-    <label>Webhook URL<input id="cfg-url" type="url" placeholder="https://...powerplatform.com/..."></label>
-    <div class="auto-row">✉️ E-mail <span class="st" id="st-mail">via fluxo</span></div>
-    <div class="auto-row">✅ To-do / Teams <span class="st" id="st-teams">canal COMERCIAL/VENDAS</span></div>
+    <label>Webhook do Teams (URL)<input id="cfg-url" type="url" placeholder="https://...powerplatform.com/..."></label>
+    <label>Fluxo de E-mail / To Do (URL) — opcional<input id="cfg-flow" type="url" placeholder="URL do fluxo Power Automate (e-mail / To Do)"></label>
+    <label>Fluxo de Calendário / Outlook (URL) — opcional<input id="cfg-cal" type="url" placeholder="URL do fluxo que cria evento no Outlook"></label>
+    <div class="auto-row"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:0;text-transform:none"><input type="checkbox" id="cfg-trig-venda" style="width:auto"> Avisar no Teams a cada nova venda</label></div>
     <div class="auto-row">💬 WhatsApp <span class="st">ramo a habilitar no fluxo</span></div>
+    <p class="hint" style="margin:2px 0 0">Sem as URLs de fluxo, as tarefas de calendário baixam um arquivo .ics (já funciona). Com elas, o compromisso é criado direto no Outlook/To Do. As URLs ficam salvas só neste navegador.</p>
   </div>
   <div class="mf"><button class="btn gh" onclick="testWh()">Testar</button><button class="btn" onclick="saveWh()">Salvar conexão</button></div>
 </div></div>
@@ -387,6 +389,11 @@ const DEFAULT_TEAMS_URL="https://defaultcfb770f9787a45dd8368a47edc43fc.12.enviro
 const TEAMS_LS='elevai_teams_webhook';
 window.getTeamsWebhook=function(){try{var v=localStorage.getItem(TEAMS_LS);return (v!==null?v:DEFAULT_TEAMS_URL)||'';}catch(e){return DEFAULT_TEAMS_URL||'';}};
 function setTeamsWebhook(u){try{localStorage.setItem(TEAMS_LS,u||'');}catch(e){}}
+const FLOW_LS='elevai_flow_email', CAL_LS='elevai_flow_cal', TRIGV_LS='elevai_trig_novavenda';
+window.getFlowUrl=function(){try{return localStorage.getItem(FLOW_LS)||'';}catch(e){return '';}};
+window.getCalFlowUrl=function(){try{return localStorage.getItem(CAL_LS)||'';}catch(e){return '';}};
+window.trigNovaVenda=function(){try{return localStorage.getItem(TRIGV_LS)!=='0';}catch(e){return true;}};
+function setFlowCfg(flow,cal,trigVenda){try{localStorage.setItem(FLOW_LS,flow||'');localStorage.setItem(CAL_LS,cal||'');localStorage.setItem(TRIGV_LS,trigVenda?'1':'0');}catch(e){}}
 
 const IPCA=1.041428;
 const brl=n=>'R$ '+(Number(n)||0).toLocaleString('pt-BR',{maximumFractionDigits:0});
@@ -685,7 +692,7 @@ async function reloadData(){
 }
 
 /* ---- automacao (Teams webhook) ---- */
-function saveWh(){setTeamsWebhook(q('cfg-url').value.trim());q('ov3').classList.remove('on');alert(q('cfg-url').value.trim()?'Conexão salva.':'URL removida (usando padrão, se houver).');}
+function saveWh(){setTeamsWebhook(q('cfg-url').value.trim());setFlowCfg(q('cfg-flow').value.trim(),q('cfg-cal').value.trim(),q('cfg-trig-venda').checked);q('ov3').classList.remove('on');alert('Automação salva.');}
 async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.getTeamsWebhook()){alert('Cole a URL primeiro.');return;}
   const ok=await postCard('\U0001f514 Teste ElevAI',[{title:'Origem',value:'Cockpit Comercial'},{title:'Status',value:'conexão ativa'}],'Se este cartão apareceu no canal COMERCIAL/VENDAS, a automação está conectada.');
   alert(ok?'Enviado. Confira o canal no Teams.':'Não foi possível enviar (verifique a URL).');}
@@ -705,7 +712,7 @@ function bindFilters(){
   q('mm-preset').addEventListener('change',()=>applyF(true));
   ['mm-de','mm-ate','mm-cons','mm-serv','mm-icp','mm-prop','mm-tc'].forEach(id=>q(id).addEventListener('change',()=>applyF(false)));
   q('mm-clr').onclick=()=>{q('mm-preset').value='2026';['mm-cons','mm-serv','mm-icp','mm-prop','mm-tc'].forEach(id=>q(id).value='');applyF(true);};
-  q('cfg-btn').onclick=()=>{q('cfg-url').value=(localStorage.getItem(TEAMS_LS)||'');q('ov3').classList.add('on');};
+  q('cfg-btn').onclick=()=>{q('cfg-url').value=(localStorage.getItem(TEAMS_LS)||'');q('cfg-flow').value=(localStorage.getItem(FLOW_LS)||'');q('cfg-cal').value=(localStorage.getItem(CAL_LS)||'');q('cfg-trig-venda').checked=(window.trigNovaVenda?window.trigNovaVenda():true);q('ov3').classList.add('on');};
   q('btn-reload').onclick=()=>reloadData();
   q('ov2').addEventListener('click',e=>{if(e.target.id==='ov2')q('ov2').classList.remove('on');});
   q('ov3').addEventListener('click',e=>{if(e.target.id==='ov3')q('ov3').classList.remove('on');});
@@ -1139,7 +1146,7 @@ const FLOW_URL=''; /* cole aqui a URL do fluxo Power Automate (Fluxo 4). Vazio =
 const CAL_FLOW_URL=''; /* webhook Power Automate que cria evento/reunião no Outlook. Vazio = baixa .ics. */
 const WA_NUMBER='5511978502159'; /* WhatsApp comercial ElevaLife */
 const TIPOS={'Tarefa':'📌','Ligação':'📞','WhatsApp':'🟢','Reunião':'👥'};
-function notifyTeams(l){ var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL)return; const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Good",text:"🎉 Nova venda — ElevaLife"},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")+" ("+(l.tipo||"")+")"},{title:"Valor",value:brl(l.valor)},{title:"Consultor",value:l.cons||"—"},{title:"ICP",value:l.icp||"—"}]}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).catch(()=>{}); }
+function notifyTeams(l){ if(window.trigNovaVenda&&!window.trigNovaVenda())return; var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL)return; const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Good",text:"🎉 Nova venda — ElevaLife"},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")+" ("+(l.tipo||"")+")"},{title:"Valor",value:brl(l.valor)},{title:"Consultor",value:l.cons||"—"},{title:"ICP",value:l.icp||"—"}]}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).catch(()=>{}); }
 function testTeams(){ var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL){alert("Webhook do Teams não configurado.");return;} const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",text:"🎉 TESTE — ElevaLife"},{type:"TextBlock",text:"Se você vê este card no canal Vendas, a integração está OK.",wrap:true}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(r=>alert("Enviado ao Teams (HTTP "+r.status+"). Confira o canal Vendas.")).catch(e=>alert("Falha ao enviar: "+e.message+"\n\nProvavel bloqueio CORS do endpoint do Power Automate (fluxo HTTP nao aceita chamada do navegador). Me avise: troco para um fluxo AGENDADO que le a base e posta no Teams — sem CORS.")); }
 function pad(n){return (''+n).padStart(2,'0');}
 function dlICS(ics){const b=new Blob([ics],{type:'text/calendar;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tarefa_elevalife.ics';a.click();}
@@ -1160,7 +1167,7 @@ function sendToOutlook(id,i){const l=LEADS.find(x=>x.id===id),t=(tasks[id]||[])[
     'SUMMARY:[ElevaLife] '+(t.titulo||'Tarefa comercial'),'DESCRIPTION:'+desc,
     (org?'ATTENDEE;CN='+(t.resp||org)+';ROLE=REQ-PARTICIPANT;RSVP=TRUE:mailto:'+org:'X-RESPONSAVEL:'+(t.resp||'')),
     'BEGIN:VALARM','TRIGGER:-PT9H','ACTION:DISPLAY','DESCRIPTION:Lembrete ElevaLife','END:VALARM','END:VEVENT','END:VCALENDAR'].join('\r\n');
-  if(FLOW_URL){ fetch(FLOW_URL,{method:'POST',body:JSON.stringify({email:org,titulo:t.titulo,prazo:t.prazo,conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor})})
+  var _flow=(window.getFlowUrl?window.getFlowUrl():''); if(_flow){ fetch(_flow,{method:'POST',body:JSON.stringify({email:org,titulo:t.titulo,prazo:t.prazo,conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor})})
       .then(()=>alert('Tarefa enviada ao To Do/Calendário de '+(org||t.resp||'responsável')+'.')).catch(()=>dlICS(ics)); }
   else { dlICS(ics); }
 }
@@ -1251,7 +1258,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
 function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.data.split('-').reverse().join('/')+(t.hora?' '+t.hora:'')):'';
   let ac=`<a href="#" onclick="toggleTask(${curId},${i});return false">${t.feito?'reabrir':'concluir'}</a> · <a href="#" onclick="delTask(${curId},${i});return false">excluir</a>`;
   if(t.tipo==='WhatsApp')ac+=` · <a href="#" onclick="waOpen(${curId},${i});return false">🟢 Abrir WhatsApp</a>`;
-  else ac+=` · <a href="#" onclick="scheduleTask(${curId},${i});return false">📅 ${CAL_FLOW_URL?'reenviar ao calendário':'baixar .ics'}</a>`;
+  else ac+=` · <a href="#" onclick="scheduleTask(${curId},${i});return false">📅 ${(window.getCalFlowUrl&&window.getCalFlowUrl())?'reenviar ao calendário':'baixar .ics'}</a>`;
   return `<div class="task"><div class="t1">${ic} ${t.titulo||'(sem título)'} ${t.feito?'✅':''}</div><div class="t2">${t.tipo||'Tarefa'}${t.resp?' · '+t.resp:''}${quando?' · '+quando:''}${t.tipo==='Reunião'?' · '+(t.dur||30)+'min':''}</div>${t.conteudo?`<div class="t2">${t.conteudo}</div>`:''}<div class="t2">${ac}</div></div>`;}
 function onTipo(){const b=el('t-rbox');if(b)b.style.display=(el('t-tipo').value==='Reunião')?'block':'none';}
 function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});if(l&&window.persistLeadTasks)window.persistLeadTasks(l.spid,tasks[id]||[]);}catch(e){}}
@@ -1273,7 +1280,7 @@ function scheduleTask(id,i,silent){const l=LEADS.find(x=>x.id===id),t=(tasks[id]
   if(t.tipo==='WhatsApp'){if(!silent)waOpen(id,i);return;}
   const se=_startEnd(t);
   const payload={tipo:t.tipo,reuniao:t.tipo==='Reunião',titulo:'['+t.tipo+'] '+(t.titulo||''),organizador:t.email,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
-  if(CAL_FLOW_URL){fetch(CAL_FLOW_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});return;}
+  var _cal=(window.getCalFlowUrl?window.getCalFlowUrl():''); if(_cal){fetch(_cal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});return;}
   if(!t.data){if(!silent)alert('Defina data e hora para gerar o compromisso.');return;}
   dlEventICS(l,t,se[0],se[1]);}
 function dlEventICS(l,t,start,end){const uid='eleva-'+Date.now()+'@elevalife';const stamp=new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
