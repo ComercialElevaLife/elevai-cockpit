@@ -350,6 +350,7 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="cad-cons" type="text" placeholder="Ex.: JB" list="dl-cons" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Serviço<input id="cad-serv" type="text" placeholder="Ex.: ERGO, QM, GL" list="dl-serv" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Fonte<input id="cad-fonte" type="text" placeholder="Ex.: MKT, Cliente ativo" list="dl-fonte" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Campanha<input id="cad-campanha" type="text" placeholder="Ex.: LinkedIn Ago/26" list="dl-campanha" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">ICP<select id="cad-icp" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NA</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Proposta enviada?<select id="cad-prop" onchange="elevaiPropTgl()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO</option><option>SIM</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Status<select id="cad-status" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO ENVIADA</option><option>NA MESA</option><option>VENDIDA</option><option>PERDIDA</option></select></label>
@@ -362,7 +363,7 @@ td .up{color:var(--ok);font-weight:700}
           <span id="cad-msg" style="font-size:13px"></span>
         </div>
       </form>
-      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist>
+      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist>
       <div class="recentes" id="cad-recentes"></div>
     </div>
   </div>
@@ -795,7 +796,7 @@ function renderTarefas(){
 }
 function tkToggle(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; arr[i].feito=!arr[i].feito; persistLeadTasks(spid,arr,function(){renderTarefas();}); }
 function tkDel(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; if(!confirm('Excluir esta tarefa?'))return; arr.splice(i,1); persistLeadTasks(spid,arr,function(){renderTarefas();}); }
-function tkOpen(spid){ const l=_leadBySpid(spid); if(!l)return; const btn=document.querySelector('.nav button[data-v=\"crm\"]'); if(btn)btn.click(); setTimeout(function(){ try{ if(window.openDrawer&&l._sid!=null)window.openDrawer(l._sid); }catch(e){} },80); }
+function tkOpen(spid){ const l=_leadBySpid(spid); if(!l){alert('Lead não encontrado na base.');return;} const mk=document.getElementById('mask'); if(mk)mk.classList.remove('on'); const btn=document.querySelector('.nav button[data-v=\"crm\"]'); if(btn)btn.click(); setTimeout(function(){ try{ if(window.openDrawer&&l._sid!=null)window.openDrawer(l._sid); }catch(e){} },80); }
 async function persistLeadTasks(spid,tasksArr,onOk,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
   try{
@@ -823,7 +824,7 @@ function elevaiPropTgl(){const p=q('cad-prop').value;const e=q('cad-envio');e.di
 function populateCadDatalists(){
   const uniq=k=>Array.from(new Set(STORE.leads.map(x=>x[k]).filter(Boolean))).sort();
   const fill=(id,arr)=>{const dl=q(id);if(!dl)return;dl.innerHTML='';arr.forEach(v=>{const o=document.createElement('option');o.value=v;dl.appendChild(o);});};
-  fill('dl-cons',uniq('cons'));fill('dl-serv',uniq('serv'));fill('dl-fonte',uniq('fonte'));
+  fill('dl-cons',uniq('cons'));fill('dl-serv',uniq('serv'));fill('dl-fonte',uniq('fonte'));fill('dl-campanha',uniq('campanha'));
 }
 function renderRecentes(){
   const box=q('cad-recentes'); if(!box)return;
@@ -837,7 +838,7 @@ async function elevaiCad(ev){
   const dt=g('cad-dt'); const d=dt?new Date(dt+'T00:00:00'):new Date();
   const prop=g('cad-prop'); const envio=g('cad-envio');
   const rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,nome:g('cad-nome')||'',cliente:g('cad-cliente'),
-    unidade:g('cad-unidade')||'',fonte:g('cad-fonte')||'NA',campanha:'NA',icp:g('cad-icp'),
+    unidade:g('cad-unidade')||'',fonte:g('cad-fonte')||'NA',campanha:g('cad-campanha')||'NA',icp:g('cad-icp'),
     cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:parseFloat(g('cad-valor')||'0')||0,
     tipo:g('cad-tipo')||'N/A',envio:(prop==='SIM'&&envio)?envio:null,
     dias:(prop==='SIM'&&envio)?Math.max(0,Math.round((Date.now()-new Date(envio+'T00:00:00').getTime())/864e5)):null,
@@ -994,9 +995,10 @@ class App {
   showModal(title,sub,rows,cols){
     el('m-title').textContent=title; el('m-sub').textContent=sub;
     this._mrows=rows; this._mcols=cols; this._msort={col:null,dir:1}; this._mfilt={}; this._mpage=1; this._mpp=50;
+    const isLeadsH=cols.some(c=>c[0]==='prop');
     const hh='<table class="dt"><thead>'
-      +'<tr>'+cols.map((c,i)=>`<th class="sortable${c[2]==='m'?' r':''}" onclick="app.sortModal(${i})">${c[1]}<span class="ar" id="ar${i}"></span></th>`).join('')+'</tr>'
-      +'<tr class="filt">'+cols.map((c)=>`<th${c[2]==='m'?' class="r"':''}><input class="fin" type="text" oninput="app.filtModal('${c[0]}',this.value)" placeholder="filtrar"></th>`).join('')+'</tr>'
+      +'<tr>'+cols.map((c,i)=>`<th class="sortable${c[2]==='m'?' r':''}" onclick="app.sortModal(${i})">${c[1]}<span class="ar" id="ar${i}"></span></th>`).join('')+(isLeadsH?'<th>Editar</th>':'')+'</tr>'
+      +'<tr class="filt">'+cols.map((c)=>`<th${c[2]==='m'?' class="r"':''}><input class="fin" type="text" oninput="app.filtModal('${c[0]}',this.value)" placeholder="filtrar"></th>`).join('')+(isLeadsH?'<th></th>':'')+'</tr>'
       +'</thead><tbody id="m-tbody"></tbody></table><div class="pgnav" id="m-pg"></div>';
     el('m-body').innerHTML=hh;
     this._applyModal();
@@ -1030,8 +1032,8 @@ class App {
         if(c[2]==='d')v=dBR(v); else if(c[2]==='m')return `<td class="r">${fmtBRL(v)}</td>`;
         if(c[0]==='tipo'&&v&&v!=='N/A')return `<td><span class="tag ${v==='P e R'?'PR':v}">${v}</span></td>`;
         if(c[0]==='status'){ if(isLeads){const os=['VENDIDA','NA MESA','PERDIDA','NÃO ENVIADA'],man=this._manual[r._id]!=null; return `<td><select class="stsel${man?' man':''}" onchange="app.setManual(${r._id},this.value)">`+os.map(x=>`<option${x===v?' selected':''}>${x}</option>`).join('')+`<option value="__rule">↺ regra</option></select></td>`;} const sc={'VENDIDA':'st-v','PERDIDA':'st-p','NA MESA':'st-m','NÃO ENVIADA':'st-n'}[v]||''; return `<td><span class="tag ${sc}">${v??''}</span></td>`;}
-        return `<td>${v??'—'}</td>`;}).join('')+'</tr>';});
-    el('m-tbody').innerHTML=h||`<tr><td colspan="${cols.length}" class="empty">Nenhum registro.</td></tr>`;
+        return `<td>${v??'—'}</td>`;}).join('')+(isLeads?`<td><button class="mh-save" style="margin:0;padding:3px 9px" onclick="tkOpen('${r.__id}')">✏ editar</button></td>`:'')+'</tr>';});
+    el('m-tbody').innerHTML=h||`<tr><td colspan="${cols.length+(isLeads?1:0)}" class="empty">Nenhum registro.</td></tr>`;
     const from=total?st+1:0,to=Math.min(st+pp,total);
     el('m-pg').innerHTML=`<span>${from}–${to} de ${total}</span>`
       +`<button onclick="app.pageModal(1)" ${this._mpage<=1?'disabled':''}>«</button>`
@@ -1405,6 +1407,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Consultor<input id="le-cons" value="${esc(l.cons)}"></label>
      <label>Serviço<input id="le-serv" value="${esc(l.serv)}"></label>
      <label>Fonte<input id="le-fonte" value="${esc(l.fonte)}"></label>
+     <label>Campanha<input id="le-campanha" value="${esc(l.campanha)}"></label>
      <label>ICP<select id="le-icp">${['NA','A','B','C','D'].map(o=>`<option${String(l.icp)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Tipo<select id="le-tipo">${['N/A','P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Valor (R$)<input id="le-valor" type="number" step="0.01" min="0" value="${l.valor||0}"></label>
@@ -1438,7 +1441,7 @@ function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});i
 function saveLead(id){
   var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
   var g=function(x){var e=el(x);return e?e.value:'';};
-  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio')};
+  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio')};
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
@@ -1487,7 +1490,7 @@ function crmRender(leads){
   LEADS=(leads||[]).map(function(Lx,i){return {
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
-    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
+    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
     alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };});
   tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}
