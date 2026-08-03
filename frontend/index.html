@@ -298,6 +298,7 @@ td .up{color:var(--ok);font-weight:700}
         <label style="font-size:11px;color:var(--mut);font-weight:600;display:flex;flex-direction:column;gap:3px">Cliente / serviço
           <input id="rn-fcli" type="search" oninput="renderRenov()" placeholder="filtrar..." style="font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px"></label>
         <button class="btn gh" onclick="reloadData()">↻ Atualizar</button>
+        <button class="btn" onclick="novoContrato()">＋ Novo contrato</button>
       </div>
       <div class="kpis">
         <div class="kpi"><div class="l">Contratos recorrentes</div><div class="v" id="rn-qtd">–</div></div>
@@ -387,24 +388,32 @@ td .up{color:var(--ok);font-weight:700}
   <div class="mf"><button class="btn gh" onclick="document.getElementById('ov2').classList.remove('on')">Fechar</button><button class="btn gh" onclick="mnCopiar()">Copiar texto</button><button class="btn" id="mn-send" onclick="enviarRenovacao()">Enviar por e-mail</button></div>
 </div></div>
 
-<!-- MODAL renovar/editar contrato (manual) -->
+<!-- MODAL novo / renovar / editar / encerrar contrato (manual) -->
 <div class="ov" id="ov4"><div class="mdl">
-  <div class="mh"><h3>Renovar / editar contrato</h3><button class="x" onclick="document.getElementById('ov4').classList.remove('on')">&times;</button></div>
+  <div class="mh"><h3 id="ed-title">Renovar / editar contrato</h3><button class="x" onclick="document.getElementById('ov4').classList.remove('on')">&times;</button></div>
   <div class="mb">
-    <div id="ed-head" style="font-size:13px;font-weight:700;color:#7A2F42"></div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="flex:1;min-width:150px">Nova vigência — início<input id="ed-vi" type="date"></label>
-      <label style="flex:1;min-width:150px">Nova vigência — fim<input id="ed-vf" type="date"></label>
+      <label style="flex:2;min-width:180px">Cliente<input id="ed-cli" type="text" placeholder="Empresa"></label>
+      <label style="flex:1;min-width:120px">Unidade<input id="ed-uni" type="text" placeholder="Cidade/planta"></label>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="flex:1;min-width:150px">Novo valor mensal (R$)<input id="ed-valor" type="number" step="0.01" min="0"></label>
-      <label style="flex:1;min-width:150px">Status do contrato<select id="ed-status"><option>VIGENTE</option><option>ATRASADO</option><option>PRÓX. VENC</option><option>CANCELADO</option></select></label>
+      <label style="flex:1;min-width:150px">CNPJ<input id="ed-cnpj" type="text"></label>
+      <label style="flex:1;min-width:120px">Responsável<input id="ed-resp" type="text"></label>
     </div>
-    <label>Escopo / serviço<input id="ed-serv" type="text" placeholder="Ex.: GL, ERGO, FISIO..."></label>
-    <label>Observação da renovação<textarea id="ed-obs" style="min-height:60px" placeholder="Ex.: renovado por 12 meses, novo escopo inclui..."></textarea></label>
-    <div class="auto-row">💾 Salva direto na base viva — atualiza o contrato, a vigência e o valor. <span class="st">marca como RENOVADO</span></div>
+    <label>Escopo / serviço<input id="ed-serv" type="text" placeholder="Ex.: GL, ERGO, FISIO, Adicional..."></label>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="flex:1;min-width:150px">Vigência — início<input id="ed-vi" type="date"></label>
+      <label style="flex:1;min-width:150px">Vigência — fim<input id="ed-vf" type="date"></label>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="flex:1;min-width:140px">Valor mensal (R$)<input id="ed-valor" type="number" step="0.01" min="0"></label>
+      <label style="flex:1;min-width:140px">Status do contrato<select id="ed-status"><option>VIGENTE</option><option>ATRASADO</option><option>PRÓX. VENC</option><option>CANCELADO</option></select></label>
+    </div>
+    <label>Situação da renovação<select id="ed-sit"><option>PENDENTE</option><option>RENOVADO</option><option>NÃO RENOVARÁ (ENCERRADO)</option><option>EM NEGOCIAÇÃO</option></select></label>
+    <label>Observação<textarea id="ed-obs" style="min-height:56px" placeholder="Ex.: encerrado a pedido do cliente / renovado 12m / adicional de fisioterapia..."></textarea></label>
+    <div class="auto-row">💾 Salva direto na base viva. <span class="st" id="ed-hint">edição</span></div>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov4').classList.remove('on')">Fechar</button><button class="btn" id="ed-save" onclick="salvarRenovacao()">Salvar renovação</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov4').classList.remove('on')">Fechar</button><button class="btn gh" id="ed-dup" onclick="duplicarContrato()">Duplicar p/ novo serviço</button><button class="btn" id="ed-save" onclick="salvarContrato()">Salvar</button></div>
 </div></div>
 
 <!-- MODAL config automacao -->
@@ -611,15 +620,16 @@ function renderRenov(){
   const tb=q('rn-body'); tb.innerHTML='';
   rows.forEach(({c,v},i)=>{
     const nv=(c.novoValor!=null?c.novoValor:(c.ipcaPct!=null?(+c.valorPadrao||0)*(1+(+c.ipcaPct)/100):null));
-    const tr=document.createElement('tr');
-    tr.innerHTML='<td><b>'+(c.cliente||'—')+'</b></td><td>'+(c.servico||'—')+'</td><td>'+(c.unidade||'—')+'</td><td>'+(c.responsavel||'—')+'</td>'+
+    const encerrado=(/N[ÃA]O RENOVAR/i.test(c.statusRenovacao||'')||(c.status||'')==='CANCELADO');
+    const tr=document.createElement('tr'); if(encerrado)tr.style.opacity='.5';
+    tr.innerHTML='<td><b'+(encerrado?' style="text-decoration:line-through"':'')+'>'+(c.cliente||'—')+'</b></td><td>'+(c.servico||'—')+'</td><td>'+(c.unidade||'—')+'</td><td>'+(c.responsavel||'—')+'</td>'+
       '<td>'+_brdate(c.vigFim)+'</td>'+
       '<td><span class="badge" style="background:'+v.cor+'22;color:'+v.cor+';border-color:'+v.cor+'66">'+v.lbl+'</span></td>'+
       '<td>'+brl(c.valorPadrao)+'</td>'+
       '<td>'+(c.ipcaPct!=null?(''+c.ipcaPct+'%'):'<span style="color:#8A7A78">—</span>')+'</td>'+
       '<td class="up">'+(nv!=null?brl(nv):'—')+'</td>'+
       '<td style="font-size:11px">'+(c.statusRenovacao||'PENDENTE')+'</td>'+
-      '<td style="white-space:nowrap"><button class="btn gh" onclick="renovar('+i+')">✉ Minuta</button> <button class="btn gh" onclick="editarContrato('+i+')">✏ Renovar</button></td>';
+      '<td style="white-space:nowrap"><button class="btn gh" onclick="renovar('+i+')">✉ Minuta</button> <button class="btn gh" onclick="editarContrato('+i+')">✏ Editar</button></td>';
     tb.appendChild(tr);
   });
   if(!rows.length)tb.innerHTML='<tr><td colspan="11" class="empty">Nenhum contrato com estes filtros. Se a base estiver vazia, rode a migração em <b>/migrar-contratos.html</b>.</td></tr>';
@@ -681,30 +691,45 @@ async function enviarRenovacao(){
   btn.disabled=false; btn.textContent=old;
 }
 
-/* ---- RENOVACAO/EDICAO MANUAL de contrato (nova vigencia, valor, escopo) ---- */
-function editarContrato(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
-  q('ed-head').textContent=(c.cliente||'')+' · '+(c.servico||'')+(c.unidade?' · '+c.unidade:'');
-  q('ed-vi').value=String(c.vigInicio||'').slice(0,10);
-  q('ed-vf').value=String(c.vigFim||'').slice(0,10);
-  q('ed-valor').value=(+c.valorPadrao||0);
-  q('ed-serv').value=c.servico||'';
-  q('ed-status').value=c.status||'VIGENTE';
-  q('ed-obs').value=c.obsRenovacao||'';
-  q('ov4').classList.add('on');
+/* ---- CONTRATO: criar / editar / renovar / encerrar (manual) ---- */
+let EDMODE='edit';  /* 'edit' = PATCH no contrato atual | 'new' = POST novo contrato */
+function _edFill(c){
+  q('ed-cli').value=c.cliente||''; q('ed-uni').value=c.unidade||''; q('ed-cnpj').value=c.cnpj||''; q('ed-resp').value=c.responsavel||'';
+  q('ed-serv').value=c.servico||''; q('ed-vi').value=String(c.vigInicio||'').slice(0,10); q('ed-vf').value=String(c.vigFim||'').slice(0,10);
+  q('ed-valor').value=(c.valorPadrao!=null?(+c.valorPadrao):''); q('ed-status').value=c.status||'VIGENTE';
+  q('ed-sit').value=c.statusRenovacao||'PENDENTE'; q('ed-obs').value=c.obsRenovacao||'';
 }
-async function salvarRenovacao(){
-  if(!MNC)return;
+function editarContrato(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; EDMODE='edit'; _edFill(o.c);
+  q('ed-title').textContent='Renovar / editar / encerrar contrato'; q('ed-hint').textContent='edição'; q('ed-dup').style.display=''; q('ov4').classList.add('on'); }
+function novoContrato(base){ MNC=null; EDMODE='new';
+  _edFill(base||{status:'VIGENTE',statusRenovacao:'PENDENTE'});
+  q('ed-title').textContent='Novo contrato'; q('ed-hint').textContent='novo'; q('ed-dup').style.display='none'; q('ov4').classList.add('on'); }
+/* duplica os dados atuais do formulário para um NOVO contrato (útil p/ separar serviços do mesmo cliente) */
+function duplicarContrato(){ const base={cliente:q('ed-cli').value,unidade:q('ed-uni').value,cnpj:q('ed-cnpj').value,responsavel:q('ed-resp').value,
+  servico:'',vigInicio:q('ed-vi').value,vigFim:q('ed-vf').value,valorPadrao:'',status:'VIGENTE',statusRenovacao:'PENDENTE',obsRenovacao:''};
+  novoContrato(base); }
+async function salvarContrato(){
   const fields={
-    vigInicio:q('ed-vi').value||'', vigFim:q('ed-vf').value||'',
-    valorPadrao:(+q('ed-valor').value||0), servico:q('ed-serv').value.trim(),
-    status:q('ed-status').value, obsRenovacao:q('ed-obs').value.trim(),
-    statusRenovacao:'RENOVADO'
+    cliente:q('ed-cli').value.trim(), unidade:q('ed-uni').value.trim(), cnpj:q('ed-cnpj').value.trim(), responsavel:q('ed-resp').value.trim(),
+    servico:q('ed-serv').value.trim(), vigInicio:q('ed-vi').value||'', vigFim:q('ed-vf').value||'',
+    valorPadrao:(+q('ed-valor').value||0), status:q('ed-status').value,
+    statusRenovacao:q('ed-sit').value, obsRenovacao:q('ed-obs').value.trim()
   };
+  if(!fields.cliente){ alert('Informe o cliente.'); return; }
   const btn=q('ed-save'); btn.disabled=true; const old=btn.textContent; btn.textContent='Salvando...';
   try{
-    const r=await fetch('/api/contratos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MNC.__id,fields:fields})});
-    const j=await r.json();
-    if(r.ok&&j.ok){ Object.assign(MNC,fields); DATA_VER++; toast('Contrato atualizado ✓'); q('ov4').classList.remove('on'); renderRenov(); }
+    let r,j;
+    if(EDMODE==='new'){
+      r=await fetch('/api/contratos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(fields)});
+      j=await r.json();
+      if(r.ok&&j.ok){ const it=j.item||Object.assign({__id:j.id},fields); (STORE.contratos=STORE.contratos||[]).push(it); }
+    } else {
+      if(!MNC)return;
+      r=await fetch('/api/contratos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MNC.__id,fields:fields})});
+      j=await r.json();
+      if(r.ok&&j.ok){ Object.assign(MNC,fields); }
+    }
+    if(r.ok&&j.ok){ DATA_VER++; toast(EDMODE==='new'?'Contrato criado ✓':'Contrato atualizado ✓'); q('ov4').classList.remove('on'); renderRenov(); }
     else alert('Falha ao salvar: '+((j&&j.error)||('HTTP '+r.status)));
   }catch(e){ alert('Falha de rede: '+e.message); }
   btn.disabled=false; btn.textContent=old;
