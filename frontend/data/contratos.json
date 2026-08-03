@@ -12,7 +12,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -29,7 +29,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -46,7 +46,7 @@
 "dll": 80,
 "ipcaPct": 5.32,
 "novoValor": 25192.81,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -63,7 +63,7 @@
 "dll": 80,
 "ipcaPct": 5.53,
 "novoValor": 12083.19,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -80,7 +80,7 @@
 "dll": 45,
 "ipcaPct": 4.39,
 "novoValor": 5188.18,
-"responsavelEmail": "leonardo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -97,7 +97,7 @@
 "dll": 30,
 "ipcaPct": 4.14,
 "novoValor": 4483.23,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -114,7 +114,7 @@
 "dll": 60,
 "ipcaPct": 4.14,
 "novoValor": 6404.61,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -131,7 +131,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "mell@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -148,7 +148,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "mell@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -165,7 +165,7 @@
 "dll": 65,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -182,7 +182,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 3133.38,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -199,7 +199,7 @@
 "dll": 15,
 "ipcaPct": 4.39,
 "novoValor": 4071.21,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -216,7 +216,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -233,7 +233,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -250,7 +250,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -267,7 +267,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -284,7 +284,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "daniele@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -301,7 +301,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "daniele@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -318,7 +318,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -335,7 +335,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "daniele@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -352,7 +352,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -369,7 +369,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "leonardo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -386,7 +386,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "leonardo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -403,7 +403,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -420,7 +420,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -437,7 +437,7 @@
 "dll": 30,
 "ipcaPct": 3.81,
 "novoValor": 29794.58,
-"responsavelEmail": "cristiano@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -454,7 +454,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -471,7 +471,7 @@
 "dll": 20,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -488,7 +488,7 @@
 "dll": 20,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -505,7 +505,7 @@
 "dll": 20,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -522,7 +522,7 @@
 "dll": 35,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -539,7 +539,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -556,7 +556,7 @@
 "dll": 35,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -573,7 +573,7 @@
 "dll": 35,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -590,7 +590,7 @@
 "dll": 35,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -607,7 +607,7 @@
 "dll": 20,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -624,7 +624,7 @@
 "dll": 45,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -641,7 +641,7 @@
 "dll": 28,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -658,7 +658,7 @@
 "dll": 30,
 "ipcaPct": 4.26,
 "novoValor": 2673.58,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -675,7 +675,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -692,7 +692,7 @@
 "dll": 120,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -709,7 +709,7 @@
 "dll": 120,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -726,7 +726,7 @@
 "dll": 120,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -743,7 +743,7 @@
 "dll": 120,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -760,7 +760,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 10116.43,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -777,7 +777,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -794,7 +794,7 @@
 "dll": 45,
 "ipcaPct": 5.32,
 "novoValor": 13696.93,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -811,7 +811,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -828,7 +828,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -845,7 +845,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -862,7 +862,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -879,7 +879,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -896,7 +896,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -913,7 +913,7 @@
 "dll": 90,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -930,7 +930,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 4923.45,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -947,7 +947,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 2193.23,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -964,7 +964,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 1487.56,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -981,7 +981,7 @@
 "dll": 90,
 "ipcaPct": 4.39,
 "novoValor": 11359.72,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -998,7 +998,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 3455.31,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1015,7 +1015,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 1383.17,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1032,7 +1032,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 3787.27,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1049,7 +1049,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 1152.47,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1066,7 +1066,7 @@
 "dll": 30,
 "ipcaPct": 4.39,
 "novoValor": 460.88,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1083,7 +1083,7 @@
 "dll": 45,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1100,7 +1100,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1117,7 +1117,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1134,7 +1134,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1151,7 +1151,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1168,7 +1168,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1185,7 +1185,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1202,7 +1202,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1219,7 +1219,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1236,7 +1236,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1253,7 +1253,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1270,7 +1270,7 @@
 "dll": 60,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1287,7 +1287,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1304,7 +1304,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1321,7 +1321,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1338,7 +1338,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1355,7 +1355,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1372,7 +1372,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1389,7 +1389,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1406,7 +1406,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1423,7 +1423,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1440,7 +1440,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1457,7 +1457,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1474,7 +1474,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1491,7 +1491,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "alexandre@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1508,7 +1508,7 @@
 "dll": 30,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "dhanilo@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 },
@@ -1525,7 +1525,7 @@
 "dll": 45,
 "ipcaPct": null,
 "novoValor": null,
-"responsavelEmail": "rafael@elevalife.com.br",
+"responsavelEmail": "",
 "statusRenovacao": "PENDENTE",
 "obsRenovacao": ""
 }
