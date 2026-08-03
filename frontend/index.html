@@ -1277,12 +1277,21 @@ function addTask(id){const tipo=el('t-tipo')?el('t-tipo').value:'Tarefa';
   if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);openDrawer(id);render();}
 function _startEnd(t){const dur=t.tipo==='Reunião'?(t.dur||30):30;const base=(t.data||new Date().toISOString().slice(0,10))+'T'+(t.hora||'09:00')+':00';const dt=new Date(base);const e=new Date(dt.getTime()+dur*60000);const f=x=>{const p=n=>(''+n).padStart(2,'0');return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())+'T'+p(x.getHours())+p(x.getMinutes())+'00';};return[f(dt),f(e),dur];}
 function scheduleTask(id,i,silent){const l=LEADS.find(x=>x.id===id),t=(tasks[id]||[])[i];if(!t)return;
-  if(t.tipo==='WhatsApp'){if(!silent)waOpen(id,i);return;}
+  if(t.tipo==='WhatsApp'&&!silent)waOpen(id,i);
+  if(!t.data){if(!silent)alert('Defina data e hora para agendar.');return;}
   const se=_startEnd(t);
-  const payload={tipo:t.tipo,reuniao:t.tipo==='Reunião',titulo:'['+t.tipo+'] '+(t.titulo||''),organizador:t.email,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
-  var _cal=(window.getCalFlowUrl?window.getCalFlowUrl():''); if(_cal){fetch(_cal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)}).catch(()=>{});return;}
-  if(!t.data){if(!silent)alert('Defina data e hora para gerar o compromisso.');return;}
-  dlEventICS(l,t,se[0],se[1]);}
+  const payload={tipo:t.tipo,titulo:(t.titulo||''),organizador:(t.email||''),responsavelEmail:(t.email||''),participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
+  fetch('/api/agenda',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(r=>r.json().catch(()=>({}))).then(j=>{
+      if(j&&j.ok){ if(window.toast)window.toast(t.tipo==='Reunião'?'Reunião no Teams criada e convite enviado ✓':(t.tipo==='Ligação'?'Ligação agendada no calendário ✓':'Tarefa lançada no calendário do responsável ✓')); }
+      else { _agendaFallback(l,t,se,silent); }
+    }).catch(function(){ _agendaFallback(l,t,se,silent); });
+}
+function _agendaFallback(l,t,se,silent){
+  var _cal=(window.getCalFlowUrl?window.getCalFlowUrl():'');
+  if(_cal){ fetch(_cal,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tipo:t.tipo,reuniao:t.tipo==='Reunião',titulo:'['+t.tipo+'] '+(t.titulo||''),organizador:t.email,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor})}).catch(function(){}); return; }
+  if(!silent) dlEventICS(l,t,se[0],se[1]);
+}
 function dlEventICS(l,t,start,end){const uid='eleva-'+Date.now()+'@elevalife';const stamp=new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
   const desc=('Tipo: '+t.tipo+' | Lead: '+(l.cliente||'')+' - '+(l.unidade||'')+' | Servico: '+(l.serv||'')+' | '+(t.conteudo||'')).replace(/[\n\r]/g,' ');
   const att=((t.tipo==='Reunião'?(t.part||t.email):t.email)||'').split(',').map(x=>x.trim()).filter(Boolean);
