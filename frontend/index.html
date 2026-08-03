@@ -377,6 +377,7 @@ td .up{color:var(--ok);font-weight:700}
       <label style="flex:1;min-width:110px">IPCA (%)<input id="mn-ipca" type="number" step="0.01" oninput="mnRecalc()"></label>
       <label style="flex:1;min-width:150px">Novo valor<input id="mn-novo" type="text" readonly></label>
     </div>
+    <div id="mn-ipcainfo" style="font-size:11px;color:#8A7A78;margin-top:-4px"></div>
     <label>E-mail do responsável (destinatário) — digite manualmente<input id="mn-para" type="email" placeholder="e-mail do responsável (fica salvo neste contrato)"></label>
     <label>Assunto<input id="mn-assunto" type="text"></label>
     <label>Texto do e-mail — editável <a href="#" onclick="mnMontar();return false" style="margin-left:6px;font-size:11px;font-weight:600">↻ montar com os valores</a>
@@ -384,6 +385,26 @@ td .up{color:var(--ok);font-weight:700}
     <div class="auto-row">✉️ Envia ao <b>responsável</b>; cópia automática para <b>leonardo@</b> e <b>rafael@</b>. <span class="st">não vai ao cliente</span></div>
   </div>
   <div class="mf"><button class="btn gh" onclick="document.getElementById('ov2').classList.remove('on')">Fechar</button><button class="btn gh" onclick="mnCopiar()">Copiar texto</button><button class="btn" id="mn-send" onclick="enviarRenovacao()">Enviar por e-mail</button></div>
+</div></div>
+
+<!-- MODAL renovar/editar contrato (manual) -->
+<div class="ov" id="ov4"><div class="mdl">
+  <div class="mh"><h3>Renovar / editar contrato</h3><button class="x" onclick="document.getElementById('ov4').classList.remove('on')">&times;</button></div>
+  <div class="mb">
+    <div id="ed-head" style="font-size:13px;font-weight:700;color:#7A2F42"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="flex:1;min-width:150px">Nova vigência — início<input id="ed-vi" type="date"></label>
+      <label style="flex:1;min-width:150px">Nova vigência — fim<input id="ed-vf" type="date"></label>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="flex:1;min-width:150px">Novo valor mensal (R$)<input id="ed-valor" type="number" step="0.01" min="0"></label>
+      <label style="flex:1;min-width:150px">Status do contrato<select id="ed-status"><option>VIGENTE</option><option>ATRASADO</option><option>PRÓX. VENC</option><option>CANCELADO</option></select></label>
+    </div>
+    <label>Escopo / serviço<input id="ed-serv" type="text" placeholder="Ex.: GL, ERGO, FISIO..."></label>
+    <label>Observação da renovação<textarea id="ed-obs" style="min-height:60px" placeholder="Ex.: renovado por 12 meses, novo escopo inclui..."></textarea></label>
+    <div class="auto-row">💾 Salva direto na base viva — atualiza o contrato, a vigência e o valor. <span class="st">marca como RENOVADO</span></div>
+  </div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov4').classList.remove('on')">Fechar</button><button class="btn" id="ed-save" onclick="salvarRenovacao()">Salvar renovação</button></div>
 </div></div>
 
 <!-- MODAL config automacao -->
@@ -598,18 +619,32 @@ function renderRenov(){
       '<td>'+(c.ipcaPct!=null?(''+c.ipcaPct+'%'):'<span style="color:#8A7A78">—</span>')+'</td>'+
       '<td class="up">'+(nv!=null?brl(nv):'—')+'</td>'+
       '<td style="font-size:11px">'+(c.statusRenovacao||'PENDENTE')+'</td>'+
-      '<td><button class="btn gh" onclick="renovar('+i+')">Renovar</button></td>';
+      '<td style="white-space:nowrap"><button class="btn gh" onclick="renovar('+i+')">✉ Minuta</button> <button class="btn gh" onclick="editarContrato('+i+')">✏ Renovar</button></td>';
     tb.appendChild(tr);
   });
   if(!rows.length)tb.innerHTML='<tr><td colspan="11" class="empty">Nenhum contrato com estes filtros. Se a base estiver vazia, rode a migração em <b>/migrar-contratos.html</b>.</td></tr>';
 }
-let MNC=null;  /* contrato em edicao na minuta */
-function renovar(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
+let MNC=null;  /* contrato em edicao (minuta ou renovacao manual) */
+let IPCA_OFICIAL=null;  /* cache: {pct,ref} | false */
+async function loadIpcaOficial(){
+  if(IPCA_OFICIAL!==null) return IPCA_OFICIAL;
+  try{ const r=await fetch('/api/ipca'); const j=await r.json();
+    IPCA_OFICIAL=(j&&j.ok&&isFinite(j.pct))?{pct:j.pct,ref:j.referencia||''}:false; }
+  catch(e){ IPCA_OFICIAL=false; }
+  return IPCA_OFICIAL;
+}
+async function renovar(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
   q('mn-valor').value=(+c.valorPadrao||0);
   q('mn-ipca').value=(c.ipcaPct!=null?c.ipcaPct:'');
   q('mn-para').value=c.responsavelEmail||'';
   q('mn-assunto').value='Renovação de contrato — '+(c.cliente||'')+' ('+(c.servico||'')+')';
-  mnMontar(); q('ov2').classList.add('on');
+  q('mn-ipcainfo').textContent='Buscando IPCA no IBGE...';
+  mnRecalc(); mnMontar(); q('ov2').classList.add('on');
+  const off=await loadIpcaOficial();
+  if(off){ q('mn-ipca').value=off.pct;
+    q('mn-ipcainfo').innerHTML='IPCA IBGE (acumulado 12 meses'+(off.ref?', ref. '+off.ref:'')+'): <b>'+off.pct+'%</b> — pré-preenchido. Confirme ou digite outro valor.'; }
+  else { q('mn-ipcainfo').textContent='IPCA do IBGE indisponível agora — informe o percentual manualmente.'; }
+  mnRecalc(); mnMontar();
 }
 function mnRecalc(){ const val=+q('mn-valor').value||0, ip=parseFloat(q('mn-ipca').value); const nv=isNaN(ip)?val:val*(1+ip/100);
   q('mn-novo').value=brl(nv); return nv; }
@@ -642,6 +677,35 @@ async function enviarRenovacao(){
         Object.assign(MNC,fields); DATA_VER++; }catch(e){}
       q('ov2').classList.remove('on'); renderRenov();
     } else { alert('Falha ao enviar: '+((j&&j.error)||('HTTP '+r.status))); }
+  }catch(e){ alert('Falha de rede: '+e.message); }
+  btn.disabled=false; btn.textContent=old;
+}
+
+/* ---- RENOVACAO/EDICAO MANUAL de contrato (nova vigencia, valor, escopo) ---- */
+function editarContrato(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
+  q('ed-head').textContent=(c.cliente||'')+' · '+(c.servico||'')+(c.unidade?' · '+c.unidade:'');
+  q('ed-vi').value=String(c.vigInicio||'').slice(0,10);
+  q('ed-vf').value=String(c.vigFim||'').slice(0,10);
+  q('ed-valor').value=(+c.valorPadrao||0);
+  q('ed-serv').value=c.servico||'';
+  q('ed-status').value=c.status||'VIGENTE';
+  q('ed-obs').value=c.obsRenovacao||'';
+  q('ov4').classList.add('on');
+}
+async function salvarRenovacao(){
+  if(!MNC)return;
+  const fields={
+    vigInicio:q('ed-vi').value||'', vigFim:q('ed-vf').value||'',
+    valorPadrao:(+q('ed-valor').value||0), servico:q('ed-serv').value.trim(),
+    status:q('ed-status').value, obsRenovacao:q('ed-obs').value.trim(),
+    statusRenovacao:'RENOVADO'
+  };
+  const btn=q('ed-save'); btn.disabled=true; const old=btn.textContent; btn.textContent='Salvando...';
+  try{
+    const r=await fetch('/api/contratos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MNC.__id,fields:fields})});
+    const j=await r.json();
+    if(r.ok&&j.ok){ Object.assign(MNC,fields); DATA_VER++; toast('Contrato atualizado ✓'); q('ov4').classList.remove('on'); renderRenov(); }
+    else alert('Falha ao salvar: '+((j&&j.error)||('HTTP '+r.status)));
   }catch(e){ alert('Falha de rede: '+e.message); }
   btn.disabled=false; btn.textContent=old;
 }
