@@ -42,6 +42,15 @@ function makeHandler(kind) {
         return await doUpdate(context, req, kind, listId, itemId, body.fields || {});
       }
 
+      if (method === 'DELETE') {
+        const body = req.body || {};
+        const itemId = body.id || body.__id || (req.query && req.query.id);
+        if (!itemId) { context.res = json(400, { ok: false, error: 'faltou id do item' }); return; }
+        await g.deleteItem(listId, itemId);
+        context.res = json(200, { ok: true, kind, deleted: itemId });
+        return;
+      }
+
       context.res = json(405, { ok: false, error: 'Método não suportado' });
     } catch (e) {
       context.res = json(e.status || 500, { ok: false, error: String(e.message || e), body: e.body });
