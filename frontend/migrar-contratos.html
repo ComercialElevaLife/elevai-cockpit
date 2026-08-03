@@ -1,0 +1,47 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Migrar contratos — ElevAI</title>
+<style>
+ body{font-family:'Segoe UI',system-ui,sans-serif;background:#F5EFEA;color:#3D2E30;margin:0;padding:32px}
+ .card{max-width:680px;margin:0 auto;background:#fff;border:1px solid #EADDE0;border-radius:16px;padding:26px 28px;box-shadow:0 4px 18px rgba(122,47,66,.08)}
+ h1{color:#7A2F42;font-size:20px;margin:0 0 6px}
+ p{font-size:14px;line-height:1.55;color:#5b4a4c}
+ button{background:#B23A48;color:#fff;border:0;border-radius:9px;padding:12px 22px;font-weight:700;font-size:14px;cursor:pointer}
+ button:disabled{opacity:.5;cursor:default}
+ pre{background:#FBF6F2;border:1px solid #EADDE0;border-radius:8px;padding:12px;font-size:12px;white-space:pre-wrap;max-height:340px;overflow:auto}
+ .ok{color:#2E5F62;font-weight:700}.err{color:#B23A48;font-weight:700}
+</style></head><body>
+<div class="card">
+ <h1>Migração dos contratos recorrentes</h1>
+ <p>Esta página carrega os <b>90 contratos</b> da planilha de vigência para a base viva
+ (lista <b>Contratos_Comercial</b> no SharePoint). Rodar de novo é seguro: o modo
+ <b>fresh</b> (recarga limpa) apaga o que estiver na lista e insere tudo novamente,
+ então não gera duplicados.</p>
+ <p><b>Passo único:</b> estando logado no Cockpit, clique no botão abaixo e aguarde.</p>
+ <p><button id="go" onclick="run()">Migrar contratos agora</button></p>
+ <pre id="log">Pronto para migrar.</pre>
+</div>
+<script>
+const log=document.getElementById('log');
+function put(s,cls){log.innerHTML+= '\n'+(cls?('<span class="'+cls+'">'+s+'</span>'):s);log.scrollTop=log.scrollHeight;}
+async function run(){
+  const btn=document.getElementById('go'); btn.disabled=true; log.textContent='Iniciando...';
+  try{
+    put('Carregando data/contratos.json ...');
+    const dj=await (await fetch('./data/contratos.json',{cache:'no-store'})).json();
+    put('Contratos no arquivo: '+dj.length);
+    put('Enviando para /api/migrate?fresh=1 (pode levar ~30s) ...');
+    const r=await fetch('/api/migrate?fresh=1',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contratos:dj})});
+    const j=await r.json();
+    put(JSON.stringify(j,null,1));
+    const rep=j&&j.report&&j.report.contratos;
+    if(r.ok&&j.ok&&rep&&rep.inserted){ put('✔ Inseridos '+rep.inserted+' de '+rep.total+' contratos.','ok'); }
+    else { put('⚠ Verifique o relatório acima.','err'); }
+    put('Conferindo /api/contratos ...');
+    const cj=await (await fetch('/api/contratos',{cache:'no-store'})).json();
+    put('Total agora na base viva: '+(cj.count!=null?cj.count:'?')+' contratos.', (cj.count===dj.length?'ok':'err'));
+    put('Pronto. Pode fechar esta aba e abrir a aba Renovações no Cockpit.','ok');
+  }catch(e){ put('Falha: '+(e&&e.message||e),'err'); }
+  btn.disabled=false;
+}
+</script></body></html>

@@ -289,14 +289,24 @@ td .up{color:var(--ok);font-weight:700}
 
   <section class="view" id="view-renov" hidden>
     <div class="wrap">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:14px">
+        <label style="font-size:11px;color:var(--mut);font-weight:600;display:flex;flex-direction:column;gap:3px">Vigência
+          <select id="rn-fvig" onchange="renderRenov()" style="font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff">
+            <option value="">Todas</option><option value="venc">Vencidos</option><option value="90">Vence em ≤90 dias</option><option value="vig">Vigentes</option></select></label>
+        <label style="font-size:11px;color:var(--mut);font-weight:600;display:flex;flex-direction:column;gap:3px">Responsável
+          <select id="rn-fresp" onchange="renderRenov()" style="font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff"><option value="">Todos</option></select></label>
+        <label style="font-size:11px;color:var(--mut);font-weight:600;display:flex;flex-direction:column;gap:3px">Cliente / serviço
+          <input id="rn-fcli" type="search" oninput="renderRenov()" placeholder="filtrar..." style="font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px"></label>
+        <button class="btn gh" onclick="reloadData()">↻ Atualizar</button>
+      </div>
       <div class="kpis">
         <div class="kpi"><div class="l">Contratos recorrentes</div><div class="v" id="rn-qtd">–</div></div>
-        <div class="kpi"><div class="l">Base atual (Σ)</div><div class="v" id="rn-base">–</div></div>
-        <div class="kpi"><div class="l">Reajuste IPCA (12m)</div><div class="v">+4,14%</div></div>
-        <div class="kpi"><div class="l">Base reajustada (Σ)</div><div class="v" id="rn-novo">–</div></div>
+        <div class="kpi"><div class="l">Vencidos</div><div class="v" id="rn-venc" style="color:#B0463F">–</div></div>
+        <div class="kpi"><div class="l">Vencem em ≤90 dias</div><div class="v" id="rn-prox" style="color:#8A5A2B">–</div></div>
+        <div class="kpi"><div class="l">Base mensal (Σ)</div><div class="v" id="rn-base">–</div></div>
       </div>
-      <table><thead><tr><th>Cliente</th><th>Serviço</th><th>Consultor</th><th>ICP</th><th>Valor atual</th><th>Novo valor (+4,14%)</th><th></th></tr></thead><tbody id="rn-body"></tbody></table>
-      <p class="hint">Fator IPCA composto real (abr/2025–mar/2026): <b>1,041428</b>. A minuta é montada automaticamente; o <b>envio ao cliente exige sua validação final</b>.</p>
+      <table><thead><tr><th>Cliente</th><th>Serviço</th><th>Unidade</th><th>Resp.</th><th>Vig. fim</th><th>Vigência</th><th>Valor atual</th><th>IPCA</th><th>Novo valor</th><th>Renovação</th><th></th></tr></thead><tbody id="rn-body"></tbody></table>
+      <p class="hint">Vigência calculada pela <b>data de fim do contrato</b> vs. hoje. O <b>IPCA</b> vem da planilha quando já calculado (aniversário do contrato); quando não, você informa na minuta. <b>Renovar</b> abre a minuta editável e permite <b>enviar por e-mail ao responsável</b> (com cópia para leonardo@ e rafael@). Não vai ao cliente.</p>
     </div>
   </section>
 
@@ -358,13 +368,22 @@ td .up{color:var(--ok);font-weight:700}
   </section>
 </div></div>
 
-<!-- MODAL minuta -->
+<!-- MODAL minuta de renovacao (editavel) -->
 <div class="ov" id="ov2"><div class="mdl">
   <div class="mh"><h3>Minuta de renovação</h3><button class="x" onclick="document.getElementById('ov2').classList.remove('on')">&times;</button></div>
-  <div class="mb"><div id="min-txt" class="mono"></div>
-    <div class="auto-row">✉️ E-mail ao cliente <span class="st">requer validação</span></div>
+  <div class="mb">
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+      <label style="flex:1;min-width:150px">Valor atual (R$)<input id="mn-valor" type="number" step="0.01" oninput="mnRecalc()"></label>
+      <label style="flex:1;min-width:110px">IPCA (%)<input id="mn-ipca" type="number" step="0.01" oninput="mnRecalc()"></label>
+      <label style="flex:1;min-width:150px">Novo valor<input id="mn-novo" type="text" readonly></label>
+    </div>
+    <label>E-mail do responsável (destinatário)<input id="mn-para" type="email" placeholder="nome@elevalife.com.br"></label>
+    <label>Assunto<input id="mn-assunto" type="text"></label>
+    <label>Texto do e-mail — editável <a href="#" onclick="mnMontar();return false" style="margin-left:6px;font-size:11px;font-weight:600">↻ montar com os valores</a>
+      <textarea id="mn-corpo" style="min-height:200px"></textarea></label>
+    <div class="auto-row">✉️ Envia ao <b>responsável</b>; cópia automática para <b>leonardo@</b> e <b>rafael@</b>. <span class="st">não vai ao cliente</span></div>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov2').classList.remove('on')">Fechar</button><button class="btn" onclick="enviarValidacao()">Enviar para validação</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov2').classList.remove('on')">Fechar</button><button class="btn gh" onclick="mnCopiar()">Copiar texto</button><button class="btn" id="mn-send" onclick="enviarRenovacao()">Enviar por e-mail</button></div>
 </div></div>
 
 <!-- MODAL config automacao -->
@@ -399,7 +418,7 @@ const IPCA=1.041428;
 const brl=n=>'R$ '+(Number(n)||0).toLocaleString('pt-BR',{maximumFractionDigits:0});
 const q=id=>document.getElementById(id);
 
-let STORE={leads:[],vendas:[],eventos:[]};
+let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
 let SRC='local';
 let ACTIVE='painel';
 let filteredLeads=[], filteredVendas=[];
@@ -443,8 +462,9 @@ async function loadStore(){
     if(rs.every(x=>x&&x.ok)){
       const j=await Promise.all(rs.map(x=>x.json()));
       if(j[0]&&j[0].items){
-        STORE={leads:j[0].items||[],vendas:(j[1]&&j[1].items)||[],eventos:(j[2]&&j[2].items)||[]};
+        STORE={leads:j[0].items||[],vendas:(j[1]&&j[1].items)||[],eventos:(j[2]&&j[2].items)||[],contratos:[]};
         SRC='api'; ok=true;
+        try{ const cr=await fetch('/api/contratos'); if(cr&&cr.ok){ const cj=await cr.json(); STORE.contratos=(cj&&cj.items)||[]; } }catch(e){}
       }
     }
   }catch(e){}
@@ -542,25 +562,89 @@ function applyF(fromPreset){
   saveF(); compute(); renderActive();
 }
 
-/* ---- RENOVACOES (derivadas de vendas tipo R, do STORE) ---- */
-function renderRenov(){
-  const rows=filteredVendas.filter(v=>v.tipo==='R');
-  const base=rows.reduce((s,r)=>s+(r.valor||0),0), novo=base*IPCA;
-  q('rn-qtd').textContent=rows.length; q('rn-base').textContent=brl(base); q('rn-novo').textContent=brl(novo);
-  const tb=q('rn-body'); tb.innerHTML='';
-  rows.forEach((r,i)=>{const nv=(r.valor||0)*IPCA; const tr=document.createElement('tr');
-    tr.innerHTML='<td><b>'+(r.cliente||'—')+'</b>'+(r.unidade?' · '+r.unidade:'')+'</td><td>'+(r.serv||'—')+'</td><td>'+(r.cons||'—')+'</td><td>'+(r.icp||'–')+'</td><td>'+brl(r.valor)+'</td><td class="up">'+brl(nv)+'</td><td><button class="btn gh" onclick="minuta('+i+')">Gerar minuta</button></td>';
-    tb.appendChild(tr);});
-  if(!rows.length)tb.innerHTML='<tr><td colspan="7" class="empty">Nenhum contrato recorrente nos filtros atuais.</td></tr>';
-  q('rn-body').dataset.rows=JSON.stringify(rows);
+/* ---- RENOVACOES (contratos recorrentes, da base viva /api/contratos) ---- */
+let RNVIEW=[];  /* linhas exibidas (para a acao Renovar por indice) */
+function _daysTo(iso){ if(!iso)return null; const t=new Date(String(iso).slice(0,10)+'T00:00:00'); if(isNaN(t))return null; const hoje=new Date(); hoje.setHours(0,0,0,0); return Math.round((t-hoje)/86400000); }
+function _brdate(iso){ if(!iso)return '—'; const m=String(iso).match(/(\d{4})-(\d{2})-(\d{2})/); return m?(m[3]+'/'+m[2]+'/'+m[1]):iso; }
+function _vigInfo(c){ const d=_daysTo(c.vigFim);
+  if(d===null) return {k:'?',lbl:'—',cor:'#8A7A78',d:null};
+  if(d<0)   return {k:'venc',lbl:'Vencido há '+(-d)+'d',cor:'#B0463F',d:d};
+  if(d<=90) return {k:'90',lbl:'Vence em '+d+'d',cor:'#8A5A2B',d:d};
+  return {k:'vig',lbl:'Vigente ('+d+'d)',cor:'#2E5F62',d:d};
 }
-function minuta(i){const rows=JSON.parse(q('rn-body').dataset.rows||'[]'); const r=rows[i]; if(!r)return; const nv=(r.valor||0)*IPCA;
-  const txt='Prezados '+r.cliente+',\n\nConforme contrato de serviço de '+(r.serv||'')+', informamos o reajuste anual pelo IPCA acumulado (12 meses): +4,14%.\n\nValor atual: '+brl(r.valor)+'\nNovo valor: '+brl(nv)+'\nVigência: renovação automática.\n\nPermanecemos à disposição.\nEquipe ElevaLife · Ergonomos';
-  q('min-txt').textContent=txt; q('ov2').classList.add('on');}
-function enviarValidacao(){const txt=q('min-txt').textContent;
-  postCard('\U0001f504 Renovação p/ validação',[{title:'Etapa',value:'Aguardando validação interna'},{title:'Regra',value:'IPCA +4,14%'}],txt).then(ok=>{
-    alert(window.getTeamsWebhook()?(ok?'Enviado ao Teams para SUA validação interna. Não foi ao cliente.':'Falha ao enviar — revise ⚙ Automação.'):'Conecte a automação em ⚙ Automação primeiro.');
-    q('ov2').classList.remove('on');});}
+function renderRenov(){
+  const all=(STORE.contratos||[]);
+  const sel=q('rn-fresp');
+  if(sel && sel.dataset.n!==String(all.length)){ const cur=sel.value; const rs=[...new Set(all.map(c=>c.responsavel).filter(Boolean))].sort();
+    sel.innerHTML='<option value="">Todos</option>'+rs.map(r=>'<option>'+r+'</option>').join(''); sel.value=cur; sel.dataset.n=String(all.length); }
+  const fv=(q('rn-fvig')?q('rn-fvig').value:''), fr=(q('rn-fresp')?q('rn-fresp').value:''), fc=((q('rn-fcli')?q('rn-fcli').value:'')||'').trim().toLowerCase();
+  let rows=all.map(c=>({c,v:_vigInfo(c)}));
+  if(fv) rows=rows.filter(x=>x.v.k===fv);
+  if(fr) rows=rows.filter(x=>x.c.responsavel===fr);
+  if(fc) rows=rows.filter(x=>[x.c.cliente,x.c.servico,x.c.unidade].some(s=>String(s||'').toLowerCase().includes(fc)));
+  rows.sort((a,b)=>((a.v.d==null?1e9:a.v.d)-(b.v.d==null?1e9:b.v.d)));
+  RNVIEW=rows;
+  const venc=all.filter(c=>_vigInfo(c).k==='venc').length, prox=all.filter(c=>_vigInfo(c).k==='90').length;
+  const base=all.reduce((s,c)=>s+(+c.valorPadrao||0),0);
+  q('rn-qtd').textContent=all.length; q('rn-venc').textContent=venc; q('rn-prox').textContent=prox; q('rn-base').textContent=brl(base);
+  const tb=q('rn-body'); tb.innerHTML='';
+  rows.forEach(({c,v},i)=>{
+    const nv=(c.novoValor!=null?c.novoValor:(c.ipcaPct!=null?(+c.valorPadrao||0)*(1+(+c.ipcaPct)/100):null));
+    const tr=document.createElement('tr');
+    tr.innerHTML='<td><b>'+(c.cliente||'—')+'</b></td><td>'+(c.servico||'—')+'</td><td>'+(c.unidade||'—')+'</td><td>'+(c.responsavel||'—')+'</td>'+
+      '<td>'+_brdate(c.vigFim)+'</td>'+
+      '<td><span class="badge" style="background:'+v.cor+'22;color:'+v.cor+';border-color:'+v.cor+'66">'+v.lbl+'</span></td>'+
+      '<td>'+brl(c.valorPadrao)+'</td>'+
+      '<td>'+(c.ipcaPct!=null?(''+c.ipcaPct+'%'):'<span style="color:#8A7A78">—</span>')+'</td>'+
+      '<td class="up">'+(nv!=null?brl(nv):'—')+'</td>'+
+      '<td style="font-size:11px">'+(c.statusRenovacao||'PENDENTE')+'</td>'+
+      '<td><button class="btn gh" onclick="renovar('+i+')">Renovar</button></td>';
+    tb.appendChild(tr);
+  });
+  if(!rows.length)tb.innerHTML='<tr><td colspan="11" class="empty">Nenhum contrato com estes filtros. Se a base estiver vazia, rode a migração em <b>/migrar-contratos.html</b>.</td></tr>';
+}
+let MNC=null;  /* contrato em edicao na minuta */
+function renovar(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
+  q('mn-valor').value=(+c.valorPadrao||0);
+  q('mn-ipca').value=(c.ipcaPct!=null?c.ipcaPct:'');
+  q('mn-para').value=c.responsavelEmail||'';
+  q('mn-assunto').value='Renovação de contrato — '+(c.cliente||'')+' ('+(c.servico||'')+')';
+  mnMontar(); q('ov2').classList.add('on');
+}
+function mnRecalc(){ const val=+q('mn-valor').value||0, ip=parseFloat(q('mn-ipca').value); const nv=isNaN(ip)?val:val*(1+ip/100);
+  q('mn-novo').value=brl(nv); return nv; }
+function mnMontar(){ if(!MNC)return; const c=MNC; const val=+q('mn-valor').value||0, ip=q('mn-ipca').value; const nv=mnRecalc();
+  q('mn-corpo').value='Prezado(a) '+(c.responsavel||'')+',\n\n'+
+    'Segue proposta de renovação do contrato recorrente abaixo, para sua conferência e envio ao cliente:\n\n'+
+    'Cliente: '+(c.cliente||'')+'\nServiço: '+(c.servico||'')+'\nUnidade: '+(c.unidade||'')+'\n'+
+    'Vigência atual até: '+_brdate(c.vigFim)+'\n\n'+
+    'Valor atual: '+brl(val)+'\n'+
+    'Reajuste IPCA'+(ip!==''?(' ('+ip+'%)'):' (a definir)')+'\n'+
+    'Novo valor proposto: '+brl(nv)+'\n\n'+
+    'Prazo de pagamento (DLL): '+(c.dll!=null?c.dll+' dias':'—')+'\n\n'+
+    'Em caso de aprovação, seguimos com a minuta de aditamento.\n\nAtenciosamente,\nEquipe Comercial · ElevaLife — Ergonomos';
+}
+function mnCopiar(){ const t=q('mn-corpo'); t.select(); try{document.execCommand('copy');toast('Texto copiado ✓');}catch(e){} }
+async function enviarRenovacao(){
+  if(!MNC)return; const para=q('mn-para').value.trim();
+  if(!para||para.indexOf('@')<0){ alert('Informe um e-mail válido do responsável.'); return; }
+  if(!confirm('Enviar a minuta por e-mail para '+para+'\ncom cópia para leonardo@ e rafael@elevalife.com.br?')) return;
+  const btn=q('mn-send'); btn.disabled=true; const old=btn.textContent; btn.textContent='Enviando...';
+  try{
+    const r=await fetch('/api/enviar-renovacao',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({para:para,assunto:q('mn-assunto').value,corpo:q('mn-corpo').value})});
+    const j=await r.json();
+    if(r.ok&&j.ok){ toast('E-mail enviado ✓');
+      const nv=mnRecalc(), ip=parseFloat(q('mn-ipca').value);
+      const fields={statusRenovacao:'ENVIADA AO RESPONSÁVEL',novoValor:Math.round(nv*100)/100};
+      if(!isNaN(ip))fields.ipcaPct=ip;
+      try{ await fetch('/api/contratos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:MNC.__id,fields:fields})});
+        Object.assign(MNC,fields); DATA_VER++; }catch(e){}
+      q('ov2').classList.remove('on'); renderRenov();
+    } else { alert('Falha ao enviar: '+((j&&j.error)||('HTTP '+r.status))); }
+  }catch(e){ alert('Falha de rede: '+e.message); }
+  btn.disabled=false; btn.textContent=old;
+}
 
 /* ---- QUALIFICACAO (score dos leads vivos, do STORE) ---- */
 function scoreLead(l){let s=0;const st=l.status;
@@ -704,7 +788,7 @@ function bindNav(){
     const v=b.dataset.v; ACTIVE=v;
     ['painel','crm','renov','qual','tarefas','cadastro'].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
     q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro'}[v];
-    q('fltbar').hidden=(v==='cadastro');
+    q('fltbar').hidden=(v==='cadastro'||v==='renov');
     renderActive();
   });
 }

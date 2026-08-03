@@ -65,6 +65,29 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
+  contratos: {
+    displayName: 'Contratos_Comercial',
+    titleFrom: 'cliente',
+    columns: [
+      { name: 'cnpj', type: 'text' },
+      { name: 'cliente', type: 'text' },
+      { name: 'servico', type: 'text' },
+      { name: 'unidade', type: 'text' },
+      { name: 'vigInicio', type: 'text' },        // YYYY-MM-DD
+      { name: 'vigFim', type: 'text' },           // YYYY-MM-DD
+      { name: 'status', type: 'text' },           // status da planilha (VIGENTE/ATRASADO/PRÓX. VENC/CANCELADO)
+      { name: 'responsavel', type: 'text' },
+      { name: 'responsavelEmail', type: 'text' },
+      { name: 'valorPadrao', type: 'number' },    // mensal (R$)
+      { name: 'dll', type: 'number' },            // prazo de pagamento (dias) | null
+      { name: 'ipcaPct', type: 'number' },        // % IPCA no aniversário | null
+      { name: 'novoValor', type: 'number' },      // valor reajustado | null
+      { name: 'statusRenovacao', type: 'text' },  // fluxo: PENDENTE/MINUTA/ENVIADA/RENOVADA
+      { name: 'obsRenovacao', type: 'text' },
+      { name: 'alteradoEm', type: 'text' },
+      { name: 'alteradoPor', type: 'text' },
+    ],
+  },
 };
 
 function toFields(kind, rec) {
