@@ -4,6 +4,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Montserrat+Alternates:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
+<script src="lc116.js"></script>
 <style>
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
@@ -391,7 +392,7 @@ td .up{color:var(--ok);font-weight:700}
           <span id="cad-msg" style="font-size:13px"></span>
         </div>
       </form>
-      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist>
+      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist><datalist id="dl-codserv"></datalist>
       <div class="recentes" id="cad-recentes"></div>
     </div>
   </div>
@@ -934,6 +935,13 @@ function elevaiRecCalc(){
   const v=document.getElementById('cad-valor'); if(v)v.value=t?t.toFixed(2):'';
 }
 window.elevaiRecToggle=elevaiRecToggle; window.elevaiRecCalc=elevaiRecCalc;
+/* popula a lista pesquisável de códigos de serviço (LC 116/2003) */
+function populateCodServ(){
+  const dl=q('dl-codserv'); if(!dl||!window.LC116||dl.dataset.on)return;
+  dl.innerHTML=window.LC116.map(x=>`<option value="${x[0]} — ${x[1]}"></option>`).join('');
+  dl.dataset.on='1';
+}
+window.populateCodServ=populateCodServ;
 async function elevaiCad(ev){
   ev.preventDefault();
   const g=id=>{const el2=q(id);return el2?String(el2.value).trim():'';};
@@ -1007,7 +1015,7 @@ function bindFilters(){
   const _sv=loadF();
   q('mm-preset').value='2026'; const d0=presetDates('2026'); q('mm-de').value=d0.de; q('mm-ate').value=d0.ate;
   await loadStore();
-  fillFilters(); populateCadDatalists();
+  fillFilters(); populateCadDatalists(); populateCodServ();
   if(_sv){
     try{
       if(_sv.preset)q('mm-preset').value=_sv.preset;
@@ -1557,7 +1565,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Recorrente — valor mensal<input id="le-valormensal" type="number" step="0.01" min="0" value="${l.valorMensal!=null?l.valorMensal:''}" placeholder="só recorrente"></label>
      <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12"></label>
      <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
-     <label>Código de serviço<input id="le-codserv" value="${esc(l.codServico)}"></label>
+     <label>Código de serviço<input id="le-codserv" list="dl-codserv" value="${esc(l.codServico)}" placeholder="digite p/ buscar (ex.: fisio)"></label>
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
      <label>Recebimento<select id="le-receb">${['','Boleto','Crédito em conta','Nota Fiscal'].map(o=>`<option value="${o}"${String(l.recebimento||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Valor de fechamento (R$)<input id="le-fechamento" type="number" step="0.01" min="0" value="${l.valorFechamento!=null?l.valorFechamento:''}" placeholder="valor final da venda"></label>
