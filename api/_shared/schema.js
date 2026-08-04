@@ -33,9 +33,13 @@ const LISTS = {
       { name: 'cnpj', type: 'text' },            // Fase 1 — CNPJ (dispara auto-preenchimento)
       { name: 'razaoSocial', type: 'text' },     // Fase 1 — razão social (auto via BrasilAPI)
       { name: 'endereco', type: 'text' },        // Fase 1 — endereço (auto via BrasilAPI)
-      { name: 'contatoNome', type: 'text' },     // Fase 1 — contato do lead (com quem se negocia)
+      { name: 'cnae', type: 'text' },            // Fase 1 — CNAE fiscal (auto via BrasilAPI)
+      { name: 'grauRisco', type: 'text' },       // Fase 1 — grau de risco (NR-4)
+      { name: 'contatoSobrenome', type: 'text' },// Fase 1 — sobrenome do contato (nome fica em 'nome')
       { name: 'contatoTipo', type: 'text' },     // Fase 1 — Técnico / Comercial
       { name: 'origem', type: 'text' },          // SÓCIOS / NÃO SÓCIOS (meta 133k sócios / 200k não-sócios)
+      { name: 'valorMensal', type: 'number' },   // Fase 2 — recorrente: valor do mês (× numMeses = valor total)
+      { name: 'numMeses', type: 'number' },      // Fase 2 — recorrente: nº de meses (padrão 12, mín 3)
       { name: 'condPagamento', type: 'text' },   // Fase 2 — condições de pagamento
       { name: 'codServico', type: 'text' },      // Fase 2 — código de serviço (ISS/financeiro)
       { name: 'prazoMobilizacao', type: 'text' },// Fase 2 — prazo para mobilização

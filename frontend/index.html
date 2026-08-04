@@ -358,12 +358,17 @@ td .up{color:var(--ok);font-weight:700}
       <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Cadastra direto na base viva (SharePoint). Aparece no Painel e no CRM automaticamente.</p>
       <form id="cadForm" onsubmit="return elevaiCad(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
         <label style="display:flex;flex-direction:column;gap:4px">Data<input id="cad-dt" type="date" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Contato (nome)<input id="cad-nome" type="text" placeholder="Ex.: Priscila" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<input id="cad-nome" type="text" placeholder="Ex.: Priscila" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — sobrenome<input id="cad-sobrenome" type="text" placeholder="Ex.: Almeida" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — telefone<input id="cad-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — e-mail<input id="cad-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" placeholder="Empresa" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="cad-unidade" type="text" placeholder="Cidade/planta" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="cad-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('cad-razao'),document.getElementById('cad-endereco'),document.getElementById('cad-cnpj-msg'))" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
+        <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="cad-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('cad-razao'),document.getElementById('cad-endereco'),document.getElementById('cad-cnpj-msg'),document.getElementById('cad-cnae'))" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="cad-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Endereço<input id="cad-endereco" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">CNAE<input id="cad-cnae" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Grau de risco<select id="cad-grau" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — tipo<select id="cad-contatotipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Técnico</option><option>Comercial</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Origem<select id="cad-origem" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO SÓCIOS</option><option>SÓCIOS</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="cad-cons" type="text" placeholder="Ex.: JB" list="dl-cons" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -374,8 +379,12 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Proposta enviada?<select id="cad-prop" onchange="elevaiPropTgl()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO</option><option>SIM</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Status<select id="cad-status" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO ENVIADA</option><option>EM NEGOCIAÇÃO</option><option>VENDIDA</option><option>PERDIDA</option><option>PAUSADA</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Data de envio<input id="cad-envio" type="date" disabled style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Valor (R$)<input id="cad-valor" type="number" step="0.01" min="0" placeholder="0" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="cad-tipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>N/A</option><option>P</option><option>R</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span id="cad-valor-lab">Valor (R$)</span><input id="cad-valor" type="number" step="0.01" min="0" placeholder="0" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="cad-tipo" onchange="elevaiRecToggle()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>N/A</option><option>P</option><option>R</option></select></label>
+        <div id="cad-recbox" style="display:none;grid-column:1/3;grid-template-columns:1fr 1fr;gap:12px 16px">
+          <label style="display:flex;flex-direction:column;gap:4px">Valor mensal (R$)<input id="cad-valormensal" type="number" step="0.01" min="0" placeholder="ex.: 10000" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Nº de meses (mín 3 · padrão 12)<input id="cad-nummeses" type="number" min="3" step="1" value="12" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        </div>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente novo/atual<select id="cad-tc" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NOVO</option><option>ATUAL</option></select></label>
         <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
           <button type="submit" id="cad-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Cadastrar lead</button>
@@ -893,7 +902,7 @@ function renderRecentes(){
   box.innerHTML='<h4>Últimos cadastros</h4>'+arr.map(l=>'<div class="r"><span><b>'+(l.nome||l.cliente||'—')+'</b> · '+(l.cliente||'')+'</span><span class="m">'+(l.dt||'—')+' · '+(l.cons||'—')+' · '+brl(l.valor)+'</span></div>').join('');
 }
 /* consulta CNPJ pública/grátis (BrasilAPI) → preenche razão social + endereço */
-async function cnpjLookup(cnpj, elRazao, elEnd, elMsg){
+async function cnpjLookup(cnpj, elRazao, elEnd, elMsg, elCnae){
   const num=(cnpj||'').replace(/\D/g,''); if(num.length!==14){ if(elMsg&&num.length)elMsg.textContent='CNPJ deve ter 14 dígitos'; return; }
   if(elMsg){elMsg.style.color='#8A7A78';elMsg.textContent='buscando CNPJ…';}
   try{
@@ -902,12 +911,29 @@ async function cnpjLookup(cnpj, elRazao, elEnd, elMsg){
     const j=await r.json();
     const razao=j.razao_social||j.nome_fantasia||'';
     const end=[j.logradouro,j.numero].filter(Boolean).join(', ')+(j.bairro?' - '+j.bairro:'')+(j.municipio?', '+j.municipio:'')+(j.uf?'/'+j.uf:'')+(j.cep?' · CEP '+j.cep:'');
+    const cnae=(j.cnae_fiscal?String(j.cnae_fiscal):'')+(j.cnae_fiscal_descricao?' — '+j.cnae_fiscal_descricao:'');
     if(elRazao&&razao)elRazao.value=razao;
     if(elEnd&&end.replace(/[,\/·\-\s]/g,''))elEnd.value=end;
+    if(elCnae&&cnae.trim())elCnae.value=cnae.trim();
     if(elMsg){elMsg.style.color='#2E7D5B';elMsg.textContent='✓ '+(razao||'encontrado');}
   }catch(e){ if(elMsg){elMsg.style.color='#B23A48';elMsg.textContent='falha ao consultar CNPJ';} }
 }
 window.cnpjLookup=cnpjLookup;
+/* recorrente: valor total = valor mensal × nº de meses (padrão 12, mín 3) */
+function recTotal(mensal,meses){ const m=parseFloat(mensal)||0, n=Math.max(1,parseInt(meses,10)||12); return m*n; }
+function elevaiRecToggle(){
+  const tipo=(document.getElementById('cad-tipo')||{}).value;
+  const box=document.getElementById('cad-recbox'); if(box)box.style.display=(tipo==='R')?'grid':'none';
+  const vlab=document.getElementById('cad-valor-lab'); if(vlab)vlab.textContent=(tipo==='R')?'Valor total (auto = mensal × meses)':'Valor (R$)';
+  const v=document.getElementById('cad-valor'); if(v)v.readOnly=(tipo==='R');
+  elevaiRecCalc();
+}
+function elevaiRecCalc(){
+  const tipo=(document.getElementById('cad-tipo')||{}).value; if(tipo!=='R')return;
+  const t=recTotal((document.getElementById('cad-valormensal')||{}).value,(document.getElementById('cad-nummeses')||{}).value);
+  const v=document.getElementById('cad-valor'); if(v)v.value=t?t.toFixed(2):'';
+}
+window.elevaiRecToggle=elevaiRecToggle; window.elevaiRecCalc=elevaiRecCalc;
 async function elevaiCad(ev){
   ev.preventDefault();
   const g=id=>{const el2=q(id);return el2?String(el2.value).trim():'';};
@@ -920,7 +946,11 @@ async function elevaiCad(ev){
     dias:(prop==='SIM'&&envio)?Math.max(0,Math.round((Date.now()-new Date(envio+'T00:00:00').getTime())/864e5)):null,
     tc:g('cad-tc')||'NOVO',status:g('cad-status'),
     cnpj:g('cad-cnpj')||'',razaoSocial:g('cad-razao')||'',endereco:g('cad-endereco')||'',
-    contatoTipo:g('cad-contatotipo')||'',origem:g('cad-origem')||'NÃO SÓCIOS'};
+    cnae:g('cad-cnae')||'',grauRisco:g('cad-grau')||'',contatoSobrenome:g('cad-sobrenome')||'',
+    telefone:g('cad-telefone')||'',email:g('cad-email')||'',
+    contatoTipo:g('cad-contatotipo')||'',origem:g('cad-origem')||'NÃO SÓCIOS',
+    valorMensal:(g('cad-tipo')==='R'?(parseFloat(g('cad-valormensal')||'0')||0):null),
+    numMeses:(g('cad-tipo')==='R'?(parseInt(g('cad-nummeses')||'12',10)||12):null)};
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -1521,6 +1551,11 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
      <label>Contato — tipo<select id="le-contatotipo">${['','Técnico','Comercial'].map(o=>`<option value="${o}"${String(l.contatoTipo||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Origem<select id="le-origem">${['NÃO SÓCIOS','SÓCIOS'].map(o=>`<option value="${o}"${String(l.origem||'NÃO SÓCIOS')===o?' selected':''}>${o}</option>`).join('')}</select></label>
+     <label>CNAE<input id="le-cnae" value="${esc(l.cnae)}"></label>
+     <label>Grau de risco<select id="le-grau">${['','1','2','3','4'].map(o=>`<option value="${o}"${String(l.grauRisco||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
+     <label>Contato sobrenome<input id="le-sobrenome" value="${esc(l.contatoSobrenome)}"></label>
+     <label>Recorrente — valor mensal<input id="le-valormensal" type="number" step="0.01" min="0" value="${l.valorMensal!=null?l.valorMensal:''}" placeholder="só recorrente"></label>
+     <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12"></label>
      <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
      <label>Código de serviço<input id="le-codserv" value="${esc(l.codServico)}"></label>
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
@@ -1560,8 +1595,13 @@ function saveLead(id){
   var g=function(x){var e=el(x);return e?e.value:'';};
   var _vf=g('le-fechamento');
   var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs'),
-    cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?(parseFloat(_vf)||0):null)};
+    cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),cnae:g('le-cnae'),grauRisco:g('le-grau'),contatoSobrenome:g('le-sobrenome'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?(parseFloat(_vf)||0):null)};
   if(_vf==='')delete f.valorFechamento;
+  var _vm=g('le-valormensal'), _nm=g('le-nummeses');
+  if(_vm!=='')f.valorMensal=parseFloat(_vm)||0;
+  if(_nm!=='')f.numMeses=parseInt(_nm,10)||12;
+  f.valor=parseFloat(g('le-valor'))||0;
+  if(g('le-tipo')==='R'&&_vm!=='')f.valor=(parseFloat(_vm)||0)*(parseInt(_nm||'12',10)||12);
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
@@ -1615,7 +1655,7 @@ function crmRender(leads){
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
-    cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, contatoTipo:Lx.contatoTipo, origem:Lx.origem, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
+    cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };});
   tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}
