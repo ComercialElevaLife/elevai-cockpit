@@ -5,6 +5,10 @@ const { json } = require('../_shared/crud');
 
 const SENDER = process.env.RENOV_SENDER || 'leonardo@elevalife.com.br';
 const TO      = process.env.NUTRICAO_TO || 'clara@elevalife.com.br';
+// cópia fixa (Léo acompanha as negociações pausadas). Configurável via NUTRICAO_CC.
+const CC      = (process.env.NUTRICAO_CC || 'leonardo@elevalife.com.br')
+                  .split(',').map(s => s.trim()).filter(Boolean)
+                  .filter(a => a.toLowerCase() !== TO.toLowerCase());
 
 function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
@@ -26,11 +30,12 @@ module.exports = async function (context, req) {
         subject: '[Nutrição] Lead pausado — ' + (l.cliente || 'ElevaLife'),
         body: { contentType: 'HTML', content: html },
         toRecipients: [{ emailAddress: { address: TO } }],
+        ccRecipients: CC.map(a => ({ emailAddress: { address: a } })),
       },
       saveToSentItems: true,
     };
     await g.graph('POST', '/users/' + encodeURIComponent(SENDER) + '/sendMail', msg);
-    context.res = json(200, { ok: true, to: TO });
+    context.res = json(200, { ok: true, to: TO, cc: CC });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String(e.message || e), body: e.body });
   }
