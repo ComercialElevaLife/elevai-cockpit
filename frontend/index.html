@@ -341,6 +341,17 @@ td .up{color:var(--ok);font-weight:700}
 
   <section class="view" id="view-cadastro" hidden>
   <div style="max-width:820px;margin:0 auto;padding:8px 4px 40px">
+    <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:18px 22px;box-shadow:0 2px 10px rgba(122,47,66,.06);margin-bottom:16px">
+      <h3 style="margin:0 0 4px;color:#7A2F42">🔗 Landing Page de eventos (link público)</h3>
+      <p style="margin:0 0 12px;color:#8A7A78;font-size:13px">Formulário online para captar contatos pelo celular em eventos (Rafael, João). Tudo que é enviado por ele cai <b>direto neste Cockpit</b>, na coluna “Não Enviada”, com telefone e e-mail. Compartilhe o link ou o QR Code:</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <input id="lp-url" readonly value="https://red-mushroom-08695330f.7.azurestaticapps.net/lp.html" onclick="this.select()" style="flex:1;min-width:240px;padding:10px;border:1px solid #EADDE0;border-radius:8px;font-size:13px;color:#3D2E30;background:#FBF6F2">
+        <button type="button" onclick="lpCopy()" style="background:#B23A48;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Copiar link</button>
+        <a href="https://red-mushroom-08695330f.7.azurestaticapps.net/lp.html" target="_blank" rel="noopener" style="color:#7A2F42;font-weight:700;font-size:13px;text-decoration:none;padding:10px 6px">abrir ↗</a>
+        <button type="button" onclick="lpQR()" style="background:#fff;color:#7A2F42;border:1px solid #7A2F42;border-radius:8px;padding:10px 16px;font-weight:700;cursor:pointer">Ver QR Code</button>
+      </div>
+      <div id="lp-qr" style="margin-top:12px"></div>
+    </div>
     <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(122,47,66,.06)">
       <h3 style="margin:0 0 4px;color:#7A2F42">Novo lead</h3>
       <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Cadastra direto na base viva (SharePoint). Aparece no Painel e no CRM automaticamente.</p>
@@ -854,6 +865,11 @@ function populateCadDatalists(){
   const fill=(id,arr)=>{const dl=q(id);if(!dl)return;dl.innerHTML='';arr.forEach(v=>{const o=document.createElement('option');o.value=v;dl.appendChild(o);});};
   fill('dl-cons',uniq('cons'));fill('dl-serv',uniq('serv'));fill('dl-fonte',uniq('fonte'));fill('dl-campanha',uniq('campanha'));
 }
+function lpCopy(){ var i=q('lp-url'); if(!i)return; i.select(); try{document.execCommand('copy'); toast('Link copiado ✓');}catch(e){ toast('Selecione e copie o link.'); } }
+function lpQR(){ var box=q('lp-qr'); if(!box)return; if(box.dataset.on==='1'){ box.innerHTML=''; box.dataset.on='0'; return; }
+  var u=encodeURIComponent((q('lp-url')&&q('lp-url').value)||'');
+  box.innerHTML='<img alt="QR Code da Landing Page" style="width:180px;height:180px;border:1px solid #EADDE0;border-radius:10px;padding:6px;background:#fff" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+u+'"><div style="font-size:11px;color:#8A7A78;margin-top:6px">Aponte a câmera do celular para abrir o formulário.</div>';
+  box.dataset.on='1'; }
 function renderRecentes(){
   const box=q('cad-recentes'); if(!box)return;
   const arr=STORE.leads.slice().sort((a,b)=>String(b.dt||'').localeCompare(String(a.dt||''))).slice(0,10);
