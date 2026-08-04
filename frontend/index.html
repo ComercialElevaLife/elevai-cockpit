@@ -190,6 +190,15 @@ td .up{color:var(--ok);font-weight:700}
     </div>
   </header>
 
+  <div class="section-title">Metas do mês — Propostas × Vendas (novas vendas)</div>
+  <div class="kpis">
+    <div class="kpi"><div class="lbl">Propostas enviadas</div><div class="val" id="m-prop">—</div><div class="chg" id="m-prop-c"></div></div>
+    <div class="kpi"><div class="lbl">Vendas (fechamento)</div><div class="val" id="m-vend">—</div><div class="chg" id="m-vend-c"></div></div>
+    <div class="kpi coral"><div class="lbl">Vendas — não-sócios</div><div class="val" id="m-nsoc">—</div><div class="chg" id="m-nsoc-c"></div></div>
+    <div class="kpi coral"><div class="lbl">Vendas — sócios</div><div class="val" id="m-soc">—</div><div class="chg" id="m-soc-c"></div></div>
+  </div>
+  <div class="hint" id="m-conv" style="margin:-4px 0 12px;color:#8A7A78"></div>
+
   <div class="section-title">Visão executiva — metas × realizado</div>
   <div class="kpis">
     <div class="kpi"><div class="lbl">Vendas no período</div><div class="val" id="k-vendas">—</div><div class="chg" id="k-vendas-c"></div></div>
@@ -1100,7 +1109,7 @@ class App {
     while(k<=b && this.keys.length<40){ this.keys.push(k); k = (k%100===12)? k+89 : k+1; }
     this.labels=this.keys.map(x=>MESES[(x%100)-1]+'/'+String(Math.floor(x/100)).slice(2));
     this.nMeses=this.keys.length;
-    this.exec(); this.funil(); this.propostas(); this.eventos();
+    this.exec(); this.metasMes(); this.funil(); this.propostas(); this.eventos();
   }
   mkChart(id,cfg,onclick){
     try{
@@ -1173,6 +1182,24 @@ class App {
       try{self.apply();}catch(e){} self._applyModal(); self._pending(); }); } }
   _pending(){ const n=Object.keys(this._manual).length; const b=el('m-save'); if(b)b.textContent=n?('💾 Salvar na base ('+n+')'):'💾 Salvar na base'; }
   closeModal(){el('mask').classList.remove('on');}
+  // ---------- metas do mês (novas vendas: Propostas 1,75M/mês · Vendas 333k/mês = 200k não-sócios + 133k sócios) ----------
+  metasMes(){
+    const fL=this.fL||[], n=this.nMeses||1, frac=this.frac||1;
+    const props=fL.filter(l=>l.prop==='SIM');
+    const propVal=props.reduce((s,l)=>s+(+l.valor||0),0);
+    const vend=fL.filter(l=>l.status==='VENDIDA');
+    const vv=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
+    const vendVal=vend.reduce((s,l)=>s+vv(l),0);
+    const soc=vend.filter(l=>String(l.origem||'').toUpperCase()==='SÓCIOS').reduce((s,l)=>s+vv(l),0);
+    const nsoc=vendVal-soc;
+    const mProp=1750000*n, mVend=333000*n, mSoc=133000*n, mNSoc=200000*n;
+    const conv=propVal?vendVal/propVal:0;
+    const cb=vend.filter(l=>l.valorFechamento!=null&&l.valorFechamento!==''&&(+l.valor>0));
+    const desc=cb.length?cb.reduce((s,l)=>s+((+l.valor-(+l.valorFechamento||0))/(+l.valor)),0)/cb.length:0;
+    const set=(id,val,meta)=>{const e=el(id);if(e)e.textContent=fmtBRLc(val);const c=el(id+'-c');if(c){c.textContent=fmtPct(meta?val/meta:0)+' da meta '+fmtBRLc(meta);c.className='chg '+((meta&&val>=meta*frac*0.95)?'pos':'neg');}};
+    set('m-prop',propVal,mProp); set('m-vend',vendVal,mVend); set('m-nsoc',nsoc,mNSoc); set('m-soc',soc,mSoc);
+    const c=el('m-conv'); if(c)c.innerHTML=`${props.length} proposta(s) · ${vend.length} venda(s) · conversão proposta→venda (valor): <b>${fmtPct(conv)}</b> · desconto médio: <b>${fmtPct(desc)}</b> · metas proporcionais a ${n} mês(es) do período`;
+  }
   // ---------- executivo ----------
   exec(){
     const fV=this.fV, M=RAW.metas;
