@@ -1,0 +1,209 @@
+<!doctype html><html lang="pt-BR"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ElevAI Cockpit · Manual & Fluxos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Montserrat+Alternates:wght@700&display=swap" rel="stylesheet">
+<style>
+ *{margin:0;padding:0;box-sizing:border-box}
+ :root{--deep:#5E2A30;--wine:#8B3A42;--coral:#B23A48;--bg:#F5EFEA;--card:#fff;--ink:#3D2E30;--mut:#8A7A78;--ln:#EADDE0;--azul:#2E5F62}
+ html{scroll-behavior:smooth}
+ body{background:var(--bg);color:var(--ink);font-family:'Montserrat',-apple-system,'Segoe UI',sans-serif;font-size:15px;line-height:1.6}
+ .top{background:linear-gradient(125deg,var(--deep),#7A3139 60%,var(--wine));color:#fff;padding:30px 22px}
+ .top .in{max-width:920px;margin:0 auto}
+ .top .b15{display:inline-flex;align-items:baseline;gap:6px;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.25);padding:3px 11px;border-radius:30px;margin-bottom:12px;font-size:11px;font-weight:700}
+ .top .b15 b{font-size:16px}
+ .top h1{font-family:'Montserrat Alternates',sans-serif;font-size:26px;line-height:1.2}
+ .top p{color:#EBD9DB;font-size:14px;margin-top:6px}
+ .top a.back{display:inline-block;margin-top:14px;color:#fff;font-weight:700;font-size:13px;text-decoration:none;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);padding:8px 14px;border-radius:8px}
+ .wrap{max-width:920px;margin:0 auto;padding:24px 18px 60px}
+ nav.toc{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:16px 20px;margin-bottom:22px}
+ nav.toc h3{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin-bottom:8px}
+ nav.toc a{display:inline-block;color:var(--wine);font-weight:700;font-size:13.5px;text-decoration:none;margin:3px 14px 3px 0}
+ nav.toc a:hover{color:var(--coral)}
+ section{background:var(--card);border:1px solid var(--ln);border-radius:14px;padding:22px 24px;margin-bottom:20px;box-shadow:0 2px 8px rgba(94,42,48,.05)}
+ h2{font-family:'Montserrat Alternates',sans-serif;color:var(--deep);font-size:20px;margin-bottom:6px;scroll-margin-top:14px}
+ h2 .n{color:var(--coral)}
+ h3.sub{color:var(--wine);font-size:15px;margin:18px 0 6px;font-weight:700}
+ p{margin:8px 0}
+ ul{margin:8px 0 8px 22px}li{margin:5px 0}
+ b,strong{color:var(--deep)}
+ .tag{display:inline-block;padding:1px 9px;border-radius:20px;font-size:12px;font-weight:700;margin:1px 2px}
+ .st-n{background:#EDE1E2;color:#8A7A78}.st-m{background:#F6E7D6;color:#8A5A2B}.st-v{background:#DCECE9;color:#2E5F62}.st-p{background:#F3E3E1;color:#B0463F}.st-pause{background:#DDE6EF;color:#3B5A80}
+ .mermaid{background:#FBF6F2;border:1px solid var(--ln);border-radius:12px;padding:14px;margin:12px 0;text-align:center;overflow-x:auto}
+ .note{background:#FBF6F2;border-left:4px solid var(--coral);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-size:14px}
+ .auto{background:#EAF3F1;border-left:4px solid var(--azul);border-radius:0 8px 8px 0;padding:10px 14px;margin:12px 0;font-size:14px}
+ table{width:100%;border-collapse:collapse;margin:10px 0;font-size:14px}
+ th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--ln)}
+ th{color:var(--wine);font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+ code{background:#F3E3E1;color:var(--wine);padding:1px 6px;border-radius:5px;font-size:13px;font-family:ui-monospace,Menlo,monospace}
+ .foot{text-align:center;color:var(--mut);font-size:12px;padding:8px 0}
+ @media(max-width:600px){.top h1{font-size:22px}section{padding:18px 16px}}
+</style></head>
+<body>
+<div class="top"><div class="in">
+  <div class="b15"><b>15</b> ANOS ELEVANDO PESSOAS E RESULTADOS</div>
+  <h1>ElevAI Cockpit — Manual &amp; Fluxos</h1>
+  <p>Como o sistema funciona e como usar cada parte. Documento vivo — acompanha as atualizações do Cockpit.</p>
+  <a class="back" href="index.html">← Voltar ao Cockpit</a>
+</div></div>
+<div class="wrap">
+
+<nav class="toc">
+  <h3>Índice</h3>
+  <a href="#visao">1. Visão geral</a>
+  <a href="#fluxos">2. Fluxos (BPMN)</a>
+  <a href="#abas">3. Manual por aba</a>
+  <a href="#auto">4. Ações automáticas</a>
+  <a href="#faq">5. Dúvidas frequentes</a>
+</nav>
+
+<section id="visao">
+  <h2><span class="n">1.</span> Visão geral</h2>
+  <p>O <b>ElevAI Cockpit</b> é o centro de comando comercial da ElevaLife. Ele reúne, num só lugar e <b>ao vivo</b>, todo o caminho comercial: da entrada do lead até a venda e a renovação dos contratos. Não depende mais de planilha — tudo é alimentado dentro do próprio sistema e gravado numa <b>base viva</b> (no SharePoint), que abastece todas as telas na hora.</p>
+  <h3 class="sub">Como as peças se conectam</h3>
+  <div class="mermaid">
+flowchart LR
+  A[Entradas<br/>Cadastro · Landing Page] --> B[(Base viva<br/>SharePoint)]
+  B --> C[Painel KPI]
+  B --> D[CRM · Kanban]
+  B --> E[Renovações]
+  B --> F[Qualificação]
+  B --> G[Tarefas]
+  D -. atualiza .-> B
+  E -. atualiza .-> B
+  </div>
+  <p>Toda alteração feita numa tela (mover um cartão, editar um lead, renovar um contrato) grava de volta na base e aparece nas outras telas — com registro de quem alterou e quando.</p>
+</section>
+
+<section id="fluxos">
+  <h2><span class="n">2.</span> Fluxos (BPMN)</h2>
+
+  <h3 class="sub">2.1 Ciclo do dado — da entrada à visão</h3>
+  <div class="mermaid">
+flowchart TD
+  L1[Contato em evento] --> LP[Landing Page /lp.html<br/>celular, sem login]
+  L2[Lead do dia a dia] --> CAD[Aba Cadastro]
+  LP --> BASE[(Base viva)]
+  CAD --> BASE
+  BASE --> PN[Painel KPI: indicadores]
+  BASE --> KB[CRM/Kanban: trabalhar o lead]
+  </div>
+
+  <h3 class="sub">2.2 Ciclo do lead — os 5 status</h3>
+  <p>Todo lead percorre estas etapas (arrastando o cartão no Kanban ou pelo status na ficha):</p>
+  <p>
+    <span class="tag st-n">NÃO ENVIADA</span> →
+    <span class="tag st-m">EM NEGOCIAÇÃO</span> →
+    <span class="tag st-v">VENDIDA</span> ·
+    <span class="tag st-p">PERDIDA</span> ·
+    <span class="tag st-pause">PAUSADA</span>
+  </p>
+  <div class="mermaid">
+flowchart LR
+  N[NÃO ENVIADA<br/>entrada do lead] --> M[EM NEGOCIAÇÃO<br/>proposta enviada]
+  M --> V[VENDIDA]
+  M --> P[PERDIDA]
+  M --> PA[PAUSADA<br/>esfriou]
+  N --> PA
+  PA -. reaquece .-> M
+  V --> R[Vira contrato<br/>Renovações]
+  PA --> NUT[Aviso automático<br/>Clara: nutrição]
+  </div>
+
+  <h3 class="sub">2.3 Tarefas → automação de agenda</h3>
+  <div class="mermaid">
+flowchart TD
+  T[Criar tarefa no CRM] --> Q{Tipo?}
+  Q -->|Reunião| RE[Cria reunião no Teams<br/>+ convite aos participantes]
+  Q -->|Tarefa / Ligação| EV[Evento no calendário<br/>+ e-mail ao responsável]
+  Q -->|WhatsApp| WA[Lembrete + abre o WhatsApp]
+  </div>
+
+  <h3 class="sub">2.4 Renovações</h3>
+  <div class="mermaid">
+flowchart TD
+  C[(Contratos_Comercial<br/>90 contratos)] --> CLASS[Classifica por vigência<br/>vencido / ≤90 dias / vigente]
+  CLASS --> ACT{Ação}
+  ACT -->|Minuta| MIN[IPCA do IBGE 12m<br/>confirmar ou manual] --> MAIL[Envia e-mail ao responsável<br/>cópia: Léo + Rafael]
+  ACT -->|Editar/Renovar| ED[Nova vigência, valor, escopo<br/>ou marcar ENCERRADO]
+  ED --> C
+  MAIL --> C
+  </div>
+
+  <h3 class="sub">2.5 Lead pausado → fluxo de nutrição</h3>
+  <div class="mermaid">
+flowchart LR
+  P[Lead vai para PAUSADA] --> AV[Aviso automático]
+  AV --> CL[E-mail para Clara<br/>clara@elevalife.com.br]
+  AV --> LEO[Cópia para Léo]
+  AV --> TE[Card no Teams<br/>se webhook ligado]
+  </div>
+</section>
+
+<section id="abas">
+  <h2><span class="n">3.</span> Manual por aba</h2>
+
+  <h3 class="sub">📊 Painel KPI</h3>
+  <p>Visão executiva dos números do período. Use os <b>filtros mestres</b> no topo (Período, Cliente → Unidade, Consultor, Serviço, ICP, Proposta?, Novo/Atual) — eles valem para o Painel e o CRM ao mesmo tempo e ficam salvos no navegador. Clique em qualquer <b>gráfico</b> para abrir a lista dos registros que o compõem; nas listas de leads há o botão <b>✏ editar</b>, que leva à ficha do lead para ajustar qualquer campo. A data no topo mostra <b>“atualizado em”</b> = a base é ao vivo.</p>
+
+  <h3 class="sub">🗂️ CRM · Kanban</h3>
+  <p>Quadro por status (5 colunas). <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
+  <ul>
+    <li><b>💾 Salvar dados</b> — grava as edições na base.</li>
+    <li><b>⏸ Pausar (esfriou)</b> — marca como <span class="tag st-pause">PAUSADA</span> e avisa a Clara (nutrição), com cópia para você.</li>
+    <li><b>🗑 Excluir</b> — remove o lead da base (pede confirmação).</li>
+  </ul>
+
+  <h3 class="sub">🔄 Renovações</h3>
+  <p>Todos os contratos recorrentes por vigência (vencidos primeiro). Filtros próprios: vigência, responsável, cliente. Cada linha tem:</p>
+  <ul>
+    <li><b>✉ Minuta</b> — monta a proposta de reajuste. O <b>IPCA vem do IBGE</b> (acumulado 12 meses) já preenchido; confirme ou digite outro. <b>Enviar por e-mail</b> manda ao responsável, com cópia para Léo e Rafael.</li>
+    <li><b>✏ Editar</b> — registro manual: nova vigência, valor e escopo; marcar <b>RENOVADO</b> ou <b>NÃO RENOVARÁ (ENCERRADO)</b>. Botão <b>Duplicar</b> cria um novo contrato herdando o cliente (para separar serviços).</li>
+    <li><b>＋ Novo contrato</b> (no topo) — lançar um contrato do zero.</li>
+  </ul>
+
+  <h3 class="sub">🎯 Qualificação</h3>
+  <p>Prioriza os leads em aberto por um <b>score de 0 a 100</b> (ICP + proposta + valor + estágio + recência + cliente atual), mostrando quem chamar primeiro. <i>Em definição: integração com o ActiveCampaign (depende de aprovação).</i></p>
+
+  <h3 class="sub">✅ Tarefas</h3>
+  <p>Todas as tarefas de todos os leads em uma lista só (respeita os filtros mestres), com KPIs (pendentes, concluídas, atrasadas). Dá para concluir, excluir e “abrir no CRM”. Criar/editar em detalhe é feito na ficha do lead (CRM).</p>
+
+  <h3 class="sub">➕ Cadastro</h3>
+  <p>Cadastra um lead direto na base (aparece no Painel e no CRM). No topo desta aba fica o bloco da <b>Landing Page de eventos</b> com o link público, botão <b>Copiar link</b> e <b>QR Code</b>.</p>
+
+  <h3 class="sub">📱 Landing Page (eventos)</h3>
+  <p>Página pública <code>/lp.html</code>, otimizada para celular e <b>sem login</b>, para o Rafael e o João captarem contatos em eventos. O que é enviado cai direto no CRM na coluna <span class="tag st-n">NÃO ENVIADA</span>, com telefone e e-mail.</p>
+</section>
+
+<section id="auto">
+  <h2><span class="n">4.</span> Ações automáticas</h2>
+  <table>
+    <tr><th>Quando</th><th>O que acontece</th></tr>
+    <tr><td>Lead vira <b>VENDIDA</b></td><td>Card de nova venda no Teams (se o webhook estiver ligado)</td></tr>
+    <tr><td>Lead vira <b>PAUSADA</b></td><td>E-mail para a Clara (nutrição) + cópia para Léo + card no Teams</td></tr>
+    <tr><td>Criar <b>tarefa</b> no CRM</td><td>Evento no Outlook/Teams e convite/e-mail ao responsável</td></tr>
+    <tr><td>Enviar <b>minuta</b> de renovação</td><td>E-mail ao responsável com cópia para Léo e Rafael</td></tr>
+    <tr><td>Envio pela <b>Landing Page</b></td><td>Novo lead na base, direto no CRM</td></tr>
+  </table>
+  <div class="auto">Configurável em <b>⚙ Automação</b> (no topo do Cockpit): as URLs de fluxo do Teams/Outlook. Os e-mails (renovação e nutrição) já funcionam nativamente.</div>
+</section>
+
+<section id="faq">
+  <h2><span class="n">5.</span> Dúvidas frequentes</h2>
+  <p><b>Preciso salvar em planilha?</b> Não. Tudo grava na base viva automaticamente.</p>
+  <p><b>Mudei algo e sumiu ao atualizar (F5)?</b> Não deve mais acontecer — status, tarefas e edições ficam salvos. Se acontecer, use <b>↻ Atualizar</b> e avise.</p>
+  <p><b>O lead da Landing Page não apareceu.</b> Clique em <b>↻ Atualizar</b> no Cockpit; ele entra na coluna “Não Enviada”.</p>
+  <p><b>Quem recebe o aviso de lead pausado?</b> Clara (clara@elevalife.com.br), com cópia para Léo.</p>
+</section>
+
+<div class="foot">ElevaLife · Ergonomos — ElevAI Cockpit · manual gerado automaticamente</div>
+</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<script>
+ try{ mermaid.initialize({startOnLoad:true, theme:'base', themeVariables:{
+   primaryColor:'#F6E7D6', primaryTextColor:'#3D2E30', primaryBorderColor:'#8B3A42',
+   lineColor:'#8B3A42', secondaryColor:'#DCECE9', tertiaryColor:'#F3E3E1', fontFamily:'Montserrat, sans-serif'
+ }}); }catch(e){}
+</script>
+</body></html>
