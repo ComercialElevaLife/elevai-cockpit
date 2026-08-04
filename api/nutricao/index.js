@@ -15,6 +15,7 @@ function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace
 module.exports = async function (context, req) {
   try {
     const l = req.body || {};
+    const to = (l.to && String(l.to).trim()) || TO;   // destinatário editável (fallback: Clara)
     const html =
       '<p>O lead abaixo foi <b>PAUSADO (esfriou)</b> no ElevAI Cockpit e precisa <b>entrar no fluxo de nutrição</b>:</p>' +
       '<ul>' +
@@ -29,13 +30,13 @@ module.exports = async function (context, req) {
       message: {
         subject: '[Nutrição] Lead pausado — ' + (l.cliente || 'ElevaLife'),
         body: { contentType: 'HTML', content: html },
-        toRecipients: [{ emailAddress: { address: TO } }],
-        ccRecipients: CC.map(a => ({ emailAddress: { address: a } })),
+        toRecipients: [{ emailAddress: { address: to } }],
+        ccRecipients: CC.filter(a => a.toLowerCase() !== to.toLowerCase()).map(a => ({ emailAddress: { address: a } })),
       },
       saveToSentItems: true,
     };
     await g.graph('POST', '/users/' + encodeURIComponent(SENDER) + '/sendMail', msg);
-    context.res = json(200, { ok: true, to: TO, cc: CC });
+    context.res = json(200, { ok: true, to: to, cc: CC });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String(e.message || e), body: e.body });
   }

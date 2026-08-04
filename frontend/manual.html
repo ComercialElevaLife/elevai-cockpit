@@ -134,10 +134,9 @@ flowchart TD
   <h3 class="sub">2.5 Lead pausado → fluxo de nutrição</h3>
   <div class="mermaid">
 flowchart LR
-  P[Lead vai para PAUSADA] --> AV[Aviso automático]
+  P[Lead vai para PAUSADA] --> AV[Aviso automático por e-mail]
   AV --> CL[E-mail para Clara<br/>clara@elevalife.com.br]
   AV --> LEO[Cópia para Léo]
-  AV --> TE[Card no Teams<br/>se webhook ligado]
   </div>
 </section>
 
@@ -181,7 +180,7 @@ flowchart LR
   <table>
     <tr><th>Quando</th><th>O que acontece</th></tr>
     <tr><td>Lead vira <b>VENDIDA</b></td><td>Card de nova venda no Teams (se o webhook estiver ligado)</td></tr>
-    <tr><td>Lead vira <b>PAUSADA</b></td><td>E-mail para a Clara (nutrição) + cópia para Léo + card no Teams</td></tr>
+    <tr><td>Lead vira <b>PAUSADA</b></td><td>E-mail para a Clara (nutrição) + cópia para Léo — <b>só e-mail</b>, editável/desativável em ⚙ Automação</td></tr>
     <tr><td>Criar <b>tarefa</b> no CRM</td><td>Evento no Outlook/Teams e convite/e-mail ao responsável</td></tr>
     <tr><td>Enviar <b>minuta</b> de renovação</td><td>E-mail ao responsável com cópia para Léo e Rafael</td></tr>
     <tr><td>Envio pela <b>Landing Page</b></td><td>Novo lead na base, direto no CRM</td></tr>
