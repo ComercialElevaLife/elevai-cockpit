@@ -56,6 +56,7 @@
   <a href="#abas">3. Manual por aba</a>
   <a href="#auto">4. Ações automáticas</a>
   <a href="#faq">5. Dúvidas frequentes</a>
+  <a href="#seg">6. Segurança / Credenciais</a>
 </nav>
 
 <section id="visao">
@@ -194,6 +195,30 @@ flowchart LR
   <p><b>Mudei algo e sumiu ao atualizar (F5)?</b> Não deve mais acontecer — status, tarefas e edições ficam salvos. Se acontecer, use <b>↻ Atualizar</b> e avise.</p>
   <p><b>O lead da Landing Page não apareceu.</b> Clique em <b>↻ Atualizar</b> no Cockpit; ele entra na coluna “Não Enviada”.</p>
   <p><b>Quem recebe o aviso de lead pausado?</b> Clara (clara@elevalife.com.br), com cópia para Léo.</p>
+</section>
+
+<section id="seg">
+  <h2><span class="n">6.</span> Segurança / Cofre de credenciais</h2>
+  <p><b>Regra de ouro:</b> nenhuma credencial (token/senha) fica escrita em texto — nem neste manual, nem no repositório, nem em anotações. Aqui documentamos apenas <b>onde cada segredo mora</b> e <b>como trocá-lo</b>. Os valores vivem só em cofre (GitHub Secrets ou gerenciador de senhas). Motivo: este manual é publicado junto com o sistema; um token escrito aqui daria acesso de escrita à produção a quem o lesse.</p>
+  <table>
+    <tr><th>Credencial</th><th>Onde mora (cofre)</th><th>Como rotacionar</th></tr>
+    <tr>
+      <td><b>SWA deploy token</b><br><small>publica o site (GitHub Actions → Azure)</small></td>
+      <td>GitHub Secrets do repo <code>elevai-cockpit</code> · nome <code>AZURE_STATIC_WEB_APPS_API_TOKEN</code> (cofre criptografado)</td>
+      <td>Portal Azure → Static Web App <code>elevai-cockpit</code> → Overview → <i>Manage deployment token</i> → <b>Reset</b> → copiar → GitHub → Settings → Secrets and variables → Actions → <b>Update</b>. Validar: aba Actions → última execução → <i>Re-run all jobs</i> → deve ficar verde.</td>
+    </tr>
+    <tr>
+      <td><b>PAT do GitHub</b><br><small>usado para publicar (git push)</small></td>
+      <td>Gerenciador de senhas do Léo (valor <code>github_pat_••••</code> nunca no repo)</td>
+      <td>GitHub → Settings → Developer settings → Personal access tokens → Fine-grained → <b>Generate new token</b> (repo <i>elevai-cockpit</i>, permissão <b>Contents = Read and write</b>) → copiar para o cofre → <b>deletar o token antigo</b>. Colar 1× por sessão só quando for publicar; não fica salvo.</td>
+    </tr>
+    <tr>
+      <td><b>Permissões Graph (app ElevAI)</b><br><small>calendário, e-mail, SharePoint</small></td>
+      <td>Consentimento no Entra/AAD (não é um valor a guardar)</td>
+      <td>Entra ID → App registrations → ElevAI Cockpit → API permissions (Sites/Calendars/Mail). Alterar só com admin consent.</td>
+    </tr>
+  </table>
+  <div class="auto"><b>Higiene:</b> ao gerar um token, copie direto da tela (aparece 1× só) para o cofre; ao rotacionar, sempre <b>revogue/delete o antigo</b>; nunca cole um token em chat/e-mail sem necessidade. Última rotação: <b>04/08/2026</b> (SWA token + PAT).</div>
 </section>
 
 <div class="foot">ElevaLife · Ergonomos — ElevAI Cockpit · manual gerado automaticamente</div>
