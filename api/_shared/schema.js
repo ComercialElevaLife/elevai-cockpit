@@ -29,6 +29,18 @@ const LISTS = {
       { name: 'email', type: 'text' },         // contato (LP/eventos)
       { name: 'obs', type: 'text' },           // observações livres
       { name: 'tarefasJson', type: 'text' },   // tarefas do lead (JSON) — persistencia da aba Tarefas/CRM
+      // --- Reforma do cadastro (05/08/2026): fases do lead + condições comerciais ---
+      { name: 'cnpj', type: 'text' },            // Fase 1 — CNPJ (dispara auto-preenchimento)
+      { name: 'razaoSocial', type: 'text' },     // Fase 1 — razão social (auto via BrasilAPI)
+      { name: 'endereco', type: 'text' },        // Fase 1 — endereço (auto via BrasilAPI)
+      { name: 'contatoNome', type: 'text' },     // Fase 1 — contato do lead (com quem se negocia)
+      { name: 'contatoTipo', type: 'text' },     // Fase 1 — Técnico / Comercial
+      { name: 'origem', type: 'text' },          // SÓCIOS / NÃO SÓCIOS (meta 133k sócios / 200k não-sócios)
+      { name: 'condPagamento', type: 'text' },   // Fase 2 — condições de pagamento
+      { name: 'codServico', type: 'text' },      // Fase 2 — código de serviço (ISS/financeiro)
+      { name: 'prazoMobilizacao', type: 'text' },// Fase 2 — prazo para mobilização
+      { name: 'recebimento', type: 'text' },     // Fase 3 — forma de recebimento (Boleto/Crédito em conta/NF)
+      { name: 'valorFechamento', type: 'number' },// Fase 3 — valor de fechamento da venda (redução vs proposta)
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],

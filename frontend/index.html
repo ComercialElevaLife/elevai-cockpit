@@ -361,6 +361,11 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Contato (nome)<input id="cad-nome" type="text" placeholder="Ex.: Priscila" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" placeholder="Empresa" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="cad-unidade" type="text" placeholder="Cidade/planta" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="cad-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('cad-razao'),document.getElementById('cad-endereco'),document.getElementById('cad-cnpj-msg'))" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="cad-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Endereço<input id="cad-endereco" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — tipo<select id="cad-contatotipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Técnico</option><option>Comercial</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Origem<select id="cad-origem" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO SÓCIOS</option><option>SÓCIOS</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="cad-cons" type="text" placeholder="Ex.: JB" list="dl-cons" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Serviço<input id="cad-serv" type="text" placeholder="Ex.: ERGO, QM, GL" list="dl-serv" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Fonte<input id="cad-fonte" type="text" placeholder="Ex.: MKT, Cliente ativo" list="dl-fonte" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -887,6 +892,22 @@ function renderRecentes(){
   if(!arr.length){box.innerHTML='<h4>Últimos cadastros</h4><div class="m" style="font-size:12px;color:var(--mut)">Nenhum lead ainda.</div>';return;}
   box.innerHTML='<h4>Últimos cadastros</h4>'+arr.map(l=>'<div class="r"><span><b>'+(l.nome||l.cliente||'—')+'</b> · '+(l.cliente||'')+'</span><span class="m">'+(l.dt||'—')+' · '+(l.cons||'—')+' · '+brl(l.valor)+'</span></div>').join('');
 }
+/* consulta CNPJ pública/grátis (BrasilAPI) → preenche razão social + endereço */
+async function cnpjLookup(cnpj, elRazao, elEnd, elMsg){
+  const num=(cnpj||'').replace(/\D/g,''); if(num.length!==14){ if(elMsg&&num.length)elMsg.textContent='CNPJ deve ter 14 dígitos'; return; }
+  if(elMsg){elMsg.style.color='#8A7A78';elMsg.textContent='buscando CNPJ…';}
+  try{
+    const r=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+num);
+    if(!r.ok){ if(elMsg){elMsg.style.color='#B23A48';elMsg.textContent='CNPJ não encontrado';} return; }
+    const j=await r.json();
+    const razao=j.razao_social||j.nome_fantasia||'';
+    const end=[j.logradouro,j.numero].filter(Boolean).join(', ')+(j.bairro?' - '+j.bairro:'')+(j.municipio?', '+j.municipio:'')+(j.uf?'/'+j.uf:'')+(j.cep?' · CEP '+j.cep:'');
+    if(elRazao&&razao)elRazao.value=razao;
+    if(elEnd&&end.replace(/[,\/·\-\s]/g,''))elEnd.value=end;
+    if(elMsg){elMsg.style.color='#2E7D5B';elMsg.textContent='✓ '+(razao||'encontrado');}
+  }catch(e){ if(elMsg){elMsg.style.color='#B23A48';elMsg.textContent='falha ao consultar CNPJ';} }
+}
+window.cnpjLookup=cnpjLookup;
 async function elevaiCad(ev){
   ev.preventDefault();
   const g=id=>{const el2=q(id);return el2?String(el2.value).trim():'';};
@@ -897,7 +918,9 @@ async function elevaiCad(ev){
     cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:parseFloat(g('cad-valor')||'0')||0,
     tipo:g('cad-tipo')||'N/A',envio:(prop==='SIM'&&envio)?envio:null,
     dias:(prop==='SIM'&&envio)?Math.max(0,Math.round((Date.now()-new Date(envio+'T00:00:00').getTime())/864e5)):null,
-    tc:g('cad-tc')||'NOVO',status:g('cad-status')};
+    tc:g('cad-tc')||'NOVO',status:g('cad-status'),
+    cnpj:g('cad-cnpj')||'',razaoSocial:g('cad-razao')||'',endereco:g('cad-endereco')||'',
+    contatoTipo:g('cad-contatotipo')||'',origem:g('cad-origem')||'NÃO SÓCIOS'};
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -1491,6 +1514,20 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>E-mail<input id="le-email" value="${esc(l.email)}"></label>
      <label style="grid-column:1/3">Observação<input id="le-obs" value="${esc(l.obs)}"></label>
    </div>
+   <h4 style="margin-top:6px">Dados comerciais (por fase)</h4>
+   <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">
+     <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
+     <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
+     <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
+     <label>Contato — tipo<select id="le-contatotipo">${['','Técnico','Comercial'].map(o=>`<option value="${o}"${String(l.contatoTipo||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
+     <label>Origem<select id="le-origem">${['NÃO SÓCIOS','SÓCIOS'].map(o=>`<option value="${o}"${String(l.origem||'NÃO SÓCIOS')===o?' selected':''}>${o}</option>`).join('')}</select></label>
+     <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
+     <label>Código de serviço<input id="le-codserv" value="${esc(l.codServico)}"></label>
+     <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
+     <label>Recebimento<select id="le-receb">${['','Boleto','Crédito em conta','Nota Fiscal'].map(o=>`<option value="${o}"${String(l.recebimento||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
+     <label>Valor de fechamento (R$)<input id="le-fechamento" type="number" step="0.01" min="0" value="${l.valorFechamento!=null?l.valorFechamento:''}" placeholder="valor final da venda"></label>
+     <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
+   </div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
      <button class="btn ghost" onclick="setStatus(${id},'PAUSADA')" title="Esfriou: marca como Pausada e avisa a Clara para o fluxo de nutrição">⏸ Pausar (esfriou)</button>
@@ -1521,7 +1558,10 @@ function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});i
 function saveLead(id){
   var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
   var g=function(x){var e=el(x);return e?e.value:'';};
-  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs')};
+  var _vf=g('le-fechamento');
+  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs'),
+    cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?(parseFloat(_vf)||0):null)};
+  if(_vf==='')delete f.valorFechamento;
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
@@ -1575,6 +1615,7 @@ function crmRender(leads){
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
+    cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, contatoTipo:Lx.contatoTipo, origem:Lx.origem, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };});
   tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}
