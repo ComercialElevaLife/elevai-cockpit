@@ -1456,6 +1456,9 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
+     <label>Telefone<input id="le-telefone" value="${esc(l.telefone)}"></label>
+     <label>E-mail<input id="le-email" value="${esc(l.email)}"></label>
+     <label style="grid-column:1/3">Observação<input id="le-obs" value="${esc(l.obs)}"></label>
    </div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
@@ -1487,7 +1490,7 @@ function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});i
 function saveLead(id){
   var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
   var g=function(x){var e=el(x);return e?e.value:'';};
-  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio')};
+  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs')};
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
@@ -1540,7 +1543,7 @@ function crmRender(leads){
   LEADS=(leads||[]).map(function(Lx,i){return {
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
-    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
+    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
     alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };});
   tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}

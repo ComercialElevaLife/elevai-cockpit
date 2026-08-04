@@ -1,7 +1,10 @@
 {
-  "navigationFallback": { "rewrite": "/index.html", "exclude": ["/api/*"] },
+  "navigationFallback": { "rewrite": "/index.html", "exclude": ["/api/*", "/lp.html", "/lp"] },
   "platform": { "apiRuntime": "node:18" },
   "routes": [
+    { "route": "/lp", "rewrite": "/lp.html", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/lp.html", "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/lead-publico", "methods": ["POST"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/*", "allowedRoles": ["authenticated"] },
     { "route": "/*", "allowedRoles": ["authenticated"] }
   ],
