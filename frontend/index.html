@@ -247,7 +247,7 @@ td .up{color:var(--ok);font-weight:700}
 
   <div class="section-title">Eventos</div>
   <div class="grid g2">
-    <div class="card"><h3>Resultados por evento</h3><div class="ch sm"><canvas id="ch-eventos"></canvas></div><div class="note">Eventos não são afetados pelos filtros.</div></div>
+    <div class="card"><h3>Resultados por evento</h3><div class="ch sm"><canvas id="ch-eventos"></canvas></div><div class="note">Eventos filtrados pelo período selecionado.</div></div>
     <div class="card"><h3>Taxas de conversão por evento</h3><div style="overflow-x:auto" id="tb-eventos"></div></div>
   </div>
 
@@ -578,10 +578,13 @@ async function deleteLead(gid,onOk,onFail){
 window.deleteLead=deleteLead;
 
 /* ---- filtros mestres ---- */
+/* normaliza nome de empresa p/ agrupar homônimos (só diferença de caixa/espaço/pontuação) */
+function normCli(s){return (s||'').toString().trim().toUpperCase().replace(/\s+/g,' ').replace(/[.,]/g,'');}
 function fillFilters(){
   const cs=[...new Set(STORE.leads.map(l=>l.cons).filter(Boolean))].sort();
   const sv=[...new Set(STORE.leads.map(l=>l.serv).filter(x=>x&&x!=='NA'))].sort();
-  const cl=[...new Set([...STORE.leads,...STORE.vendas].map(r=>r.cliente).filter(Boolean))].sort();
+  const _cmap={}; [...STORE.leads,...STORE.vendas].forEach(r=>{const raw=(r.cliente||'').trim(); if(!raw)return; const n=normCli(raw); (_cmap[n]=_cmap[n]||{}); _cmap[n][raw]=(_cmap[n][raw]||0)+1;});
+  const cl=Object.keys(_cmap).map(n=>{const vs=_cmap[n]; return Object.keys(vs).sort((a,b)=>vs[b]-vs[a]||a.localeCompare(b,'pt-BR'))[0];}).sort((a,b)=>a.localeCompare(b,'pt-BR'));
   const selC=q('mm-cons'), selS=q('mm-serv'), selCli=q('mm-cli');
   const keepC=selC.value, keepS=selS.value, keepCli=selCli?selCli.value:'';
   selC.innerHTML='<option value="">Todos</option>'; cs.forEach(c=>selC.add(new Option(c,c)));
@@ -593,7 +596,7 @@ function fillFilters(){
 /* Unidade em cascata: mostra só as unidades do Cliente selecionado (ou todas, se nenhum) */
 function fillUnidades(cliente,keep){
   const sel=q('mm-uni'); if(!sel)return;
-  const src=[...STORE.leads,...STORE.vendas].filter(r=>!cliente||r.cliente===cliente);
+  const src=[...STORE.leads,...STORE.vendas].filter(r=>!cliente||normCli(r.cliente)===normCli(cliente));
   const us=[...new Set(src.map(r=>r.unidade).filter(Boolean))].sort();
   sel.innerHTML='<option value="">Todas</option>'; us.forEach(u=>sel.add(new Option(u,u)));
   sel.value=(keep&&us.includes(keep))?keep:'';
@@ -604,7 +607,7 @@ function inRange(r){
   return (!F.de||d>=F.de) && (!F.ate||d<=F.ate);
 }
 function passDims(r,isLead){
-  if(F.cliente && r.cliente!==F.cliente) return false;
+  if(F.cliente && normCli(r.cliente)!==normCli(F.cliente)) return false;
   if(F.unidade && r.unidade!==F.unidade) return false;
   if(F.cons && r.cons!==F.cons) return false;
   if(F.serv && r.serv!==F.serv) return false;
@@ -1042,7 +1045,7 @@ class App {
     try{
       const cv=el(id); if(!cv){console.warn('canvas ausente: '+id);return;}
       if(this.charts[id])this.charts[id].destroy();
-      if(onclick){cfg.options=cfg.options||{};cfg.options.onClick=(e,els,chart)=>{if(els.length)onclick(els[0],chart);};}
+      if(onclick){cfg.options=cfg.options||{};cfg.options.onClick=(e,els,chart)=>{let hit=(els&&els.length)?els:null;if(!hit){try{const near=chart.getElementsAtEventForMode(e,'nearest',{intersect:false},true);if(near&&near.length)hit=near;}catch(_){}}if(hit&&hit.length)onclick(hit[0],chart);};}
       this.charts[id]=new Chart(cv.getContext('2d'),cfg);
     }catch(err){console.error('Falha no grafico '+id+':',err);}
   }
@@ -1250,7 +1253,9 @@ class App {
   showMulti(i){const a=this.multi[i];this.showModal('Propostas múltiplas — '+a[0].cliente,dBR(a[0].dt)+' · contato '+(a[0].nome||'—'),a,LEAD_COLS);}
   // ---------- eventos ----------
   eventos(){
-    const ev=RAW.eventos;
+    const evKey=s=>{const m=/^(\d{1,2})\/(\d{4})$/.exec((s||'').trim());return m?Number(m[2])*100+Number(m[1]):null;};
+    const _ea=Number(this.de.slice(0,4))*100+Number(this.de.slice(5,7)), _eb=Number(this.ate.slice(0,4))*100+Number(this.ate.slice(5,7));
+    const ev=(RAW.eventos||[]).filter(e=>{const k=evKey(e.data);return k==null||(k>=_ea&&k<=_eb);});
     this.mkChart('ch-eventos',{type:'bar',data:{labels:ev.map(e=>e.nome),datasets:[
       {label:'Leads',data:ev.map(e=>e.leads),backgroundColor:AZ9+'CC',borderRadius:4},
       {label:'Reuniões',data:ev.map(e=>e.reunioes),backgroundColor:AZ3+'DD',borderRadius:4},
@@ -1415,6 +1420,7 @@ const brl=v=>"R$ "+Number(v||0).toLocaleString("pt-BR",{maximumFractionDigits:0}
 const el=id=>document.getElementById(id);
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function fmtAlt(iso){try{const d=new Date(iso);if(isNaN(d.getTime()))return iso;const p=n=>(''+n).padStart(2,'0');return p(d.getDate())+'/'+p(d.getMonth()+1)+'/'+d.getFullYear()+' '+p(d.getHours())+':'+p(d.getMinutes());}catch(e){return iso;}}
+function dcard(s){s=(s||'').slice(0,10);const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(s);return m?m[3]+'/'+m[2]+'/'+m[1].slice(2):'';}
 function fillSelects(){
   const cs=[...new Set(LEADS.map(l=>l.cons).filter(x=>x&&x!=='NA'))].sort();
   const ss=[...new Set(LEADS.map(l=>l.serv).filter(x=>x&&x!=='NA'))].sort();
@@ -1439,6 +1445,7 @@ function render(){
         <div class="emp">${l.cliente||'—'}</div><div class="uni">${l.unidade||''}</div>
         <div class="row"><span class="tag ${l.tipo}">${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
         <div class="row"><span class="meta">${l.cons||'—'} · ICP ${l.icp||'-'}</span>${nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:''}</div>
+        <div class="row"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.alteradoEm)||'—'}</span>`:''}</div>
       </div>`;
     });
     h+='</div></div>';
