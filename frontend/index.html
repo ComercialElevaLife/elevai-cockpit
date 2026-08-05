@@ -128,20 +128,47 @@ td .up{color:var(--ok);font-weight:700}
   #view-painel .kpis{grid-template-columns:1fr 1fr}
   #view-cadastro form{grid-template-columns:1fr!important}
 }
-
+/* ===== Menu lateral retrátil + submenu aninhado (UX 05/08) ===== */
+.side .brand{display:flex;align-items:center;gap:10px;justify-content:space-between}
+.side-toggle{all:unset;cursor:pointer;color:#fff;opacity:.85;font-size:18px;padding:4px 8px;border-radius:8px;line-height:1}
+.side-toggle:hover{background:rgba(255,255,255,.14);opacity:1}
+.nav .navgroup{display:flex;flex-direction:column}
+.nav .caret{margin-left:auto;font-size:11px;transition:.2s;opacity:.8}
+.nav .navgroup.open .caret{transform:rotate(90deg)}
+.nav .subnav{display:none;flex-direction:column;gap:2px;margin:2px 0 4px 6px;padding-left:8px;border-left:2px solid rgba(255,255,255,.18)}
+.nav .navgroup.open .subnav{display:flex}
+.nav .subnav .subitem{all:unset;cursor:pointer;padding:8px 12px;border-radius:9px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:9px;color:#fff;opacity:.8;transition:.15s}
+.nav .subnav .subitem:hover{background:rgba(255,255,255,.12);opacity:1}
+.nav .subnav .subitem.on{background:rgba(255,255,255,.92);color:var(--w);opacity:1}
+@media(min-width:901px){
+  .side.mini{width:66px;flex-basis:66px}
+  .side.mini .brand{justify-content:center}
+  .side.mini .brand>.brandtxt{display:none}
+  .side.mini .lbl,.side.mini .caret,.side.mini .foot{display:none}
+  .side.mini .nav button,.side.mini .subnav .subitem{justify-content:center;gap:0;padding-left:0;padding-right:0}
+  .side.mini .nav .subnav{padding-left:0;margin-left:0;border-left:0}
+}
+#cad-subnav{display:none}
 </style></head>
 
 <body><div class="app">
 <aside class="side">
-  <div class="brand"><h1>ElevAI</h1><small>Cockpit Comercial</small></div>
+  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit Comercial</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <nav class="nav">
-    <button data-v="painel" class="on"><span class="ic">📊</span> Painel KPI</button>
-    <button data-v="crm"><span class="ic">🗂️</span> CRM · Kanban</button>
-    <button data-v="renov"><span class="ic">🔄</span> Renovações</button>
-    <button data-v="qual"><span class="ic">🎯</span> Qualificação</button>
-    <button data-v="tarefas"><span class="ic">✅</span> Tarefas</button>
-    <button data-v="cadastro"><span class="ic">➕</span> Cadastro</button>
-    <a href="manual.html" target="_blank" rel="noopener" style="all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85"><span class="ic">📖</span> Manual</a>
+    <button data-v="painel" class="on"><span class="ic">📊</span><span class="lbl">Painel KPI</span></button>
+    <button data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
+    <button data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
+    <button data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
+    <button data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
+    <div class="navgroup" id="navgroup-cadastro">
+      <button data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-cadastro">
+        <button class="subitem on" data-sub="empresa" onclick="cadSubNav('empresa')"><span class="ic">🏢</span><span class="lbl">Empresa</span></button>
+        <button class="subitem" data-sub="contato" onclick="cadSubNav('contato')"><span class="ic">👤</span><span class="lbl">Contato</span></button>
+        <button class="subitem" data-sub="lead" onclick="cadSubNav('lead')"><span class="ic">➕</span><span class="lbl">Oportunidade</span></button>
+      </div>
+    </div>
+    <a href="manual.html" target="_blank" rel="noopener" style="all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85"><span class="ic">📖</span><span class="lbl">Manual</span></a>
   </nav>
   <div class="foot">ElevaLife · Ergonomos<br>15 anos elevando pessoas e resultados</div>
 </aside>
@@ -1026,9 +1053,23 @@ function _empresasList(){ return (STORE.empresas||[]); }
 function cadSub(name){
   ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
   document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
+  document.querySelectorAll('#subnav-cadastro .subitem').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
   try{ if(name==='contato')fillEmpresaDatalist(); }catch(e){}
 }
 window.cadSub=cadSub;
+function cadSubNav(name){
+  var main=document.querySelector('.nav button[data-v="cadastro"]');
+  if(main && !main.classList.contains('on')){ main.click(); }
+  var grp=q('navgroup-cadastro'); if(grp)grp.classList.add('open');
+  cadSub(name);
+}
+window.cadSubNav=cadSubNav;
+function toggleSide(){
+  var s=document.querySelector('.side'); if(!s)return;
+  var mini=s.classList.toggle('mini');
+  try{ localStorage.setItem('elevai_side_mini', mini?'1':'0'); }catch(e){}
+}
+window.toggleSide=toggleSide;
 function fillEmpresaDatalist(){
   const dl=q('dl-empresas'); if(!dl)return;
   dl.innerHTML=_empresasList().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
@@ -1170,14 +1211,16 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 
 /* ---- navegacao + binds ---- */
 function bindNav(){
-  document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{
-    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+  document.querySelectorAll('.nav button[data-v]').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('.nav button[data-v]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     const v=b.dataset.v; ACTIVE=v;
     ['painel','crm','renov','qual','tarefas','cadastro'].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
     q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro'}[v];
     q('fltbar').hidden=(v==='cadastro'||v==='renov');
+    var grp=q('navgroup-cadastro'); if(grp)grp.classList.toggle('open', v==='cadastro');
     renderActive();
   });
+  try{ if(localStorage.getItem('elevai_side_mini')==='1'){ var sd=document.querySelector('.side'); if(sd)sd.classList.add('mini'); } }catch(e){}
 }
 function bindFilters(){
   q('mm-preset').addEventListener('change',()=>applyF(true));
