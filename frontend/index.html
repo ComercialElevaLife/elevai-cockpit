@@ -351,7 +351,74 @@ td .up{color:var(--ok);font-weight:700}
   </section>
 
   <section class="view" id="view-cadastro" hidden>
+  <style>.cadsub{all:unset;cursor:pointer;padding:9px 16px;border-radius:9px;font-weight:700;font-size:13px;color:#7A2F42;background:#F3E3E1;border:1px solid #EADDE0}.cadsub.on{background:#B23A48;color:#fff;border-color:#B23A48}#view-cadastro .recentes h4{margin:16px 0 6px;color:#7A2F42;font-size:13px}#view-cadastro .recentes .r{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #F3EAEA;font-size:12px}#view-cadastro .recentes .m{color:#8A7A78}</style>
   <div style="max-width:820px;margin:0 auto;padding:8px 4px 40px">
+    <div id="cad-subnav" style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+      <button type="button" class="cadsub on" data-sub="empresa" onclick="cadSub('empresa')">🏢 Empresa</button>
+      <button type="button" class="cadsub" data-sub="contato" onclick="cadSub('contato')">👤 Contato</button>
+      <button type="button" class="cadsub" data-sub="lead" onclick="cadSub('lead')">➕ Lead / Oportunidade</button>
+    </div>
+
+    <div id="cadpanel-empresa" class="cadpanel">
+      <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(122,47,66,.06)">
+        <h3 style="margin:0 0 4px;color:#7A2F42">🏢 Cadastro de Empresa</h3>
+        <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Dados oficiais da conta. Alimentam o financeiro (nota fiscal / OMIE) e ficam disponíveis para vincular contatos e oportunidades.</p>
+        <form id="empForm" onsubmit="return elevaiEmp(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
+          <label style="display:flex;flex-direction:column;gap:4px">Nome / carteira <span style="color:#B23A48">*</span><input id="emp-cliente" type="text" placeholder="Como aparece no funil (ex.: Gerdau Pinda)" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Etiqueta<select id="emp-target" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO TARGET</option><option>TARGET</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="emp-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookupEmp&&window.cnpjLookupEmp(this.value)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="emp-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="emp-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Nome fantasia<input id="emp-fantasia" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">CNAE<input id="emp-cnae" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Inscrição estadual<input id="emp-ie" type="text" placeholder="ou ISENTO" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Inscrição municipal<input id="emp-im" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Logradouro<input id="emp-logradouro" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Número<input id="emp-numero" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Complemento<input id="emp-complemento" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Bairro<input id="emp-bairro" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Município<input id="emp-municipio" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">UF<input id="emp-uf" type="text" maxlength="2" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">CEP<input id="emp-cep" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Cód. IBGE município<input id="emp-ibge" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Regime tributário<select id="emp-regime" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Simples Nacional</option><option>Lucro Presumido</option><option>Lucro Real</option><option>MEI</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Grau de risco (NR-4)<select id="emp-grau" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Cond. pagamento padrão<input id="emp-condpag" type="text" placeholder="ex.: 30 dias" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Segmento<input id="emp-segmento" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="emp-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
+            <button type="submit" id="emp-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Salvar empresa</button>
+            <span id="emp-msg" style="font-size:13px"></span>
+          </div>
+        </form>
+        <div class="recentes" id="emp-recentes"></div>
+      </div>
+    </div>
+
+    <div id="cadpanel-contato" class="cadpanel" hidden>
+      <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(122,47,66,.06)">
+        <h3 style="margin:0 0 4px;color:#7A2F42">👤 Cadastro de Contato</h3>
+        <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Pessoa de contato vinculada a uma empresa já cadastrada. Comece a digitar o nome da empresa para buscar.</p>
+        <form id="conForm" onsubmit="return elevaiCon(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
+          <label style="display:flex;flex-direction:column;gap:4px">Nome <span style="color:#B23A48">*</span><input id="con-nome" type="text" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Sobrenome<input id="con-sobrenome" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Telefone (WhatsApp)<input id="con-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">E-mail corporativo<input id="con-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Empresa <span style="color:#B23A48">*</span><input id="con-empresa" type="text" list="dl-empresas" placeholder="Buscar empresa cadastrada" required oninput="window.elevaiConEmpMatch&&elevaiConEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="con-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="con-tipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Técnico</option><option>Comercial</option></select></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Cargo<input id="con-cargo" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="con-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
+            <button type="submit" id="con-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Salvar contato</button>
+            <span id="con-msg" style="font-size:13px"></span>
+            <a href="#" onclick="cadSub('empresa');return false" style="font-size:12px;color:#7A2F42;font-weight:600">+ nova empresa</a>
+          </div>
+        </form>
+        <datalist id="dl-empresas"></datalist>
+        <div class="recentes" id="con-recentes"></div>
+      </div>
+    </div>
+
+    <div id="cadpanel-lead" class="cadpanel" hidden>
     <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:18px 22px;box-shadow:0 2px 10px rgba(122,47,66,.06);margin-bottom:16px">
       <h3 style="margin:0 0 4px;color:#7A2F42">🔗 Landing Page de eventos (link público)</h3>
       <p style="margin:0 0 12px;color:#8A7A78;font-size:13px">Formulário online para captar contatos pelo celular em eventos (Rafael, João). Tudo que é enviado por ele cai <b>direto neste Cockpit</b>, na coluna “Não Enviada”, com telefone e e-mail. Compartilhe o link ou o QR Code:</p>
@@ -403,6 +470,7 @@ td .up{color:var(--ok);font-weight:700}
       </form>
       <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist><datalist id="dl-codserv"></datalist>
       <div class="recentes" id="cad-recentes"></div>
+    </div>
     </div>
   </div>
   </section>
@@ -538,9 +606,11 @@ async function loadStore(){
     if(rs.every(x=>x&&x.ok)){
       const j=await Promise.all(rs.map(x=>x.json()));
       if(j[0]&&j[0].items){
-        STORE={leads:j[0].items||[],vendas:(j[1]&&j[1].items)||[],eventos:(j[2]&&j[2].items)||[],contratos:[]};
+        STORE={leads:j[0].items||[],vendas:(j[1]&&j[1].items)||[],eventos:(j[2]&&j[2].items)||[],contratos:[],empresas:[],contatos:[]};
         SRC='api'; ok=true;
         try{ const cr=await fetch('/api/contratos'); if(cr&&cr.ok){ const cj=await cr.json(); STORE.contratos=(cj&&cj.items)||[]; } }catch(e){}
+        try{ const er=await fetch('/api/empresas'); if(er&&er.ok){ const ej=await er.json(); STORE.empresas=(ej&&ej.items)||[]; } }catch(e){}
+        try{ const kr=await fetch('/api/contatos'); if(kr&&kr.ok){ const kj=await kr.json(); STORE.contatos=(kj&&kj.items)||[]; } }catch(e){}
       }
     }
   }catch(e){}
@@ -906,6 +976,7 @@ function lpQR(){ var box=q('lp-qr'); if(!box)return; if(box.dataset.on==='1'){ b
   box.innerHTML='<img alt="QR Code da Landing Page" style="width:180px;height:180px;border:1px solid #EADDE0;border-radius:10px;padding:6px;background:#fff" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+u+'"><div style="font-size:11px;color:#8A7A78;margin-top:6px">Aponte a câmera do celular para abrir o formulário.</div>';
   box.dataset.on='1'; }
 function renderRecentes(){
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
   const box=q('cad-recentes'); if(!box)return;
   const arr=STORE.leads.slice().sort((a,b)=>String(b.dt||'').localeCompare(String(a.dt||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Últimos cadastros</h4><div class="m" style="font-size:12px;color:var(--mut)">Nenhum lead ainda.</div>';return;}
@@ -951,6 +1022,108 @@ function populateCodServ(){
   dl.dataset.on='1';
 }
 window.populateCodServ=populateCodServ;
+/* ===== Fase B — Cadastro de Empresa / Contato (redesenho CRM 05/08/2026) ===== */
+function _empresasList(){ return (STORE.empresas||[]); }
+function cadSub(name){
+  ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
+  document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
+  try{ if(name==='contato')fillEmpresaDatalist(); }catch(e){}
+}
+window.cadSub=cadSub;
+function fillEmpresaDatalist(){
+  const dl=q('dl-empresas'); if(!dl)return;
+  dl.innerHTML=_empresasList().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
+}
+function elevaiConEmpMatch(){
+  const val=((q('con-empresa')&&q('con-empresa').value)||'').trim().toLowerCase();
+  const msg=q('con-emp-msg'); if(!msg)return;
+  if(!val){msg.textContent='';return;}
+  const hit=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===val);
+  if(hit){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada';}
+  else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
+}
+window.elevaiConEmpMatch=elevaiConEmpMatch;
+/* CNPJ (BrasilAPI) → preenche os campos estruturados da Empresa */
+async function cnpjLookupEmp(cnpj){
+  const gg=id=>document.getElementById(id);
+  const num=(cnpj||'').replace(/\D/g,''); const msg=gg('emp-cnpj-msg');
+  if(num.length!==14){ if(msg&&num.length)msg.textContent='CNPJ deve ter 14 dígitos'; return; }
+  if(msg){msg.style.color='#8A7A78';msg.textContent='buscando CNPJ…';}
+  try{
+    const r=await fetch('https://brasilapi.com.br/api/cnpj/v1/'+num);
+    if(!r.ok){ if(msg){msg.style.color='#B23A48';msg.textContent='CNPJ não encontrado';} return; }
+    const j=await r.json();
+    const setF=(id,v)=>{const el=gg(id); if(el&&v)el.value=v;};
+    const setE=(id,v)=>{const el=gg(id); if(el&&v&&!el.value)el.value=v;};
+    setF('emp-razao',j.razao_social||'');
+    setE('emp-fantasia',j.nome_fantasia||'');
+    setF('emp-logradouro',j.logradouro||'');
+    setF('emp-numero',j.numero||'');
+    setE('emp-complemento',j.complemento||'');
+    setF('emp-bairro',j.bairro||'');
+    setF('emp-municipio',j.municipio||'');
+    setF('emp-uf',j.uf||'');
+    setF('emp-cep',j.cep||'');
+    setF('emp-ibge',String(j.codigo_municipio_ibge||j.codigo_municipio||''));
+    setF('emp-cnae',(j.cnae_fiscal?String(j.cnae_fiscal):'')+(j.cnae_fiscal_descricao?' — '+j.cnae_fiscal_descricao:''));
+    const cli=gg('emp-cliente'); if(cli&&!cli.value)cli.value=j.nome_fantasia||j.razao_social||'';
+    if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ '+(j.razao_social||'encontrado');}
+  }catch(e){ if(msg){msg.style.color='#B23A48';msg.textContent='falha ao consultar CNPJ';} }
+}
+window.cnpjLookupEmp=cnpjLookupEmp;
+async function elevaiEmp(ev){
+  ev.preventDefault();
+  const g=id=>{const el=q(id);return el?String(el.value).trim():'';};
+  const rec={cliente:g('emp-cliente'),cnpj:g('emp-cnpj'),razaoSocial:g('emp-razao'),nomeFantasia:g('emp-fantasia'),
+    ie:g('emp-ie'),im:g('emp-im'),logradouro:g('emp-logradouro'),numero:g('emp-numero'),complemento:g('emp-complemento'),
+    bairro:g('emp-bairro'),municipio:g('emp-municipio'),codigoIbge:g('emp-ibge'),uf:g('emp-uf'),cep:g('emp-cep'),
+    cnae:g('emp-cnae'),regimeTributario:g('emp-regime'),grauRisco:g('emp-grau'),condPagamento:g('emp-condpag'),
+    target:g('emp-target')||'NÃO TARGET',segmento:g('emp-segmento'),obs:g('emp-obs')};
+  if(!rec.cliente)return false;
+  const btn=q('emp-btn'), msg=q('emp-msg');
+  btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Salvando...';
+  try{
+    const r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Empresa salva.'; q('empForm').reset(); await reloadData(); }
+    else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
+  }catch(e){msg.style.color='#B23A48';msg.textContent='Falha de rede: '+e.message;}
+  btn.disabled=false; return false;
+}
+window.elevaiEmp=elevaiEmp;
+async function elevaiCon(ev){
+  ev.preventDefault();
+  const g=id=>{const el=q(id);return el?String(el.value).trim():'';};
+  const empNome=g('con-empresa');
+  const hit=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===empNome.toLowerCase());
+  const rec={nome:g('con-nome'),sobrenome:g('con-sobrenome'),telefone:g('con-telefone'),email:g('con-email'),
+    empresaId:(hit&&hit.__id)?String(hit.__id):'',empresaNome:empNome,tipo:g('con-tipo'),cargo:g('con-cargo'),obs:g('con-obs')};
+  if(!rec.nome)return false;
+  const btn=q('con-btn'), msg=q('con-msg');
+  btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Salvando...';
+  try{
+    const r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Contato salvo'+(rec.empresaId?'':' (empresa ainda não cadastrada — vincule depois)')+'.'; q('conForm').reset(); await reloadData(); }
+    else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
+  }catch(e){msg.style.color='#B23A48';msg.textContent='Falha de rede: '+e.message;}
+  btn.disabled=false; return false;
+}
+window.elevaiCon=elevaiCon;
+function renderEmpRecentes(){
+  const box=q('emp-recentes'); if(!box)return;
+  const all=_empresasList();
+  const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
+  if(!arr.length){box.innerHTML='<h4>Empresas cadastradas</h4><div class="m" style="font-size:12px">Nenhuma empresa ainda.</div>';return;}
+  box.innerHTML='<h4>Empresas cadastradas ('+all.length+')</h4>'+arr.map(e=>'<div class="r"><span><b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'+(e.target==='TARGET'?' <span style="color:#B23A48;font-weight:700">◆ TARGET</span>':'')+'</span><span class="m">'+esc(e.cnpj||'')+(e.municipio?' · '+esc(e.municipio)+'/'+esc(e.uf||''):'')+'</span></div>').join('');
+}
+function renderConRecentes(){
+  const box=q('con-recentes'); if(!box)return;
+  const all=(STORE.contatos||[]);
+  const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
+  if(!arr.length){box.innerHTML='<h4>Contatos cadastrados</h4><div class="m" style="font-size:12px">Nenhum contato ainda.</div>';return;}
+  box.innerHTML='<h4>Contatos cadastrados ('+all.length+')</h4>'+arr.map(c=>'<div class="r"><span><b>'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'—')+'</b> · '+esc(c.empresaNome||'')+'</span><span class="m">'+esc(c.email||c.telefone||'')+'</span></div>').join('');
+}
 async function elevaiCad(ev){
   ev.preventDefault();
   const g=id=>{const el2=q(id);return el2?String(el2.value).trim():'';};

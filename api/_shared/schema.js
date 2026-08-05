@@ -107,6 +107,53 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
+  // --- Redesenho CRM (05/08/2026): Empresa / Contato / Oportunidade (padrão de CRM) ---
+  empresas: {
+    displayName: 'Empresas_Comercial',
+    titleFrom: 'cliente',
+    columns: [
+      { name: 'cliente', type: 'text' },        // nome de exibição / carteira (chave-ponte com leads.cliente)
+      { name: 'cnpj', type: 'text' },
+      { name: 'razaoSocial', type: 'text' },
+      { name: 'nomeFantasia', type: 'text' },
+      { name: 'ie', type: 'text' },             // inscrição estadual (ou ISENTO)
+      { name: 'im', type: 'text' },             // inscrição municipal (NFS-e)
+      { name: 'logradouro', type: 'text' },
+      { name: 'numero', type: 'text' },
+      { name: 'complemento', type: 'text' },
+      { name: 'bairro', type: 'text' },
+      { name: 'municipio', type: 'text' },
+      { name: 'codigoIbge', type: 'text' },     // código IBGE do município (NFS-e/OMIE)
+      { name: 'uf', type: 'text' },
+      { name: 'cep', type: 'text' },
+      { name: 'cnae', type: 'text' },
+      { name: 'regimeTributario', type: 'text' },
+      { name: 'grauRisco', type: 'text' },      // NR-4 (1-4)
+      { name: 'condPagamento', type: 'text' },  // condição de pagamento padrão
+      { name: 'target', type: 'text' },         // TARGET / NÃO TARGET
+      { name: 'segmento', type: 'text' },
+      { name: 'obs', type: 'text' },
+      { name: 'alteradoEm', type: 'text' },
+      { name: 'alteradoPor', type: 'text' },
+    ],
+  },
+  contatos: {
+    displayName: 'Contatos_Comercial',
+    titleFrom: 'nome',
+    columns: [
+      { name: 'nome', type: 'text' },
+      { name: 'sobrenome', type: 'text' },
+      { name: 'telefone', type: 'text' },       // WhatsApp
+      { name: 'email', type: 'text' },          // corporativo
+      { name: 'empresaId', type: 'text' },      // vínculo (id do item Empresa)
+      { name: 'empresaNome', type: 'text' },    // denormalizado p/ exibição/busca
+      { name: 'tipo', type: 'text' },           // Técnico / Comercial
+      { name: 'cargo', type: 'text' },
+      { name: 'obs', type: 'text' },
+      { name: 'alteradoEm', type: 'text' },
+      { name: 'alteradoPor', type: 'text' },
+    ],
+  },
 };
 
 function toFields(kind, rec) {
