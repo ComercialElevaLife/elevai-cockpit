@@ -382,7 +382,6 @@ td .up{color:var(--ok);font-weight:700}
           <label style="display:flex;flex-direction:column;gap:4px">Cód. IBGE município<input id="emp-ibge" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Regime tributário<select id="emp-regime" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Simples Nacional</option><option>Lucro Presumido</option><option>Lucro Real</option><option>MEI</option></select></label>
           <label style="display:flex;flex-direction:column;gap:4px">Grau de risco (NR-4)<select id="emp-grau" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
-          <label style="display:flex;flex-direction:column;gap:4px">Cond. pagamento padrão<input id="emp-condpag" type="text" placeholder="ex.: 30 dias" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Segmento<input id="emp-segmento" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="emp-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
@@ -1077,7 +1076,7 @@ async function elevaiEmp(ev){
   const rec={cliente:g('emp-cliente'),cnpj:g('emp-cnpj'),razaoSocial:g('emp-razao'),nomeFantasia:g('emp-fantasia'),
     ie:g('emp-ie'),im:g('emp-im'),logradouro:g('emp-logradouro'),numero:g('emp-numero'),complemento:g('emp-complemento'),
     bairro:g('emp-bairro'),municipio:g('emp-municipio'),codigoIbge:g('emp-ibge'),uf:g('emp-uf'),cep:g('emp-cep'),
-    cnae:g('emp-cnae'),regimeTributario:g('emp-regime'),grauRisco:g('emp-grau'),condPagamento:g('emp-condpag'),
+    cnae:g('emp-cnae'),regimeTributario:g('emp-regime'),grauRisco:g('emp-grau'),
     target:g('emp-target')||'NÃO TARGET',segmento:g('emp-segmento'),obs:g('emp-obs')};
   if(!rec.cliente)return false;
   const btn=q('emp-btn'), msg=q('emp-msg');

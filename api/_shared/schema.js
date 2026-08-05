@@ -129,7 +129,6 @@ const LISTS = {
       { name: 'cnae', type: 'text' },
       { name: 'regimeTributario', type: 'text' },
       { name: 'grauRisco', type: 'text' },      // NR-4 (1-4)
-      { name: 'condPagamento', type: 'text' },  // condição de pagamento padrão
       { name: 'target', type: 'text' },         // TARGET / NÃO TARGET
       { name: 'segmento', type: 'text' },
       { name: 'obs', type: 'text' },
