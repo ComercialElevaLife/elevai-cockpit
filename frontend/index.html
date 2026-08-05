@@ -308,12 +308,8 @@ td .up{color:var(--ok);font-weight:700}
     <div class="t"><h1>CRM Comercial — Kanban</h1><div class="s">elevando pessoas e resultados · protótipo do Módulo 2</div></div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    
-    
-    
+    <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
-    
-    
   </div>
 </header>
 <div class="bar">
@@ -325,6 +321,35 @@ td .up{color:var(--ok);font-weight:700}
 <div class="note">Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).</div>
 <div class="board" id="board"></div>
 <div class="drawer" id="drawer"><div class="dh"><div><h3 id="d-emp"></h3><div id="d-uni" style="font-size:12px;color:#EBD9DB"></div></div><button class="x" onclick="closeDrawer()">×</button></div><div class="db" id="d-body"></div></div>
+<div id="op-ov" onclick="if(event.target===this)opFechar()" style="position:fixed;inset:0;background:rgba(94,42,48,.45);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:4vh 3vw;backdrop-filter:blur(2px)">
+  <div style="background:#fff;border-radius:14px;width:640px;max-width:96vw;max-height:92vh;overflow:auto;box-shadow:0 18px 50px rgba(94,42,48,.35)">
+    <div style="background:#5E2A30;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="font-family:'Montserrat Alternates',sans-serif;font-size:16px;margin:0">➕ Nova Oportunidade</h3>
+      <button onclick="opFechar()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px 20px">
+      <p style="margin:0 0 14px;color:#8A7A78;font-size:12.5px">Escolha uma empresa já cadastrada — os contatos dela são carregados automaticamente. A oportunidade entra no Kanban em "Não enviada".</p>
+      <form id="opForm" onsubmit="return opSalvar(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
+        <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Empresa <span style="color:#B23A48">*</span><input id="op-empresa" list="op-dl-empresas" placeholder="Buscar empresa cadastrada" required oninput="opEmpChange()" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><span id="op-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+        <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Contato<select id="op-contato" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option value="">—</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Origem<select id="op-origem" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option>NÃO SÓCIOS</option><option>SÓCIOS</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="op-cons" list="op-dl-cons" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Serviço<input id="op-serv" list="op-dl-serv" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Fonte<input id="op-fonte" list="op-dl-fonte" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Campanha<input id="op-campanha" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">ICP<select id="op-icp" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option>NA</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="op-unidade" placeholder="Cidade/planta" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Data<input id="op-dt" type="date" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:4px">
+          <button type="submit" id="op-btn" class="btn">Criar oportunidade</button>
+          <span id="op-msg" style="font-size:12px"></span>
+          <a href="#" onclick="opNovaEmpresa();return false" style="font-size:12px;color:#8B3A42;font-weight:600;margin-left:auto">+ nova empresa</a>
+        </div>
+      </form>
+      <datalist id="op-dl-empresas"></datalist><datalist id="op-dl-cons"></datalist><datalist id="op-dl-serv"></datalist><datalist id="op-dl-fonte"></datalist>
+    </div>
+  </div>
+</div>
   </section>
 
   <section class="view" id="view-renov" hidden>
@@ -1916,6 +1941,62 @@ Object.assign(window,{render:render,testTeams:testTeams,closeDrawer:closeDrawer,
   addTask:addTask,onTipo:onTipo,toggleTask:toggleTask,delTask:delTask,
   scheduleTask:scheduleTask,waOpen:waOpen,saveLead:saveLead});
 window.CRM={render:crmRender};
+/* ===== Fase C — Nova Oportunidade (ligada à Empresa cadastrada) ===== */
+function _opEmpresas(){ return (window.STORE&&STORE.empresas)||[]; }
+function _opContatos(){ return (window.STORE&&STORE.contatos)||[]; }
+function _opEmpresaByName(v){ v=(v||'').trim().toLowerCase(); return _opEmpresas().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===v); }
+function opFillDatalists(){
+  var dle=el('op-dl-empresas'); if(dle)dle.innerHTML=_opEmpresas().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
+  var uniq=k=>[...new Set((LEADS||[]).map(l=>l[k]).filter(x=>x&&x!=='NA'))].sort();
+  var setdl=(id,arr)=>{var d=el(id);if(d)d.innerHTML=arr.map(x=>'<option value="'+esc(x)+'"></option>').join('');};
+  setdl('op-dl-cons',uniq('cons')); setdl('op-dl-serv',uniq('serv')); setdl('op-dl-fonte',uniq('fonte'));
+}
+function opNovaOportunidade(){
+  opFillDatalists();
+  var f=el('opForm'); if(f)f.reset();
+  var d=el('op-dt'); if(d)d.value=new Date().toISOString().slice(0,10);
+  el('op-msg').textContent=''; el('op-emp-msg').textContent='';
+  el('op-contato').innerHTML='<option value="">—</option>';
+  el('op-ov').style.display='flex';
+  setTimeout(function(){var e=el('op-empresa'); if(e)e.focus();},50);
+}
+function opFechar(){ var o=el('op-ov'); if(o)o.style.display='none'; }
+function opEmpChange(){
+  var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato');
+  if(hit){
+    if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada'+(hit.cnpj?' · '+esc(hit.cnpj):'');}
+    var cons=_opContatos().filter(c=>(hit.__id&&String(c.empresaId||'')===String(hit.__id))||String(c.empresaNome||'').trim().toLowerCase()===String(hit.cliente||'').trim().toLowerCase());
+    sel.innerHTML='<option value="">— selecione o contato —</option>'+cons.map((c,i)=>'<option value="'+i+'">'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'(sem nome)')+(c.email?' · '+esc(c.email):'')+'</option>').join('');
+    sel._list=cons;
+    if(!cons.length){ sel.innerHTML='<option value="">(nenhum contato cadastrado nesta empresa)</option>'; }
+  } else {
+    if(msg){ if(v){msg.style.color='#B0463F';msg.textContent='empresa não encontrada — use "+ nova empresa"';} else {msg.textContent='';} }
+    sel.innerHTML='<option value="">—</option>'; sel._list=[];
+  }
+}
+function opNovaEmpresa(){ opFechar(); var b=document.querySelector('.nav button[data-v="cadastro"]'); if(b)b.click(); if(window.cadSubNav)cadSubNav('empresa'); }
+async function opSalvar(ev){
+  ev.preventDefault();
+  var v=el('op-empresa').value.trim(), hit=_opEmpresaByName(v), msg=el('op-msg');
+  if(!hit){ var em=el('op-emp-msg'); if(em){em.style.color='#B0463F';em.textContent='cadastre a empresa antes (+ nova empresa)';} return false; }
+  var sel=el('op-contato'), con=(sel._list&&sel.value!=='')?sel._list[parseInt(sel.value,10)]:null;
+  var dt=el('op-dt').value||new Date().toISOString().slice(0,10), d=new Date(dt+'T00:00:00');
+  var rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,cliente:(hit.cliente||hit.razaoSocial||v),empresaId:String(hit.__id||''),
+    unidade:el('op-unidade').value.trim(),origem:el('op-origem').value,cons:el('op-cons').value.trim(),
+    serv:el('op-serv').value.trim()||'NA',fonte:el('op-fonte').value.trim()||'NA',campanha:el('op-campanha').value.trim()||'NA',
+    icp:el('op-icp').value,prop:'NÃO',status:'NÃO ENVIADA',tipo:'N/A',valor:0,tc:'NOVO',
+    cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),
+    nome:con?(con.nome||''):'',contatoSobrenome:con?(con.sobrenome||''):'',telefone:con?(con.telefone||''):'',email:con?(con.email||''):'',contatoTipo:con?(con.tipo||''):''};
+  var btn=el('op-btn'); btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Criando...';
+  try{
+    var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+    var j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Oportunidade criada.'; setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700); }
+    else{ msg.style.color='#B0463F'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
+  }catch(e){ msg.style.color='#B0463F'; msg.textContent='Falha de rede: '+e.message; }
+  btn.disabled=false; return false;
+}
+window.opNovaOportunidade=opNovaOportunidade;window.opFechar=opFechar;window.opEmpChange=opEmpChange;window.opNovaEmpresa=opNovaEmpresa;window.opSalvar=opSalvar;
 
 })();
 </script>

@@ -45,6 +45,8 @@ const LISTS = {
       { name: 'prazoMobilizacao', type: 'text' },// Fase 2 — prazo para mobilização
       { name: 'recebimento', type: 'text' },     // Fase 3 — forma de recebimento (Boleto/Crédito em conta/NF)
       { name: 'valorFechamento', type: 'number' },// Fase 3 — valor de fechamento da venda (redução vs proposta)
+      { name: 'empresaId', type: 'text' },       // Fase C — vínculo com Empresas_Comercial (id do item)
+      { name: 'servicosJson', type: 'text' },    // Fase C — múltiplos serviços da oportunidade (JSON: cód/escopo/tipo/mensal/meses/valor)
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
