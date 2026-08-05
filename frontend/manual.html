@@ -75,6 +75,7 @@ flowchart LR
   E -. atualiza .-> B
   </div>
   <p>Toda alteração feita numa tela (mover um cartão, editar um lead, renovar um contrato) grava de volta na base e aparece nas outras telas — com registro de quem alterou e quando.</p>
+  <p>O modelo comercial segue o padrão de CRM, com três peças separadas: a <b>Empresa</b> (a conta e seus dados oficiais), o <b>Contato</b> (a pessoa, vinculada a uma empresa) e a <b>Oportunidade</b> (o negócio, que percorre o Kanban até a venda). O menu lateral é <b>retrátil</b> (botão ☰) e traz submenus aninhados — ao abrir <b>Cadastro</b>, aparecem <b>Empresa</b>, <b>Contato</b> e <b>Oportunidade</b> logo abaixo.</p>
 </section>
 
 <section id="fluxos">
@@ -148,7 +149,7 @@ flowchart LR
   <p>Visão executiva dos números do período. Use os <b>filtros mestres</b> no topo (Período, Cliente → Unidade, Consultor, Serviço, ICP, Proposta?, Novo/Atual) — eles valem para o Painel e o CRM ao mesmo tempo e ficam salvos no navegador. Clique em qualquer <b>gráfico</b> para abrir a lista dos registros que o compõem; nas listas de leads há o botão <b>✏ editar</b>, que leva à ficha do lead para ajustar qualquer campo. A data no topo mostra <b>“atualizado em”</b> = a base é ao vivo.</p>
 
   <h3 class="sub">🗂️ CRM · Kanban</h3>
-  <p>Quadro por status (5 colunas). <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
+  <p>Quadro por status (5 colunas). Use o botão <b>＋ Nova Oportunidade</b> (no topo) para abrir um negócio a partir de uma <b>empresa já cadastrada</b> — ao escolher a empresa, os contatos dela são carregados automaticamente; a oportunidade entra em <span class="tag st-n">NÃO ENVIADA</span>. <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
   <ul>
     <li><b>💾 Salvar dados</b> — grava as edições na base.</li>
     <li><b>⏸ Pausar (esfriou)</b> — marca como <span class="tag st-pause">PAUSADA</span> e avisa a Clara (nutrição), com cópia para você.</li>
@@ -170,7 +171,12 @@ flowchart LR
   <p>Todas as tarefas de todos os leads em uma lista só (respeita os filtros mestres), com KPIs (pendentes, concluídas, atrasadas). Dá para concluir, excluir e “abrir no CRM”. Criar/editar em detalhe é feito na ficha do lead (CRM).</p>
 
   <h3 class="sub">➕ Cadastro</h3>
-  <p>Cadastra um lead direto na base (aparece no Painel e no CRM). No topo desta aba fica o bloco da <b>Landing Page de eventos</b> com o link público, botão <b>Copiar link</b> e <b>QR Code</b>.</p>
+  <p>Organizado em três submenus, que aparecem aninhados na barra lateral ao clicar em <b>Cadastro</b>:</p>
+  <ul>
+    <li><b>🏢 Empresa</b> — a identidade oficial da conta: nome/carteira, CNPJ (preenche razão social, endereço com código IBGE e CNAE automaticamente), inscrição estadual/municipal, regime tributário, grau de risco (NR-4) e a etiqueta <b>Target / Não Target</b>. São os dados que abastecem o financeiro (nota fiscal / OMIE). <b>Não</b> leva termos de negociação (valor, prazo/condição de pagamento) — esses pertencem ao momento da venda.</li>
+    <li><b>👤 Contato</b> — a pessoa (nome, sobrenome, WhatsApp, e-mail corporativo, tipo) vinculada a uma empresa já cadastrada, escolhida numa lista com busca.</li>
+    <li><b>➕ Lead / Oportunidade</b> — cadastro direto de um lead na base (aparece no Painel e no CRM). No topo fica o bloco da <b>Landing Page de eventos</b> com o link público, <b>Copiar link</b> e <b>QR Code</b>.</li>
+  </ul>
 
   <h3 class="sub">📱 Landing Page (eventos)</h3>
   <p>Página pública <code>/lp.html</code>, otimizada para celular e <b>sem login</b>, para o Rafael e o João captarem contatos em eventos. O que é enviado cai direto no CRM na coluna <span class="tag st-n">NÃO ENVIADA</span>, com telefone e e-mail.</p>
