@@ -454,7 +454,7 @@ td .up{color:var(--ok);font-weight:700}
           <label style="display:flex;flex-direction:column;gap:4px">Sobrenome<input id="con-sobrenome" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Telefone (WhatsApp)<input id="con-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">E-mail corporativo<input id="con-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-          <label style="display:flex;flex-direction:column;gap:4px">Empresa <span style="color:#B23A48">*</span><input id="con-empresa" type="text" list="dl-empresas" placeholder="Buscar empresa cadastrada" required oninput="window.elevaiConEmpMatch&&elevaiConEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="con-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Empresa <span style="color:#B23A48">*</span><input id="con-empresa" type="text" list="dl-empresas" placeholder="Buscar empresa cadastrada" required onfocus="window.fillEmpresaDatalist&&fillEmpresaDatalist()" oninput="window.elevaiConEmpMatch&&elevaiConEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="con-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
           <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="con-tipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Técnico</option><option>Comercial</option></select></label>
           <label style="display:flex;flex-direction:column;gap:4px">Cargo<input id="con-cargo" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="con-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -674,6 +674,9 @@ async function loadStore(){
   /* compat: o status antigo "NA MESA" passa a chamar-se "EM NEGOCIAÇÃO" (novo vocabulário de 5 status) */
   STORE.leads.forEach((l,i)=>{ l._sid=i; if(l.status==='NA MESA')l.status='EM NEGOCIAÇÃO'; });
   DATA_VER++;
+  /* Fase B fix: os dados de Empresa/Contato chegam de forma assíncrona; ao terminar de carregar,
+     re-renderiza a lista de sugestões e os "recentes" do Cadastro (senão ficam vazios da 1ª renderização). */
+  try{ if(typeof fillEmpresaDatalist==='function')fillEmpresaDatalist(); if(typeof renderEmpRecentes==='function')renderEmpRecentes(); if(typeof renderConRecentes==='function')renderConRecentes(); }catch(e){}
   updateBadge(ok);
 }
 function updateBadge(ok){
@@ -1084,7 +1087,7 @@ function cadSub(name){
   ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
   document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
   document.querySelectorAll('#subnav-cadastro .subitem').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
-  try{ if(name==='contato')fillEmpresaDatalist(); }catch(e){}
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
 }
 window.cadSub=cadSub;
 function cadSubNav(name){
