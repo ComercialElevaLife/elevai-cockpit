@@ -582,6 +582,7 @@ td .up{color:var(--ok);font-weight:700}
     <label>Webhook do Teams (URL)<input id="cfg-url" type="url" placeholder="https://...powerplatform.com/..."></label>
     <label>Fluxo de E-mail / To Do (URL) — opcional<input id="cfg-flow" type="url" placeholder="URL do fluxo Power Automate (e-mail / To Do)"></label>
     <label>Fluxo de Calendário / Outlook (URL) — opcional<input id="cfg-cal" type="url" placeholder="URL do fluxo que cria evento no Outlook"></label>
+    <div class="auto-row" style="background:#FFF7E6;border:1px solid #F0D9A8;border-radius:8px;padding:8px 10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:0;text-transform:none"><input type="checkbox" id="cfg-modo-teste" style="width:auto"> 🧪 <b style="margin:0 3px">Modo teste</b> — não envia avisos reais (Teams e e-mail) enquanto ligado.</label></div>
     <div class="auto-row"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:0;text-transform:none"><input type="checkbox" id="cfg-trig-venda" style="width:auto"> Avisar no Teams a cada nova venda</label></div>
     <div class="auto-row" style="border-top:1px dashed var(--ln);padding-top:10px"><label style="display:flex;align-items:center;gap:8px;font-size:12px;margin:0;text-transform:none"><input type="checkbox" id="cfg-nut-on" style="width:auto"> Avisar por <b style="margin:0 3px">e-mail</b> quando um lead for <b style="margin:0 3px">pausado</b> (nutrição)</label></div>
     <label>E-mail da nutrição (vazio = padrão clara@; cópia p/ Léo é automática)<input id="cfg-nut-to" type="email" placeholder="clara@elevalife.com.br"></label>
@@ -608,6 +609,10 @@ const NUT_ON_LS='elevai_nut_on', NUT_TO_LS='elevai_nut_to';
 window.getNutOn=function(){try{return localStorage.getItem(NUT_ON_LS)!=='0';}catch(e){return true;}};
 window.getNutTo=function(){try{return localStorage.getItem(NUT_TO_LS)||'';}catch(e){return '';}};
 function setNutCfg(on,to){try{localStorage.setItem(NUT_ON_LS,on?'1':'0');localStorage.setItem(NUT_TO_LS,to||'');}catch(e){}}
+/* Modo teste — silencia avisos reais (Teams e e-mail) durante testes */
+const TEST_LS='elevai_modo_teste';
+window.getModoTeste=function(){try{return localStorage.getItem(TEST_LS)==='1';}catch(e){return false;}};
+function setModoTeste(on){try{localStorage.setItem(TEST_LS,on?'1':'0');}catch(e){}}
 
 const IPCA=1.041428;
 const brl=n=>'R$ '+(Number(n)||0).toLocaleString('pt-BR',{maximumFractionDigits:0});
@@ -1229,7 +1234,7 @@ async function reloadData(){
 }
 
 /* ---- automacao (Teams webhook) ---- */
-function saveWh(){setTeamsWebhook(q('cfg-url').value.trim());setFlowCfg(q('cfg-flow').value.trim(),q('cfg-cal').value.trim(),q('cfg-trig-venda').checked);setNutCfg(q('cfg-nut-on').checked,q('cfg-nut-to').value.trim());q('ov3').classList.remove('on');alert('Automação salva.');}
+function saveWh(){setTeamsWebhook(q('cfg-url').value.trim());setFlowCfg(q('cfg-flow').value.trim(),q('cfg-cal').value.trim(),q('cfg-trig-venda').checked);setNutCfg(q('cfg-nut-on').checked,q('cfg-nut-to').value.trim());setModoTeste(q('cfg-modo-teste').checked);q('ov3').classList.remove('on');alert('Automação salva.'+(q('cfg-modo-teste').checked?' (Modo teste LIGADO — avisos reais silenciados.)':''));}
 async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.getTeamsWebhook()){alert('Cole a URL primeiro.');return;}
   const ok=await postCard('\U0001f514 Teste ElevAI',[{title:'Origem',value:'Cockpit Comercial'},{title:'Status',value:'conexão ativa'}],'Se este cartão apareceu no canal COMERCIAL/VENDAS, a automação está conectada.');
   alert(ok?'Enviado. Confira o canal no Teams.':'Não foi possível enviar (verifique a URL).');}
@@ -1252,7 +1257,7 @@ function bindFilters(){
   ['mm-de','mm-ate','mm-cons','mm-serv','mm-icp','mm-prop','mm-tc','mm-uni'].forEach(id=>{var e=q(id);if(e)e.addEventListener('change',()=>applyF(false));});
   var eCli=q('mm-cli'); if(eCli)eCli.addEventListener('change',function(){ fillUnidades(eCli.value,''); applyF(false); });
   q('mm-clr').onclick=()=>{q('mm-preset').value='2026';['mm-cons','mm-serv','mm-icp','mm-prop','mm-tc','mm-cli'].forEach(id=>{var e=q(id);if(e)e.value='';});fillUnidades('','');applyF(true);};
-  q('cfg-btn').onclick=()=>{q('cfg-url').value=(localStorage.getItem(TEAMS_LS)||'');q('cfg-flow').value=(localStorage.getItem(FLOW_LS)||'');q('cfg-cal').value=(localStorage.getItem(CAL_LS)||'');q('cfg-trig-venda').checked=(window.trigNovaVenda?window.trigNovaVenda():true);q('cfg-nut-on').checked=(window.getNutOn?window.getNutOn():true);q('cfg-nut-to').value=(window.getNutTo?window.getNutTo():'');q('ov3').classList.add('on');};
+  q('cfg-btn').onclick=()=>{q('cfg-url').value=(localStorage.getItem(TEAMS_LS)||'');q('cfg-flow').value=(localStorage.getItem(FLOW_LS)||'');q('cfg-cal').value=(localStorage.getItem(CAL_LS)||'');q('cfg-trig-venda').checked=(window.trigNovaVenda?window.trigNovaVenda():true);q('cfg-nut-on').checked=(window.getNutOn?window.getNutOn():true);q('cfg-nut-to').value=(window.getNutTo?window.getNutTo():'');q('cfg-modo-teste').checked=(window.getModoTeste?window.getModoTeste():false);q('ov3').classList.add('on');};
   q('btn-reload').onclick=()=>reloadData();
   q('ov2').addEventListener('click',e=>{if(e.target.id==='ov2')q('ov2').classList.remove('on');});
   q('ov3').addEventListener('click',e=>{if(e.target.id==='ov3')q('ov3').classList.remove('on');});
@@ -1713,9 +1718,21 @@ const FLOW_URL=''; /* cole aqui a URL do fluxo Power Automate (Fluxo 4). Vazio =
 const CAL_FLOW_URL=''; /* webhook Power Automate que cria evento/reunião no Outlook. Vazio = baixa .ics. */
 const WA_NUMBER='5511978502159'; /* WhatsApp comercial ElevaLife */
 const TIPOS={'Tarefa':'📌','Ligação':'📞','WhatsApp':'🟢','Reunião':'👥'};
-function notifyTeams(l){ if(window.trigNovaVenda&&!window.trigNovaVenda())return; var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL)return; const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Good",text:"🎉 Nova venda — ElevaLife"},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")+" ("+(l.tipo||"")+")"},{title:"Valor",value:brl(l.valor)},{title:"Consultor",value:l.cons||"—"},{title:"ICP",value:l.icp||"—"}]}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).catch(()=>{}); }
+function _teamsPost(card){ var u=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!u)return Promise.resolve(false); return fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(function(){return true;}).catch(function(){return false;}); }
+function _teamsVendaCard(l){ return {type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Good",text:"🎉 Nova venda — ElevaLife"},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")+" ("+(l.tipo||"")+")"},{title:"Valor",value:brl(l.valor)},{title:"Consultor",value:l.cons||"—"},{title:"ICP",value:l.icp||"—"}]}]}}]}; }
+function notifyTeams(l){
+  if(window.getModoTeste&&window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: aviso de venda NÃO enviado ao Teams.'); return; }
+  if(window.trigNovaVenda&&!window.trigNovaVenda())return;
+  var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL)return;
+  if(!confirm('Avisar o time no Teams sobre a venda de '+(l.cliente||'—')+'?'))return;
+  _teamsPost(_teamsVendaCard(l));
+}
+function reenviarVenda(id){ var l=LEADS.find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Reenviar/atualizar o aviso desta venda ('+(l.cliente||'')+') no Teams?'))return; _teamsPost(_teamsVendaCard(l)).then(function(ok){ if(typeof toast==='function')toast(ok?'Aviso reenviado ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
+function retratarVenda(id){ var l=LEADS.find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?'))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
+window.reenviarVenda=reenviarVenda;window.retratarVenda=retratarVenda;
 function notifyNutricao(l){
   /* Aviso de lead pausado — SOMENTE E-MAIL (sem card no Teams). Editável/desativável em ⚙ Automação. */
+  if(window.getModoTeste && window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: e-mail de pausa NÃO enviado.'); return; }
   if(window.getNutOn && !window.getNutOn()) return;                 // usuário desativou o aviso
   var to=(window.getNutTo?window.getNutTo():'')||'';                // destinatário editável (vazio = padrão Clara)
   try{ fetch('/api/nutricao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:l.cliente,unidade:l.unidade,nome:l.nome,serv:l.serv,cons:l.cons,valor:l.valor,to:to})}).catch(function(){}); }catch(e){}
@@ -1842,6 +1859,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
      <button class="btn ghost" onclick="setStatus(${id},'PAUSADA')" title="Esfriou: marca como Pausada e avisa a Clara para o fluxo de nutrição">⏸ Pausar (esfriou)</button>
      <button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="delLead(${id})">🗑 Excluir</button>
+     ${l.status==='VENDIDA'?`<button class="btn ghost" onclick="reenviarVenda(${id})" title="Reenviar/atualizar o aviso desta venda no Teams">✏️ Reenviar aviso</button><button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="retratarVenda(${id})" title="Postar no Teams que a venda anterior deve ser desconsiderada (teste/cancelada)">🗑️ Retratar aviso</button>`:''}
    </div>
    ${l.alteradoEm?`<div class="fld"><b>Alterado em</b> ${fmtAlt(l.alteradoEm)} por ${l.alteradoPor||'—'}</div>`:''}
    <h4>Tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
