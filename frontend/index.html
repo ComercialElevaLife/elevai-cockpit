@@ -1035,7 +1035,7 @@ function lpQR(){ var box=q('lp-qr'); if(!box)return; if(box.dataset.on==='1'){ b
   box.innerHTML='<img alt="QR Code da Landing Page" style="width:180px;height:180px;border:1px solid #EADDE0;border-radius:10px;padding:6px;background:#fff" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+u+'"><div style="font-size:11px;color:#8A7A78;margin-top:6px">Aponte a câmera do celular para abrir o formulário.</div>';
   box.dataset.on='1'; }
 function renderRecentes(){
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
   const box=q('cad-recentes'); if(!box)return;
   const arr=STORE.leads.slice().sort((a,b)=>String(b.dt||'').localeCompare(String(a.dt||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Últimos cadastros</h4><div class="m" style="font-size:12px;color:var(--mut)">Nenhum lead ainda.</div>';return;}
@@ -1083,11 +1083,18 @@ function populateCodServ(){
 window.populateCodServ=populateCodServ;
 /* ===== Fase B — Cadastro de Empresa / Contato (redesenho CRM 05/08/2026) ===== */
 function _empresasList(){ return (STORE.empresas||[]); }
+/* Busca FRESCA de empresas/contatos ao abrir o Cadastro (sem depender do timing do loadStore) */
+async function cadRefreshData(){
+  try{ const er=await fetch('/api/empresas',{cache:'no-store'}); if(er&&er.ok){ const ej=await er.json(); if(ej&&ej.items)STORE.empresas=ej.items; } }catch(e){}
+  try{ const kr=await fetch('/api/contatos',{cache:'no-store'}); if(kr&&kr.ok){ const kj=await kr.json(); if(kj&&kj.items)STORE.contatos=kj.items; } }catch(e){}
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
+}
+window.cadRefreshData=cadRefreshData;
 function cadSub(name){
   ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
   document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
   document.querySelectorAll('#subnav-cadastro .subitem').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
 }
 window.cadSub=cadSub;
 function cadSubNav(name){
