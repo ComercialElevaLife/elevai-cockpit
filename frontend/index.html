@@ -5,6 +5,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Montserrat+Alternates:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
 <script src="lc116.js"></script>
+<script src="minuta.js"></script>
 <style>
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
@@ -833,7 +834,7 @@ function renderRenov(){
       '<td>'+(c.ipcaPct!=null?(''+c.ipcaPct+'%'):'<span style="color:#8A7A78">—</span>')+'</td>'+
       '<td class="up">'+(nv!=null?brl(nv):'—')+'</td>'+
       '<td style="font-size:11px">'+(c.statusRenovacao||'PENDENTE')+'</td>'+
-      '<td style="white-space:nowrap"><button class="btn gh" onclick="renovar('+i+')">✉ Minuta</button> <button class="btn gh" onclick="editarContrato('+i+')">✏ Editar</button></td>';
+      '<td style="white-space:nowrap"><button class="btn gh" onclick="renovar('+i+')">✉ Minuta</button> <button class="btn gh" onclick="editarContrato('+i+')">✏ Editar</button> <button class="btn gh" onclick="gerarMinutaPadrao('+i+')">📄 Minuta padrão</button></td>';
     tb.appendChild(tr);
   });
   if(!rows.length)tb.innerHTML='<tr><td colspan="11" class="empty">Nenhum contrato com estes filtros. Se a base estiver vazia, rode a migração em <b>/migrar-contratos.html</b>.</td></tr>';
@@ -933,7 +934,8 @@ async function salvarContrato(){
       j=await r.json();
       if(r.ok&&j.ok){ Object.assign(MNC,fields); }
     }
-    if(r.ok&&j.ok){ DATA_VER++; toast(EDMODE==='new'?'Contrato criado ✓':'Contrato atualizado ✓'); q('ov4').classList.remove('on'); renderRenov(); }
+    if(r.ok&&j.ok){ DATA_VER++; toast(EDMODE==='new'?'Contrato criado ✓':'Contrato atualizado ✓'); q('ov4').classList.remove('on'); renderRenov();
+      try{ if(window.Minuta){ var _cRen=(EDMODE==='new'?STORE.contratos[STORE.contratos.length-1]:MNC); Minuta.aoSalvarSituacao(fields.statusRenovacao, _cRen); } }catch(e){} }
     else alert('Falha ao salvar: '+((j&&j.error)||('HTTP '+r.status)));
   }catch(e){ alert('Falha de rede: '+e.message); }
   btn.disabled=false; btn.textContent=old;
