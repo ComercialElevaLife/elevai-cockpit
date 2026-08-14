@@ -1153,6 +1153,13 @@ async function cnpjLookupEmp(cnpj){
   }catch(e){ if(msg){msg.style.color='#B23A48';msg.textContent='falha ao consultar CNPJ';} }
 }
 window.cnpjLookupEmp=cnpjLookupEmp;
+/* Garante que o item recem-criado apareca na lista local mesmo se a busca fresca (GET logo apos o POST)
+   ainda nao refletir a escrita no SharePoint (pequena janela de propagacao do Graph). */
+function ensureItemInStore(listKey, item){
+  if(!item||item.__id===undefined||item.__id===null)return;
+  const arr=STORE[listKey]=STORE[listKey]||[];
+  if(!arr.some(x=>String(x.__id)===String(item.__id))) arr.push(item);
+}
 async function elevaiEmp(ev){
   ev.preventDefault();
   const g=id=>{const el=q(id);return el?String(el.value).trim():'';};
@@ -1167,7 +1174,12 @@ async function elevaiEmp(ev){
   try{
     const r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
     const j=await r.json().catch(()=>({}));
-    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Empresa salva.'; q('empForm').reset(); await reloadData(); }
+    if(r.ok&&j.ok){
+      msg.style.color='#2E7D5B'; msg.textContent='✓ Empresa salva.'; q('empForm').reset();
+      await reloadData();
+      ensureItemInStore('empresas', j.item);
+      try{ fillEmpresaDatalist(); renderEmpRecentes(); }catch(e){}
+    }
     else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
   }catch(e){msg.style.color='#B23A48';msg.textContent='Falha de rede: '+e.message;}
   btn.disabled=false; return false;
@@ -1186,7 +1198,12 @@ async function elevaiCon(ev){
   try{
     const r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
     const j=await r.json().catch(()=>({}));
-    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Contato salvo'+(rec.empresaId?'':' (empresa ainda não cadastrada — vincule depois)')+'.'; q('conForm').reset(); await reloadData(); }
+    if(r.ok&&j.ok){
+      msg.style.color='#2E7D5B'; msg.textContent='✓ Contato salvo'+(rec.empresaId?'':' (empresa ainda não cadastrada — vincule depois)')+'.'; q('conForm').reset();
+      await reloadData();
+      ensureItemInStore('contatos', j.item);
+      try{ renderConRecentes(); }catch(e){}
+    }
     else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
   }catch(e){msg.style.color='#B23A48';msg.textContent='Falha de rede: '+e.message;}
   btn.disabled=false; return false;
