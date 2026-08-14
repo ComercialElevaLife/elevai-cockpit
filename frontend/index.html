@@ -1089,7 +1089,7 @@ function _empresasList(){ return (STORE.empresas||[]); }
 async function cadRefreshData(){
   try{ const er=await fetch('/api/empresas',{cache:'no-store'}); if(er&&er.ok){ const ej=await er.json(); if(ej&&ej.items)STORE.empresas=ej.items; } }catch(e){}
   try{ const kr=await fetch('/api/contatos',{cache:'no-store'}); if(kr&&kr.ok){ const kj=await kr.json(); if(kj&&kj.items)STORE.contatos=kj.items; } }catch(e){}
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
 }
 window.cadRefreshData=cadRefreshData;
 function cadSub(name){
