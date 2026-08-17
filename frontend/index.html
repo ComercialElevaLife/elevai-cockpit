@@ -493,7 +493,7 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Contato — sobrenome<input id="cad-sobrenome" type="text" placeholder="Ex.: Almeida" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — telefone<input id="cad-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — e-mail<input id="cad-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" placeholder="Empresa" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" list="dl-empresas" placeholder="Empresa (busque a cadastrada)" required onfocus="window.fillEmpresaDatalist&&fillEmpresaDatalist()" oninput="window.elevaiCadEmpMatch&&elevaiCadEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="cad-unidade" type="text" placeholder="Cidade/planta" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="cad-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('cad-razao'),document.getElementById('cad-endereco'),document.getElementById('cad-cnpj-msg'),document.getElementById('cad-cnae'))" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="cad-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -520,6 +520,7 @@ td .up{color:var(--ok);font-weight:700}
         <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
           <button type="submit" id="cad-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Cadastrar lead</button>
           <span id="cad-msg" style="font-size:13px"></span>
+          <a href="#" id="cad-cancel-edit" hidden onclick="window.cancelCadEdit&&cancelCadEdit();q('cadForm').reset();elevaiPropTgl();return false" style="font-size:12px;color:#8A7A78;font-weight:600">Cancelar edição</a>
         </div>
       </form>
       <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist><datalist id="dl-codserv"></datalist>
@@ -1047,7 +1048,7 @@ function renderRecentes(){
   const box=q('cad-recentes'); if(!box)return;
   const arr=STORE.leads.slice().sort((a,b)=>String(b.dt||'').localeCompare(String(a.dt||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Últimos cadastros</h4><div class="m" style="font-size:12px;color:var(--mut)">Nenhum lead ainda.</div>';return;}
-  box.innerHTML='<h4>Últimos cadastros</h4>'+arr.map(l=>'<div class="r"><span><b>'+(l.nome||l.cliente||'—')+'</b> · '+(l.cliente||'')+'</span><span class="m">'+(l.dt||'—')+' · '+(l.cons||'—')+' · '+brl(l.valor)+'</span></div>').join('');
+  box.innerHTML='<h4>Últimos cadastros ('+STORE.leads.length+')</h4>'+arr.map(l=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(l.nome||l.cliente||'—')+'</b> · '+esc(l.cliente||'')+' <span class="m">'+esc(l.dt||'—')+' · '+esc(l.cons||'—')+' · '+brl(l.valor)+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editLead(\''+esc(l.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteLeadCad(\''+esc(l.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('');
 }
 /* consulta CNPJ pública/grátis (BrasilAPI) → preenche razão social + endereço */
 async function cnpjLookup(cnpj, elRazao, elEnd, elMsg, elCnae){
@@ -1131,6 +1132,15 @@ function elevaiConEmpMatch(){
   else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
 }
 window.elevaiConEmpMatch=elevaiConEmpMatch;
+function elevaiCadEmpMatch(){
+  const val=((q('cad-cliente')&&q('cad-cliente').value)||'').trim().toLowerCase();
+  const msg=q('cad-emp-msg'); if(!msg)return;
+  if(!val){msg.textContent='';return;}
+  const hit=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===val);
+  if(hit){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada';}
+  else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
+}
+window.elevaiCadEmpMatch=elevaiCadEmpMatch;
 /* CNPJ (BrasilAPI) → preenche os campos estruturados da Empresa */
 async function cnpjLookupEmp(cnpj){
   const gg=id=>document.getElementById(id);
@@ -1314,7 +1324,10 @@ async function elevaiCad(ev){
   const g=id=>{const el2=q(id);return el2?String(el2.value).trim():'';};
   const dt=g('cad-dt'); const d=dt?new Date(dt+'T00:00:00'):new Date();
   const prop=g('cad-prop'); const envio=g('cad-envio');
-  const rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,nome:g('cad-nome')||'',cliente:g('cad-cliente'),
+  const empNome=g('cad-cliente');
+  const hitEmp=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===empNome.toLowerCase());
+  const rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,nome:g('cad-nome')||'',cliente:empNome,
+    empresaId:(hitEmp&&hitEmp.__id)?String(hitEmp.__id):'',
     unidade:g('cad-unidade')||'',fonte:g('cad-fonte')||'NA',campanha:g('cad-campanha')||'NA',icp:g('cad-icp'),
     cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:parseFloat(g('cad-valor')||'0')||0,
     tipo:g('cad-tipo')||'N/A',envio:(prop==='SIM'&&envio)?envio:null,
@@ -1326,14 +1339,17 @@ async function elevaiCad(ev){
     contatoTipo:g('cad-contatotipo')||'',origem:g('cad-origem')||'NÃO SÓCIOS',
     valorMensal:(g('cad-tipo')==='R'?(parseFloat(g('cad-valormensal')||'0')||0):null),
     numMeses:(g('cad-tipo')==='R'?(parseInt(g('cad-nummeses')||'12',10)||12):null)};
+  const editId=window._cadEditId||null;
+  if(editId) rec.__id=editId;
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
     const r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
     const j=await r.json().catch(()=>({}));
     if(r.ok&&j.ok){
-      msg.style.color='#2E7D5B'; msg.textContent='✓ Lead cadastrado.';
+      msg.style.color='#2E7D5B'; msg.textContent=editId?'✓ Oportunidade atualizada.':'✓ Lead cadastrado.';
       q('cadForm').reset(); elevaiPropTgl();
+      cancelCadEdit();
       await reloadData();
     }else{
       msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.';
@@ -1341,6 +1357,50 @@ async function elevaiCad(ev){
   }catch(e){msg.style.color='#B23A48';msg.textContent='Falha de rede: '+e.message;}
   btn.disabled=false; return false;
 }
+window.elevaiCad=elevaiCad;
+function editLead(id){
+  const it=(STORE.leads||[]).find(l=>String(l.__id)===String(id)); if(!it)return;
+  const set=(fid,v)=>{const el2=q(fid); if(el2)el2.value=(v==null?'':v);};
+  set('cad-dt',it.dt); set('cad-nome',it.nome); set('cad-cliente',it.cliente);
+  set('cad-unidade',it.unidade); set('cad-fonte',it.fonte); set('cad-campanha',it.campanha);
+  set('cad-icp',it.icp); set('cad-cons',it.cons); set('cad-serv',it.serv);
+  set('cad-prop',it.prop);
+  try{ elevaiPropTgl(); }catch(e){}
+  if(it.prop==='SIM') set('cad-envio',it.envio);
+  set('cad-tipo',it.tipo);
+  try{ elevaiRecToggle(); }catch(e){}
+  if(it.tipo==='R'){ set('cad-valormensal',it.valorMensal); set('cad-nummeses',it.numMeses); }
+  set('cad-valor',it.valor);
+  set('cad-tc',it.tc); set('cad-status',it.status);
+  set('cad-cnpj',it.cnpj); set('cad-razao',it.razaoSocial); set('cad-endereco',it.endereco);
+  set('cad-cnae',it.cnae); set('cad-grau',it.grauRisco); set('cad-sobrenome',it.contatoSobrenome);
+  set('cad-telefone',it.telefone); set('cad-email',it.email); set('cad-contatotipo',it.contatoTipo);
+  set('cad-origem',it.origem);
+  window._cadEditId=String(id);
+  const btn=q('cad-btn'); if(btn)btn.textContent='Salvar alterações';
+  const cancel=q('cad-cancel-edit'); if(cancel)cancel.hidden=false;
+  const msg=q('cad-msg'); if(msg){msg.style.color='#8A7A78'; msg.textContent='Editando "'+(it.cliente||it.nome||'')+'" — altere os campos e salve.';}
+  try{ window.elevaiCadEmpMatch&&elevaiCadEmpMatch(); }catch(e){}
+  const form=q('cadForm'); if(form)form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.editLead=editLead;
+function cancelCadEdit(){
+  window._cadEditId=null;
+  const btn=q('cad-btn'); if(btn)btn.textContent='Cadastrar lead';
+  const cancel=q('cad-cancel-edit'); if(cancel)cancel.hidden=true;
+}
+window.cancelCadEdit=cancelCadEdit;
+function deleteLeadCad(id){
+  const it=(STORE.leads||[]).find(l=>String(l.__id)===String(id)); if(!it)return;
+  if(!confirm('Excluir permanentemente a oportunidade "'+(it.cliente||it.nome||'')+'"? Isso remove o registro do SharePoint (inclusive do Kanban) e não pode ser desfeito.'))return;
+  if(window.deleteLead){
+    window.deleteLead(id, function(){
+      if(String(window._cadEditId)===String(id)) cancelCadEdit();
+      try{ renderRecentes(); }catch(e){}
+    }, function(){});
+  } else { alert('Exclusão indisponível.'); }
+}
+window.deleteLeadCad=deleteLeadCad;
 async function reloadData(){
   const btn=q('btn-reload'); if(btn){btn.disabled=true;btn.textContent='↻ ...';}
   await loadStore(); fillFilters(); populateCadDatalists();
