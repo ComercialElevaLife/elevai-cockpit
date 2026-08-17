@@ -1546,7 +1546,17 @@ class App {
     const cons=this.fval('f-cons'), serv=this.fval('f-serv'), icp=this.fval('f-icp'), tc=this.fval('f-tc'), prop=this.fval('f-prop');
     const ok=(r)=> true;
     this.de=de; this.ate=ate;
-    this.fL=RAW.leads.filter(ok); this.fV=RAW.vendas.filter(ok);
+    this.fL=RAW.leads.filter(ok);
+    /* 17/08/2026 — Vendas_Comercial (planilha migrada) foi DESCONTINUADA (decisão do Léo: foco total no Kanban).
+       "Vendas" agora e' derivado direto de Leads_Comercial status=VENDIDA (mesma fonte que "Metas do mês" ja usava),
+       eliminando a divergencia entre os blocos do Painel. Checagem de duplicidade (empresa+unidade+servico+valor)
+       rodada em 17/08 nao encontrou nenhuma duplicata exata dentro do Kanban. */
+    const vvPainel=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
+    this.fV=this.fL.filter(l=>l.status==='VENDIDA').map(l=>{
+      const saleDt=(l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
+      const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
+      return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id};
+    });
     this.semSec = !cons&&!serv&&!icp&&!tc&&!prop;
     // meses do período (limitados aos dados)
     const mkey=s=>Number(s.slice(0,4))*100+Number(s.slice(5,7));
