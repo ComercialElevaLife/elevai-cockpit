@@ -618,6 +618,10 @@ function setModoTeste(on){try{localStorage.setItem(TEST_LS,on?'1':'0');}catch(e)
 const IPCA=1.041428;
 const brl=n=>'R$ '+(Number(n)||0).toLocaleString('pt-BR',{maximumFractionDigits:0});
 const q=id=>document.getElementById(id);
+/* Faltava no escopo do shell/Cadastro (so existia dentro da IIFE do CRM) — causava
+   "esc is not defined" silencioso (engolido por try/catch) em renderEmpRecentes,
+   fillEmpresaDatalist e renderConRecentes, que por isso NUNCA renderizavam. */
+function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
 let SRC='local';
