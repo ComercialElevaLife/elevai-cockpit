@@ -440,6 +440,7 @@ td .up{color:var(--ok);font-weight:700}
           <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
             <button type="submit" id="emp-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Salvar empresa</button>
             <span id="emp-msg" style="font-size:13px"></span>
+            <a href="#" id="emp-cancel-edit" hidden onclick="window.cancelEmpEdit&&cancelEmpEdit();q('empForm').reset();return false" style="font-size:12px;color:#8A7A78;font-weight:600">Cancelar edição</a>
           </div>
         </form>
         <div class="recentes" id="emp-recentes"></div>
@@ -463,6 +464,7 @@ td .up{color:var(--ok);font-weight:700}
             <button type="submit" id="con-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Salvar contato</button>
             <span id="con-msg" style="font-size:13px"></span>
             <a href="#" onclick="cadSub('empresa');return false" style="font-size:12px;color:#7A2F42;font-weight:600">+ nova empresa</a>
+            <a href="#" id="con-cancel-edit" hidden onclick="window.cancelConEdit&&cancelConEdit();q('conForm').reset();return false" style="font-size:12px;color:#8A7A78;font-weight:600">Cancelar edição</a>
           </div>
         </form>
         <datalist id="dl-empresas"></datalist>
@@ -1173,15 +1175,18 @@ async function elevaiEmp(ev){
     cnae:g('emp-cnae'),regimeTributario:g('emp-regime'),grauRisco:g('emp-grau'),
     target:g('emp-target')||'NÃO TARGET',segmento:g('emp-segmento'),obs:g('emp-obs')};
   if(!rec.cliente)return false;
+  const editId=window._empEditId||null;
+  if(editId) rec.__id=editId;
   const btn=q('emp-btn'), msg=q('emp-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Salvando...';
   try{
     const r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
     const j=await r.json().catch(()=>({}));
     if(r.ok&&j.ok){
-      msg.style.color='#2E7D5B'; msg.textContent='✓ Empresa salva.'; q('empForm').reset();
+      msg.style.color='#2E7D5B'; msg.textContent=editId?'✓ Empresa atualizada.':'✓ Empresa salva.'; q('empForm').reset();
+      cancelEmpEdit();
       await reloadData();
-      ensureItemInStore('empresas', j.item);
+      if(!editId) ensureItemInStore('empresas', j.item);
       try{ fillEmpresaDatalist(); renderEmpRecentes(); }catch(e){}
     }
     else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
@@ -1189,6 +1194,45 @@ async function elevaiEmp(ev){
   btn.disabled=false; return false;
 }
 window.elevaiEmp=elevaiEmp;
+/* Carrega uma empresa existente de volta no formulario para edicao (reaproveita o mesmo form/POST,
+   que ja roteia pra atualizacao quando o payload traz __id — ver crud.js doUpdate). */
+function editEmpresa(id){
+  const it=_empresasList().find(e=>String(e.__id)===String(id)); if(!it)return;
+  const set=(fid,v)=>{const el=q(fid); if(el)el.value=v||'';};
+  set('emp-cliente',it.cliente); set('emp-target',it.target||'NÃO TARGET'); set('emp-cnpj',it.cnpj);
+  set('emp-razao',it.razaoSocial); set('emp-fantasia',it.nomeFantasia); set('emp-cnae',it.cnae);
+  set('emp-ie',it.ie); set('emp-im',it.im); set('emp-logradouro',it.logradouro); set('emp-numero',it.numero);
+  set('emp-complemento',it.complemento); set('emp-bairro',it.bairro); set('emp-municipio',it.municipio);
+  set('emp-uf',it.uf); set('emp-cep',it.cep); set('emp-ibge',it.codigoIbge); set('emp-regime',it.regimeTributario||'');
+  set('emp-grau',it.grauRisco||''); set('emp-segmento',it.segmento); set('emp-obs',it.obs);
+  window._empEditId=String(id);
+  const btn=q('emp-btn'); if(btn)btn.textContent='Salvar alterações';
+  const cancel=q('emp-cancel-edit'); if(cancel)cancel.hidden=false;
+  const msg=q('emp-msg'); if(msg){msg.style.color='#8A7A78'; msg.textContent='Editando "'+(it.cliente||'')+'" — altere os campos e salve.';}
+  const form=q('empForm'); if(form)form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.editEmpresa=editEmpresa;
+function cancelEmpEdit(){
+  window._empEditId=null;
+  const btn=q('emp-btn'); if(btn)btn.textContent='Salvar empresa';
+  const cancel=q('emp-cancel-edit'); if(cancel)cancel.hidden=true;
+}
+window.cancelEmpEdit=cancelEmpEdit;
+async function deleteEmpresa(id){
+  const it=_empresasList().find(e=>String(e.__id)===String(id)); if(!it)return;
+  if(!confirm('Excluir permanentemente a empresa "'+(it.cliente||it.razaoSocial||'')+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.'))return;
+  try{
+    const r=await fetch('/api/empresas',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){
+      STORE.empresas=(STORE.empresas||[]).filter(e=>String(e.__id)!==String(id));
+      if(String(window._empEditId)===String(id)) cancelEmpEdit();
+      try{ fillEmpresaDatalist(); renderEmpRecentes(); }catch(e){}
+      if(typeof toast==='function')toast('Empresa excluída.'); else alert('Empresa excluída.');
+    } else { alert('Erro ao excluir: '+(j.error||('HTTP '+r.status))); }
+  }catch(e){ alert('Falha de rede ao excluir: '+e.message); }
+}
+window.deleteEmpresa=deleteEmpresa;
 async function elevaiCon(ev){
   ev.preventDefault();
   const g=id=>{const el=q(id);return el?String(el.value).trim():'';};
@@ -1197,15 +1241,18 @@ async function elevaiCon(ev){
   const rec={nome:g('con-nome'),sobrenome:g('con-sobrenome'),telefone:g('con-telefone'),email:g('con-email'),
     empresaId:(hit&&hit.__id)?String(hit.__id):'',empresaNome:empNome,tipo:g('con-tipo'),cargo:g('con-cargo'),obs:g('con-obs')};
   if(!rec.nome)return false;
+  const editId=window._conEditId||null;
+  if(editId) rec.__id=editId;
   const btn=q('con-btn'), msg=q('con-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Salvando...';
   try{
     const r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
     const j=await r.json().catch(()=>({}));
     if(r.ok&&j.ok){
-      msg.style.color='#2E7D5B'; msg.textContent='✓ Contato salvo'+(rec.empresaId?'':' (empresa ainda não cadastrada — vincule depois)')+'.'; q('conForm').reset();
+      msg.style.color='#2E7D5B'; msg.textContent=editId?'✓ Contato atualizado.':('✓ Contato salvo'+(rec.empresaId?'':' (empresa ainda não cadastrada — vincule depois)')+'.'); q('conForm').reset();
+      cancelConEdit();
       await reloadData();
-      ensureItemInStore('contatos', j.item);
+      if(!editId) ensureItemInStore('contatos', j.item);
       try{ renderConRecentes(); }catch(e){}
     }
     else{ msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
@@ -1213,19 +1260,54 @@ async function elevaiCon(ev){
   btn.disabled=false; return false;
 }
 window.elevaiCon=elevaiCon;
+function editContato(id){
+  const it=(STORE.contatos||[]).find(c=>String(c.__id)===String(id)); if(!it)return;
+  const set=(fid,v)=>{const el=q(fid); if(el)el.value=v||'';};
+  set('con-nome',it.nome); set('con-sobrenome',it.sobrenome); set('con-telefone',it.telefone); set('con-email',it.email);
+  set('con-empresa',it.empresaNome); set('con-tipo',it.tipo||''); set('con-cargo',it.cargo); set('con-obs',it.obs);
+  window._conEditId=String(id);
+  const btn=q('con-btn'); if(btn)btn.textContent='Salvar alterações';
+  const cancel=q('con-cancel-edit'); if(cancel)cancel.hidden=false;
+  const msg=q('con-msg'); if(msg){msg.style.color='#8A7A78'; msg.textContent='Editando "'+(it.nome||'')+'" — altere os campos e salve.';}
+  try{ window.elevaiConEmpMatch&&elevaiConEmpMatch(); }catch(e){}
+  const form=q('conForm'); if(form)form.scrollIntoView({behavior:'smooth',block:'start'});
+}
+window.editContato=editContato;
+function cancelConEdit(){
+  window._conEditId=null;
+  const btn=q('con-btn'); if(btn)btn.textContent='Salvar contato';
+  const cancel=q('con-cancel-edit'); if(cancel)cancel.hidden=true;
+}
+window.cancelConEdit=cancelConEdit;
+async function deleteContato(id){
+  const it=(STORE.contatos||[]).find(c=>String(c.__id)===String(id)); if(!it)return;
+  const nomeCompleto=((it.nome||'')+' '+(it.sobrenome||'')).trim();
+  if(!confirm('Excluir permanentemente o contato "'+nomeCompleto+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.'))return;
+  try{
+    const r=await fetch('/api/contatos',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
+    const j=await r.json().catch(()=>({}));
+    if(r.ok&&j.ok){
+      STORE.contatos=(STORE.contatos||[]).filter(c=>String(c.__id)!==String(id));
+      if(String(window._conEditId)===String(id)) cancelConEdit();
+      try{ renderConRecentes(); }catch(e){}
+      if(typeof toast==='function')toast('Contato excluído.'); else alert('Contato excluído.');
+    } else { alert('Erro ao excluir: '+(j.error||('HTTP '+r.status))); }
+  }catch(e){ alert('Falha de rede ao excluir: '+e.message); }
+}
+window.deleteContato=deleteContato;
 function renderEmpRecentes(){
   const box=q('emp-recentes'); if(!box)return;
   const all=_empresasList();
   const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Empresas cadastradas</h4><div class="m" style="font-size:12px">Nenhuma empresa ainda.</div>';return;}
-  box.innerHTML='<h4>Empresas cadastradas ('+all.length+')</h4>'+arr.map(e=>'<div class="r"><span><b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'+(e.target==='TARGET'?' <span style="color:#B23A48;font-weight:700">◆ TARGET</span>':'')+'</span><span class="m">'+esc(e.cnpj||'')+(e.municipio?' · '+esc(e.municipio)+'/'+esc(e.uf||''):'')+'</span></div>').join('');
+  box.innerHTML='<h4>Empresas cadastradas ('+all.length+')</h4>'+arr.map(e=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'+(e.target==='TARGET'?' <span style="color:#B23A48;font-weight:700">◆ TARGET</span>':'')+' <span class="m">'+esc(e.cnpj||'')+(e.municipio?' · '+esc(e.municipio)+'/'+esc(e.uf||''):'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editEmpresa(\''+esc(e.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteEmpresa(\''+esc(e.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('');
 }
 function renderConRecentes(){
   const box=q('con-recentes'); if(!box)return;
   const all=(STORE.contatos||[]);
   const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Contatos cadastrados</h4><div class="m" style="font-size:12px">Nenhum contato ainda.</div>';return;}
-  box.innerHTML='<h4>Contatos cadastrados ('+all.length+')</h4>'+arr.map(c=>'<div class="r"><span><b>'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'—')+'</b> · '+esc(c.empresaNome||'')+'</span><span class="m">'+esc(c.email||c.telefone||'')+'</span></div>').join('');
+  box.innerHTML='<h4>Contatos cadastrados ('+all.length+')</h4>'+arr.map(c=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'—')+'</b> · '+esc(c.empresaNome||'')+' <span class="m">'+esc(c.email||c.telefone||'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editContato(\''+esc(c.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteContato(\''+esc(c.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('');
 }
 async function elevaiCad(ev){
   ev.preventDefault();
