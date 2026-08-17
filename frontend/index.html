@@ -489,7 +489,7 @@ td .up{color:var(--ok);font-weight:700}
       <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Cadastra direto na base viva (SharePoint). Aparece no Painel e no CRM automaticamente.</p>
       <form id="cadForm" onsubmit="return elevaiCad(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
         <label style="display:flex;flex-direction:column;gap:4px">Data<input id="cad-dt" type="date" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<input id="cad-nome" type="text" placeholder="Ex.: Priscila" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<input id="cad-nome" type="text" list="dl-contatos" placeholder="Ex.: Priscila (busque um contato já cadastrado)" onfocus="window.fillContatoDatalistCad&&fillContatoDatalistCad()" oninput="window.elevaiCadConMatch&&elevaiCadConMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — sobrenome<input id="cad-sobrenome" type="text" placeholder="Ex.: Almeida" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — telefone<input id="cad-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — e-mail<input id="cad-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -523,7 +523,7 @@ td .up{color:var(--ok);font-weight:700}
           <a href="#" id="cad-cancel-edit" hidden onclick="window.cancelCadEdit&&cancelCadEdit();q('cadForm').reset();elevaiPropTgl();return false" style="font-size:12px;color:#8A7A78;font-weight:600">Cancelar edição</a>
         </div>
       </form>
-      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist><datalist id="dl-codserv"></datalist>
+      <datalist id="dl-cons"></datalist><datalist id="dl-serv"></datalist><datalist id="dl-fonte"></datalist><datalist id="dl-campanha"></datalist><datalist id="dl-codserv"></datalist><datalist id="dl-contatos"></datalist>
       <div class="recentes" id="cad-recentes"></div>
     </div>
     </div>
@@ -1044,7 +1044,7 @@ function lpQR(){ var box=q('lp-qr'); if(!box)return; if(box.dataset.on==='1'){ b
   box.innerHTML='<img alt="QR Code da Landing Page" style="width:180px;height:180px;border:1px solid #EADDE0;border-radius:10px;padding:6px;background:#fff" src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data='+u+'"><div style="font-size:11px;color:#8A7A78;margin-top:6px">Aponte a câmera do celular para abrir o formulário.</div>';
   box.dataset.on='1'; }
 function renderRecentes(){
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
+  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
   const box=q('cad-recentes'); if(!box)return;
   const arr=STORE.leads.slice().sort((a,b)=>String(b.dt||'').localeCompare(String(a.dt||''))).slice(0,10);
   if(!arr.length){box.innerHTML='<h4>Últimos cadastros</h4><div class="m" style="font-size:12px;color:var(--mut)">Nenhum lead ainda.</div>';return;}
@@ -1096,14 +1096,14 @@ function _empresasList(){ return (STORE.empresas||[]); }
 async function cadRefreshData(){
   try{ const er=await fetch('/api/empresas',{cache:'no-store'}); if(er&&er.ok){ const ej=await er.json(); if(ej&&ej.items)STORE.empresas=ej.items; } }catch(e){}
   try{ const kr=await fetch('/api/contatos',{cache:'no-store'}); if(kr&&kr.ok){ const kj=await kr.json(); if(kj&&kj.items)STORE.contatos=kj.items; } }catch(e){}
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
+  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
 }
 window.cadRefreshData=cadRefreshData;
 function cadSub(name){
   ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
   document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
   document.querySelectorAll('#subnav-cadastro .subitem').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
-  try{ fillEmpresaDatalist(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
+  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
 }
 window.cadSub=cadSub;
 function cadSubNav(name){
@@ -1137,10 +1137,38 @@ function elevaiCadEmpMatch(){
   const msg=q('cad-emp-msg'); if(!msg)return;
   if(!val){msg.textContent='';return;}
   const hit=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===val);
-  if(hit){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada';}
+  if(hit){
+    msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada — dados preenchidos automaticamente';
+    const set=(fid,v)=>{const el=q(fid); if(el&&v)el.value=v;};
+    set('cad-cnpj',hit.cnpj); set('cad-razao',hit.razaoSocial); set('cad-cnae',hit.cnae);
+    set('cad-grau',hit.grauRisco); set('cad-unidade',hit.municipio);
+    const end=[hit.logradouro,hit.numero].filter(Boolean).join(', ')+(hit.bairro?' - '+hit.bairro:'')+(hit.municipio?', '+hit.municipio:'')+(hit.uf?'/'+hit.uf:'')+(hit.cep?' · CEP '+hit.cep:'');
+    if(end.replace(/[,\/·\-\s]/g,''))set('cad-endereco',end);
+    try{ elevaiCadConMatch(); }catch(e){}
+  }
   else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
 }
 window.elevaiCadEmpMatch=elevaiCadEmpMatch;
+/* datalist + autopreenchimento de Contato no form de Oportunidade (mesmo padrao da Empresa) */
+function fillContatoDatalistCad(){
+  const dl=q('dl-contatos'); if(!dl)return;
+  dl.innerHTML=(STORE.contatos||[]).map(c=>'<option value="'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim())+'"></option>').join('');
+}
+window.fillContatoDatalistCad=fillContatoDatalistCad;
+function elevaiCadConMatch(){
+  const val=((q('cad-nome')&&q('cad-nome').value)||'').trim().toLowerCase();
+  if(!val)return;
+  const empVal=((q('cad-cliente')&&q('cad-cliente').value)||'').trim().toLowerCase();
+  const all=(STORE.contatos||[]);
+  const fullName=c=>((c.nome||'')+' '+(c.sobrenome||'')).trim().toLowerCase();
+  let hit=all.find(c=>fullName(c)===val && empVal && (c.empresaNome||'').trim().toLowerCase()===empVal);
+  if(!hit) hit=all.find(c=>fullName(c)===val);
+  if(!hit) return;
+  const set=(fid,v)=>{const el=q(fid); if(el&&v)el.value=v;};
+  set('cad-sobrenome',hit.sobrenome); set('cad-telefone',hit.telefone);
+  set('cad-email',hit.email); set('cad-contatotipo',hit.tipo);
+}
+window.elevaiCadConMatch=elevaiCadConMatch;
 /* CNPJ (BrasilAPI) → preenche os campos estruturados da Empresa */
 async function cnpjLookupEmp(cnpj){
   const gg=id=>document.getElementById(id);
