@@ -669,7 +669,7 @@ function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'
 let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
 let SRC='local';
 let ACTIVE='painel';
-let filteredLeads=[], filteredVendas=[];
+let filteredLeads=[], filteredVendas=[], filteredLeadsVendidos=[];
 let F={preset:'',ano:String(new Date().getFullYear()),mes:'',semana:'',de:'',ate:'',tipo:'',cons:[],serv:[],icp:'',prop:'',tc:'',cliente:'',unidade:''};
 let QRANK=[];
 let DATA_VER=0;              /* incrementa quando o STORE muda (reload/cadastro/status) */
@@ -902,13 +902,27 @@ function passDims(r,isLead){
 function compute(){
   filteredLeads = STORE.leads.filter(r=>inRange(r)&&passDims(r,true));
   filteredVendas = STORE.vendas.filter(r=>inRange(r)&&passDims(r,false));
+  /* 17/08/2026 — BUG achado pelo Léo: filtrar o Painel por um mês (ex.: Agosto) não mostrava vendas
+     fechadas naquele mês se a OPORTUNIDADE tivesse sido criada em outro mês (ex.: ZF criada em maio,
+     fechada em 14/08 — sumia do filtro de agosto). Causa: filteredLeads (acima) filtra pela data de
+     CRIAÇÃO (dt), que é o certo p/ "novos leads/propostas no período", mas o Painel também deriva as
+     VENDAS a partir desse mesmo filteredLeads — então uma venda fechada num mês diferente do de
+     criação nunca chegava lá. Fix: calcular separadamente os leads VENDIDA usando a data EFETIVA de
+     fechamento (alteradoEm, com fallback pra dt) para decidir se entram no período — sem depender da
+     data de criação. */
+  filteredLeadsVendidos = STORE.leads.filter(r=>{
+    if(r.status!=='VENDIDA') return false;
+    if(!passDims(r,true)) return false;
+    const saleDt=(r.alteradoEm?String(r.alteradoEm).slice(0,10):r.dt)||r.dt;
+    return inRange({dt:saleDt});
+  });
 }
 function renderActive(force){
   const _s=viewSig();
   if(!force && RENDERED[ACTIVE]===_s) return;   /* nada mudou p/ esta aba: nao recomputa/rebuilda graficos */
   RENDERED[ACTIVE]=_s;
   if(ACTIVE==='painel'){
-    try{ PAINEL.render({leads:filteredLeads,vendas:filteredVendas,eventos:STORE.eventos,
+    try{ PAINEL.render({leads:filteredLeads,vendas:filteredVendas,vendidos:filteredLeadsVendidos,eventos:STORE.eventos,
       de:(F.de||'2024-01-01'),ate:(F.ate||'2026-12-31')}); }catch(e){console.error('painel',e);}
   }else if(ACTIVE==='crm'){
     try{ CRM.render(filteredLeads); }catch(e){console.error('crm',e);}
@@ -1704,9 +1718,16 @@ class App {
     /* 17/08/2026 — Vendas_Comercial (planilha migrada) foi DESCONTINUADA (decisão do Léo: foco total no Kanban).
        "Vendas" agora e' derivado direto de Leads_Comercial status=VENDIDA (mesma fonte que "Metas do mês" ja usava),
        eliminando a divergencia entre os blocos do Painel. Checagem de duplicidade (empresa+unidade+servico+valor)
-       rodada em 17/08 nao encontrou nenhuma duplicata exata dentro do Kanban. */
+       rodada em 17/08 nao encontrou nenhuma duplicata exata dentro do Kanban.
+       17/08/2026 (2ª correção) — antes, `this.fV` vinha de `this.fL` (leads já filtrados pelo shell
+       usando a data de CRIAÇÃO da oportunidade). Isso fazia uma venda fechada num mês sumir do filtro
+       daquele mês se a oportunidade tivesse sido criada em outro mês (achado pelo Léo com o caso ZF:
+       criada em maio, fechada em 14/08, sumia ao filtrar Agosto). Agora usa `RAW.vendidos`, que o
+       shell já filtra pela data EFETIVA de fechamento (alteradoEm, fallback dt) — com fallback pro
+       comportamento antigo caso RAW.vendidos não seja passado (compat). */
     const vvPainel=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
-    this.fV=this.fL.filter(l=>l.status==='VENDIDA').map(l=>{
+    const vendidosSrc=RAW.vendidos||this.fL.filter(l=>l.status==='VENDIDA');
+    this.fV=vendidosSrc.map(l=>{
       const saleDt=(l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
       return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id};
@@ -1799,7 +1820,11 @@ class App {
     const fL=this.fL||[], n=this.nMeses||1, frac=this.frac||1;
     const props=fL.filter(l=>l.prop==='SIM');
     const propVal=props.reduce((s,l)=>s+(+l.valor||0),0);
-    const vend=fL.filter(l=>l.status==='VENDIDA');
+    /* 17/08/2026 — mesmo bug do this.fV (ver comentário em apply()): usava fL.filter(VENDIDA), que já
+       tinha sido filtrado pela data de CRIAÇÃO da oportunidade — uma venda fechada em Agosto mas criada
+       em outro mês sumia daqui também. Agora usa RAW.vendidos (já filtrado pela data efetiva de
+       fechamento), com fallback pro comportamento antigo se RAW.vendidos não vier preenchido. */
+    const vend=RAW.vendidos||fL.filter(l=>l.status==='VENDIDA');
     const vv=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
     const vendVal=vend.reduce((s,l)=>s+vv(l),0);
     const soc=vend.filter(l=>String(l.origem||'').toUpperCase()==='SÓCIOS').reduce((s,l)=>s+vv(l),0);
@@ -2065,7 +2090,7 @@ var _hojeBR=_pz(_hj.getDate())+'/'+_pz(_hj.getMonth()+1)+'/'+_hj.getFullYear();
 var CFG={metas:RAW.metas,dataRef:_hojeBR,dataISO:_hojeISO};
 function paRender(d){
   d=d||{};
-  RAW={leads:d.leads||[],vendas:d.vendas||[],eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO,de:d.de||'',ate:d.ate||''};
+  RAW={leads:d.leads||[],vendas:d.vendas||[],vendidos:d.vendidos||null,eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO,de:d.de||'',ate:d.ate||''};
   try{ if(!app){app=new App();} else {app.setup();} }catch(e){console.error('painel setup',e);}
   try{ el('f-de').value=d.de||'1900-01-01'; el('f-ate').value=d.ate||'2999-12-31'; }catch(e){}
   try{ app.apply(); }catch(e){console.error('painel apply',e);}
