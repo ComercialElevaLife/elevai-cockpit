@@ -32,6 +32,29 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .flt label{font-size:11px;color:var(--mut);font-weight:600;display:flex;flex-direction:column;gap:3px}
 .flt select{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);min-width:120px}
 .flt .clr{align-self:end;background:var(--bg);border:1px solid var(--ln);color:var(--wd);font-weight:600;font-size:12px;padding:7px 12px;border-radius:8px;cursor:pointer}
+/* ---- barra de filtros do Painel (redesign 17/08/2026) ---- */
+.flt{background:#fff;border:1px solid var(--ln);border-radius:12px;padding:10px 12px;gap:10px 14px}
+.flt-g{display:flex;flex-direction:column;gap:3px}
+.flt-lbl{font-size:10px;color:var(--mut);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.flt-period{display:flex;flex-direction:column;gap:6px;padding-right:12px;border-right:1px solid var(--ln)}
+.flt-period-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.flt-period-row select{font-family:inherit;font-size:12.5px;padding:6px 8px;border:1px solid var(--ln);border-radius:7px;background:#fff;color:var(--ink)}
+.flt-chip{font-family:inherit;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:20px;border:1px solid var(--ln);background:var(--bg);color:var(--wd);cursor:pointer}
+.flt-chip.on{background:var(--w);border-color:var(--w);color:#fff}
+.flt-custom-row{display:flex;gap:6px;align-items:center;font-size:12px;color:var(--mut)}
+.flt-custom-row input[type=date]{font-family:inherit;font-size:12.5px;padding:5px 8px;border:1px solid var(--ln);border-radius:7px}
+.flt select,.flt input:not([type=checkbox]){font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);min-width:120px}
+.flt-emp{position:relative}
+.flt-emp input{min-width:170px}
+.msel{position:relative}
+.msel-btn{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;min-width:120px;text-align:left;display:flex;justify-content:space-between;gap:6px}
+.msel-btn:hover{border-color:var(--w)}
+.msel-count{color:var(--w);font-weight:700}
+.msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
+.msel-menu.on{display:block}
+.msel-menu label{display:flex;align-items:center;gap:7px;font-size:12.5px;padding:5px 6px;border-radius:6px;cursor:pointer;white-space:nowrap}
+.msel-menu label:hover{background:var(--bg)}
+.msel-menu label.msel-all{border-bottom:1px solid var(--ln);margin-bottom:4px;font-weight:700}
 .view{flex:1;min-height:0}
 .view[hidden]{display:none}
 .empty{color:var(--mut);font-size:12px;text-align:center;padding:18px 6px}
@@ -179,16 +202,28 @@ td .up{color:var(--ok);font-weight:700}
     <span id="warnbar" class="warnbar" style="display:none"></span>
     <div class="sp"></div>
     <div class="flt" id="fltbar">
-      <label>Período<select id="mm-preset"><option value="2026">Ano 2026</option><option value="2025">Ano 2025</option><option value="q1">Q1/2026</option><option value="q2">Q2/2026</option><option value="q3">Q3/2026</option><option value="q4">Q4/2026</option><option value="90">Últimos 90 dias</option><option value="all">Todo o histórico</option><option value="custom">Personalizado</option></select></label>
-      <label>De<input type="date" id="mm-de"></label>
-      <label>Até<input type="date" id="mm-ate"></label>
-      <label>Consultor<select id="mm-cons"><option value="">Todos</option></select></label>
-      <label>Serviço<select id="mm-serv"><option value="">Todos</option></select></label>
-      <label>Cliente<select id="mm-cli"><option value="">Todos</option></select></label>
-      <label>Unidade<select id="mm-uni"><option value="">Todas</option></select></label>
-      <label>ICP<select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option></select></label>
-      <label>Prop.?<select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></label>
-      <label>Novo/Atual<select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></label>
+      <div class="flt-period">
+        <span class="flt-lbl">Período</span>
+        <div class="flt-period-row">
+          <select id="mm-ano" title="Ano"></select>
+          <select id="mm-mes" title="Mês"><option value="">Ano todo</option></select>
+          <select id="mm-semana" title="Semana" disabled><option value="">Mês todo</option></select>
+          <button type="button" class="flt-chip" id="mm-90">90 dias</button>
+          <button type="button" class="flt-chip" id="mm-all">Histórico</button>
+          <button type="button" class="flt-chip" id="mm-custom">Personalizado</button>
+        </div>
+        <div class="flt-custom-row" id="mm-custom-row" style="display:none">
+          <input type="date" id="mm-de"><span>até</span><input type="date" id="mm-ate">
+        </div>
+      </div>
+      <div class="flt-g"><span class="flt-lbl">Tipo</span><select id="mm-tipo"><option value="">Todos</option><option value="P">Pontual</option><option value="R">Recorrente</option></select></div>
+      <div class="flt-g flt-emp"><span class="flt-lbl">Empresa</span><input id="mm-cli" list="dl-mm-emp" placeholder="Buscar empresa..." autocomplete="off"><datalist id="dl-mm-emp"></datalist></div>
+      <div class="flt-g"><span class="flt-lbl">Unidade</span><select id="mm-uni"><option value="">Todas</option></select></div>
+      <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
+      <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+      <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
+      <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
+      <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
       <button class="clr" id="mm-clr">Limpar</button>
     </div>
     <button class="clr" id="btn-reload" title="Rebuscar a base viva e re-renderizar" style="margin-left:6px">↻ Atualizar</button>
@@ -206,14 +241,19 @@ td .up{color:var(--ok);font-weight:700}
       </div>
     </div>
     <div class="filters">
-      <div class="fg"><label>Período</label><select id="f-preset" onchange="app.preset()"></select></div>
-      <div class="fg"><label>De</label><input type="date" id="f-de" onchange="app.apply()"></div>
-      <div class="fg"><label>Até</label><input type="date" id="f-ate" onchange="app.apply()"></div>
-      <div class="fg"><label>Consultor</label><select id="f-cons" onchange="app.apply()"><option value="all">Todos</option></select></div>
-      <div class="fg"><label>Serviço</label><select id="f-serv" onchange="app.apply()"><option value="all">Todos</option></select></div>
-      <div class="fg"><label>ICP</label><select id="f-icp" onchange="app.apply()"><option value="all">Todos</option></select></div>
-      <div class="fg"><label>Prop. enviada?</label><select id="f-prop" onchange="app.apply()"><option value="all">Todas</option><option>SIM</option><option>NÃO</option></select></div>
-      <div class="fg"><label>Cliente</label><select id="f-tc" onchange="app.apply()"><option value="all">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
+      <!-- 17/08/2026: esta fileira de filtros era duplicada/decorativa — os valores nunca eram
+           usados no cálculo real (App.apply() já ignorava via ok=(r)=>true), e ficava visualmente
+           confusa ao lado da barra de filtros de verdade (mm-*, lá em cima). Mantida oculta e no
+           DOM (não removida) para não quebrar setup()/preset()/apply(), que ainda leem estes campos. -->
+      <div style="display:none">
+        <select id="f-preset"></select>
+        <input type="date" id="f-de"><input type="date" id="f-ate">
+        <select id="f-cons"><option value="all">Todos</option></select>
+        <select id="f-serv"><option value="all">Todos</option></select>
+        <select id="f-icp"><option value="all">Todos</option></select>
+        <select id="f-prop"><option value="all">Todas</option><option>SIM</option><option>NÃO</option></select>
+        <select id="f-tc"><option value="all">Todos</option><option>NOVO</option><option>ATUAL</option></select>
+      </div>
       <button class="btn" onclick="app.pdf()">⬇ Relatório PDF</button>
     </div>
   </header>
@@ -630,25 +670,14 @@ let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
 let SRC='local';
 let ACTIVE='painel';
 let filteredLeads=[], filteredVendas=[];
-let F={preset:'2026',de:'2026-01-01',ate:'2026-12-31',cons:'',serv:'',icp:'',prop:'',tc:'',cliente:'',unidade:''};
+let F={preset:'',ano:String(new Date().getFullYear()),mes:'',semana:'',de:'',ate:'',tipo:'',cons:[],serv:[],icp:'',prop:'',tc:'',cliente:'',unidade:''};
 let QRANK=[];
 let DATA_VER=0;              /* incrementa quando o STORE muda (reload/cadastro/status) */
 const RENDERED={};           /* view -> assinatura ja renderizada */
 const F_LS='elevai_filtros'; /* filtros salvos no navegador (sobrevive ao F5) */
 function saveF(){try{localStorage.setItem(F_LS,JSON.stringify(F));}catch(e){}}
 function loadF(){try{const j=JSON.parse(localStorage.getItem(F_LS)||'null');return (j&&typeof j==='object')?j:null;}catch(e){return null;}}
-function viewSig(){return ACTIVE+'|'+F.preset+'|'+F.de+'|'+F.ate+'|'+F.cons+'|'+F.serv+'|'+F.icp+'|'+F.prop+'|'+F.tc+'|'+F.cliente+'|'+F.unidade+'|'+SRC+'|'+DATA_VER;}
-
-function presetDates(p){const S=(a,b)=>({de:a,ate:b});
-  if(p==='2026')return S('2026-01-01','2026-12-31');
-  if(p==='2025')return S('2025-01-01','2025-12-31');
-  if(p==='q1')return S('2026-01-01','2026-03-31');
-  if(p==='q2')return S('2026-04-01','2026-06-30');
-  if(p==='q3')return S('2026-07-01','2026-09-30');
-  if(p==='q4')return S('2026-10-01','2026-12-31');
-  if(p==='90'){const r=new Date();const d0=new Date(r);d0.setDate(d0.getDate()-90);return S(d0.toISOString().slice(0,10),r.toISOString().slice(0,10));}
-  if(p==='all')return S('2024-01-01','2026-12-31');
-  return null;}
+function viewSig(){return ACTIVE+'|'+F.preset+'|'+F.ano+'|'+F.mes+'|'+F.semana+'|'+F.de+'|'+F.ate+'|'+F.tipo+'|'+(F.cons||[]).join(',')+'|'+(F.serv||[]).join(',')+'|'+F.icp+'|'+F.prop+'|'+F.tc+'|'+F.cliente+'|'+F.unidade+'|'+SRC+'|'+DATA_VER;}
 
 /* ---- Teams card (renovacoes / qualificacao) ---- */
 async function postCard(title,facts,body){
@@ -741,39 +770,123 @@ window.deleteLead=deleteLead;
 /* ---- filtros mestres ---- */
 /* normaliza nome de empresa p/ agrupar homônimos (só diferença de caixa/espaço/pontuação) */
 function normCli(s){return (s||'').toString().trim().toUpperCase().replace(/\s+/g,' ').replace(/[.,]/g,'');}
-function fillFilters(){
-  const cs=[...new Set(STORE.leads.map(l=>l.cons).filter(Boolean))].sort();
-  const sv=[...new Set(STORE.leads.map(l=>l.serv).filter(x=>x&&x!=='NA'))].sort();
-  const _cmap={}; [...STORE.leads,...STORE.vendas].forEach(r=>{const raw=(r.cliente||'').trim(); if(!raw)return; const n=normCli(raw); (_cmap[n]=_cmap[n]||{}); _cmap[n][raw]=(_cmap[n][raw]||0)+1;});
-  const cl=Object.keys(_cmap).map(n=>{const vs=_cmap[n]; return Object.keys(vs).sort((a,b)=>vs[b]-vs[a]||a.localeCompare(b,'pt-BR'))[0];}).sort((a,b)=>a.localeCompare(b,'pt-BR'));
-  const selC=q('mm-cons'), selS=q('mm-serv'), selCli=q('mm-cli');
-  const keepC=selC.value, keepS=selS.value, keepCli=selCli?selCli.value:'';
-  selC.innerHTML='<option value="">Todos</option>'; cs.forEach(c=>selC.add(new Option(c,c)));
-  selS.innerHTML='<option value="">Todos</option>'; sv.forEach(c=>selS.add(new Option(c,c)));
-  selC.value=keepC; selS.value=keepS;
-  if(selCli){ selCli.innerHTML='<option value="">Todos</option>'; cl.forEach(c=>selCli.add(new Option(c,c))); selCli.value=(keepCli&&cl.includes(keepCli))?keepCli:''; }
-  fillUnidades(selCli?selCli.value:'', q('mm-uni')?q('mm-uni').value:'');
+function _p2(n){return String(n).padStart(2,'0');}
+/* ---- período em cascata: Ano > Mês > Semana > Personalizado (redesign 17/08/2026) ---- */
+function weeksInMonth(y,m){
+  const first=new Date(y,m-1,1), last=new Date(y,m,0);
+  const weeks=[]; let cur=new Date(first), n=1;
+  while(cur<=last){
+    const wEnd=new Date(cur); wEnd.setDate(wEnd.getDate()+(6-cur.getDay()));
+    const end=wEnd>last?last:wEnd;
+    weeks.push({n:n, de:cur.toISOString().slice(0,10), ate:end.toISOString().slice(0,10)});
+    cur=new Date(end); cur.setDate(cur.getDate()+1); n++;
+  }
+  return weeks;
 }
-/* Unidade em cascata: mostra só as unidades do Cliente selecionado (ou todas, se nenhum) */
+function periodoRange(){
+  if(F.preset==='custom') return {de:q('mm-de').value||'2024-01-01', ate:q('mm-ate').value||'2026-12-31'};
+  if(F.preset==='90'){const r=new Date();const d0=new Date(r);d0.setDate(d0.getDate()-90);return {de:d0.toISOString().slice(0,10),ate:r.toISOString().slice(0,10)};}
+  if(F.preset==='all') return {de:'2024-01-01',ate:'2026-12-31'};
+  const y=+F.ano||new Date().getFullYear();
+  if(!F.mes) return {de:y+'-01-01',ate:y+'-12-31'};
+  const mNum=+F.mes;
+  if(!F.semana){ const last=new Date(y,mNum,0).getDate(); return {de:y+'-'+_p2(mNum)+'-01',ate:y+'-'+_p2(mNum)+'-'+_p2(last)}; }
+  const wks=weeksInMonth(y,mNum), w=wks.find(w=>String(w.n)===String(F.semana));
+  return w?{de:w.de,ate:w.ate}:{de:y+'-'+_p2(mNum)+'-01',ate:y+'-'+_p2(mNum)+'-28'};
+}
+/* Ano: opções a partir dos dados existentes (+ ano corrente), Mês: em cascata do Ano, Semana: em cascata do Mês */
+function fillAno(keep){
+  const sel=q('mm-ano'); if(!sel)return;
+  const anosDados=[...new Set([...STORE.leads,...STORE.vendas].map(r=>r.dt?Number(String(r.dt).slice(0,4)):null).filter(Boolean))];
+  const anos=[...new Set([...anosDados,new Date().getFullYear()])].sort((a,b)=>b-a);
+  sel.innerHTML=''; anos.forEach(a=>sel.add(new Option('Ano '+a,a)));
+  sel.value=(keep&&anos.map(String).includes(String(keep)))?keep:String(new Date().getFullYear());
+}
+function fillMes(keep){
+  const sel=q('mm-mes'); if(!sel)return;
+  sel.innerHTML='<option value="">Ano todo</option>';
+  for(let m=1;m<=12;m++) sel.add(new Option(MESES_LBL[m-1],m));
+  sel.value=(keep!=null&&keep!=='')?keep:'';
+}
+function fillSemana(keep){
+  const sel=q('mm-semana'); if(!sel)return;
+  const mes=q('mm-mes').value;
+  if(!mes){ sel.innerHTML='<option value="">Mês todo</option>'; sel.value=''; sel.disabled=true; return; }
+  sel.disabled=false;
+  const wks=weeksInMonth(+q('mm-ano').value||new Date().getFullYear(), +mes);
+  sel.innerHTML='<option value="">Mês todo</option>'; wks.forEach(w=>sel.add(new Option('Semana '+w.n+' ('+w.de.slice(8,10)+'/'+w.de.slice(5,7)+'–'+w.ate.slice(8,10)+'/'+w.ate.slice(5,7)+')',w.n)));
+  sel.value=(keep&&wks.some(w=>String(w.n)===String(keep)))?keep:'';
+}
+const MESES_LBL=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+/* Opções de Consultor/Serviço/Empresa/Unidade sempre recalculadas dentro do PERÍODO selecionado
+   (conexão entre filtros: mudar o período rescopo os demais, conforme pedido). */
+function fillFilters(){
+  const rng=periodoRange();
+  const inR=r=>{ const d=r.dt||''; return !d || ((!rng.de||d>=rng.de)&&(!rng.ate||d<=rng.ate)); };
+  const baseLeads=STORE.leads.filter(inR), baseVendas=STORE.vendas.filter(inR);
+  const cs=[...new Set(baseLeads.map(l=>l.cons).filter(Boolean))].sort();
+  const sv=[...new Set(baseLeads.map(l=>l.serv).filter(x=>x&&x!=='NA'))].sort();
+  const _cmap={}; [...baseLeads,...baseVendas].forEach(r=>{const raw=(r.cliente||'').trim(); if(!raw)return; const n=normCli(raw); (_cmap[n]=_cmap[n]||{}); _cmap[n][raw]=(_cmap[n][raw]||0)+1;});
+  (STORE.empresas||[]).forEach(e=>{const raw=(e.cliente||e.razaoSocial||'').trim(); if(!raw)return; const n=normCli(raw); (_cmap[n]=_cmap[n]||{}); _cmap[n][raw]=(_cmap[n][raw]||0)+1;});
+  const cl=Object.keys(_cmap).map(n=>{const vs=_cmap[n]; return Object.keys(vs).sort((a,b)=>vs[b]-vs[a]||a.localeCompare(b,'pt-BR'))[0];}).sort((a,b)=>a.localeCompare(b,'pt-BR'));
+  const dl=q('dl-mm-emp'); if(dl) dl.innerHTML=cl.map(c=>'<option value="'+esc(c)+'">').join('');
+  F.serv=(F.serv||[]).filter(s=>sv.includes(s)); F.cons=(F.cons||[]).filter(c=>cs.includes(c));
+  mselBuild('serv',sv,F.serv); mselBuild('cons',cs,F.cons);
+  fillUnidades(F.cliente,q('mm-uni')?q('mm-uni').value:'');
+}
+/* Unidade em cascata: mostra só as unidades da Empresa selecionada (ou todas, se nenhuma), dentro do período */
 function fillUnidades(cliente,keep){
   const sel=q('mm-uni'); if(!sel)return;
-  const src=[...STORE.leads,...STORE.vendas].filter(r=>!cliente||normCli(r.cliente)===normCli(cliente));
+  const rng=periodoRange();
+  const inR=r=>{ const d=r.dt||''; return !d || ((!rng.de||d>=rng.de)&&(!rng.ate||d<=rng.ate)); };
+  const src=[...STORE.leads,...STORE.vendas].filter(inR).filter(r=>!cliente||normCli(r.cliente)===normCli(cliente));
   const us=[...new Set(src.map(r=>r.unidade).filter(Boolean))].sort();
   sel.innerHTML='<option value="">Todas</option>'; us.forEach(u=>sel.add(new Option(u,u)));
   sel.value=(keep&&us.includes(keep))?keep:'';
 }
+/* ---- multi-seleção (Serviço / Consultor) com caixa de seleção ---- */
+function mselToggle(key){
+  const m=q('msel-'+key+'-menu'); if(!m)return;
+  document.querySelectorAll('.msel-menu').forEach(x=>{if(x!==m)x.classList.remove('on');});
+  m.classList.toggle('on');
+}
+function mselBuild(key,options,selected){
+  const menu=q('msel-'+key+'-menu'); if(!menu)return;
+  menu.innerHTML='<label class="msel-all"><input type="checkbox" data-msel-all>Todos</label>'+
+    options.map(o=>'<label><input type="checkbox" value="'+esc(o)+'" '+(selected.includes(o)?'checked':'')+'>'+esc(o)+'</label>').join('');
+  menu.querySelectorAll('input[type=checkbox]:not([data-msel-all])').forEach(cb=>cb.addEventListener('change',()=>mselChange(key)));
+  const allCb=menu.querySelector('[data-msel-all]'); if(allCb) allCb.addEventListener('change',e=>mselAll(key,e.target.checked));
+  mselUpdateCount(key,selected.length);
+}
+function mselChange(key){
+  const menu=q('msel-'+key+'-menu');
+  const vals=[...menu.querySelectorAll('input[type=checkbox]:not([data-msel-all])')].filter(c=>c.checked).map(c=>c.value);
+  F[key]=vals; mselUpdateCount(key,vals.length); applyF();
+}
+function mselAll(key,checked){
+  const menu=q('msel-'+key+'-menu');
+  menu.querySelectorAll('label:not(.msel-all) input').forEach(c=>c.checked=checked);
+  mselChange(key);
+}
+function mselUpdateCount(key,n){
+  const el2=q('msel-'+key+'-count'); if(el2)el2.textContent=n?('('+n+')'):'';
+}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.msel')) document.querySelectorAll('.msel-menu').forEach(m=>m.classList.remove('on'));
+});
 function inRange(r){
-  if(F.preset==='all' || (!F.de && !F.ate)) return true;
+  if(!F.de && !F.ate) return true;
   const d=r.dt||''; if(!d) return false;
   return (!F.de||d>=F.de) && (!F.ate||d<=F.ate);
 }
 function passDims(r,isLead){
   if(F.cliente && normCli(r.cliente)!==normCli(F.cliente)) return false;
   if(F.unidade && r.unidade!==F.unidade) return false;
-  if(F.cons && r.cons!==F.cons) return false;
-  if(F.serv && r.serv!==F.serv) return false;
+  if(F.cons&&F.cons.length && !F.cons.includes(r.cons)) return false;
+  if(F.serv&&F.serv.length && !F.serv.includes(r.serv)) return false;
   if(F.icp && r.icp!==F.icp) return false;
   if(F.tc && r.tc!==F.tc) return false;
+  if(F.tipo && r.tipo!==F.tipo) return false;
   if(isLead && F.prop && r.prop!==undefined && r.prop!==F.prop) return false;
   return true;
 }
@@ -795,11 +908,19 @@ function renderActive(force){
   }else if(ACTIVE==='tarefas'){ renderTarefas();
   }else if(ACTIVE==='cadastro'){ renderRecentes(); }
 }
-function applyF(fromPreset){
-  const p=q('mm-preset').value;
-  if(fromPreset && p!=='custom'){const d=presetDates(p); if(d){q('mm-de').value=d.de; q('mm-ate').value=d.ate;}}
-  F.preset=p; F.de=q('mm-de').value||''; F.ate=q('mm-ate').value||'';
-  F.cons=q('mm-cons').value; F.serv=q('mm-serv').value; F.icp=q('mm-icp').value; F.prop=q('mm-prop').value; F.tc=q('mm-tc').value;
+/* chamada quando Ano/Mês/Semana/atalhos/Personalizado mudam: recalcula o intervalo,
+   rescopo as opções dos outros filtros (conexão entre filtros) e reaplica */
+function applyPeriod(){
+  F.ano=q('mm-ano').value; F.mes=q('mm-mes').value; F.semana=q('mm-semana').value;
+  fillSemana(F.semana);
+  const rng=periodoRange();
+  F.de=rng.de; F.ate=rng.ate;
+  if(F.preset==='custom'){ q('mm-de').value=F.de; q('mm-ate').value=F.ate; }
+  fillFilters();
+  applyF();
+}
+function applyF(){
+  F.icp=q('mm-icp').value; F.prop=q('mm-prop').value; F.tc=q('mm-tc').value; F.tipo=(q('mm-tipo')||{}).value||'';
   F.cliente=(q('mm-cli')||{}).value||''; F.unidade=(q('mm-uni')||{}).value||'';
   saveF(); compute(); renderActive();
 }
@@ -1456,35 +1577,55 @@ function bindNav(){
   try{ if(localStorage.getItem('elevai_side_mini')==='1'){ var sd=document.querySelector('.side'); if(sd)sd.classList.add('mini'); } }catch(e){}
 }
 function bindFilters(){
-  q('mm-preset').addEventListener('change',()=>applyF(true));
-  ['mm-de','mm-ate','mm-cons','mm-serv','mm-icp','mm-prop','mm-tc','mm-uni'].forEach(id=>{var e=q(id);if(e)e.addEventListener('change',()=>applyF(false));});
-  var eCli=q('mm-cli'); if(eCli)eCli.addEventListener('change',function(){ fillUnidades(eCli.value,''); applyF(false); });
-  q('mm-clr').onclick=()=>{q('mm-preset').value='2026';['mm-cons','mm-serv','mm-icp','mm-prop','mm-tc','mm-cli'].forEach(id=>{var e=q(id);if(e)e.value='';});fillUnidades('','');applyF(true);};
+  q('mm-ano').addEventListener('change',()=>{ F.preset=''; setChipsOn(''); applyPeriod(); });
+  q('mm-mes').addEventListener('change',()=>{ F.preset=''; F.semana=''; setChipsOn(''); applyPeriod(); });
+  q('mm-semana').addEventListener('change',()=>applyPeriod());
+  q('mm-90').onclick=()=>{ F.preset='90'; setChipsOn('90'); q('mm-custom-row').style.display='none'; applyPeriod(); };
+  q('mm-all').onclick=()=>{ F.preset='all'; setChipsOn('all'); q('mm-custom-row').style.display='none'; applyPeriod(); };
+  q('mm-custom').onclick=()=>{ F.preset='custom'; setChipsOn('custom'); q('mm-custom-row').style.display='flex';
+    if(!q('mm-de').value){q('mm-de').value=F.de||'';} if(!q('mm-ate').value){q('mm-ate').value=F.ate||'';} applyPeriod(); };
+  ['mm-de','mm-ate'].forEach(id=>{var e=q(id);if(e)e.addEventListener('change',()=>applyPeriod());});
+  ['mm-icp','mm-prop','mm-tc','mm-tipo','mm-uni'].forEach(id=>{var e=q(id);if(e)e.addEventListener('change',()=>applyF());});
+  var eCli=q('mm-cli'); if(eCli)eCli.addEventListener('change',function(){ fillUnidades(eCli.value,''); applyF(); });
+  q('mm-clr').onclick=()=>{
+    F.preset=''; F.mes=''; F.semana=''; setChipsOn('');
+    q('mm-custom-row').style.display='none';
+    ['mm-icp','mm-prop','mm-tc','mm-tipo','mm-cli'].forEach(id=>{var e=q(id);if(e)e.value='';});
+    F.serv=[]; F.cons=[];
+    fillMes(''); fillSemana(''); fillUnidades('','');
+    applyPeriod();
+  };
   q('cfg-btn').onclick=()=>{q('cfg-url').value=(localStorage.getItem(TEAMS_LS)||'');q('cfg-flow').value=(localStorage.getItem(FLOW_LS)||'');q('cfg-cal').value=(localStorage.getItem(CAL_LS)||'');q('cfg-trig-venda').checked=(window.trigNovaVenda?window.trigNovaVenda():true);q('cfg-nut-on').checked=(window.getNutOn?window.getNutOn():true);q('cfg-nut-to').value=(window.getNutTo?window.getNutTo():'');q('cfg-modo-teste').checked=(window.getModoTeste?window.getModoTeste():false);q('ov3').classList.add('on');};
   q('btn-reload').onclick=()=>reloadData();
   q('ov2').addEventListener('click',e=>{if(e.target.id==='ov2')q('ov2').classList.remove('on');});
   q('ov3').addEventListener('click',e=>{if(e.target.id==='ov3')q('ov3').classList.remove('on');});
+}
+function setChipsOn(which){
+  ['mm-90','mm-all','mm-custom'].forEach(id=>{var b=q(id); if(b)b.classList.toggle('on', id==='mm-'+which);});
 }
 
 /* ---- init ---- */
 (async function(){
   bindFilters(); bindNav();
   const _sv=loadF();
-  q('mm-preset').value='2026'; const d0=presetDates('2026'); q('mm-de').value=d0.de; q('mm-ate').value=d0.ate;
+  fillAno(); fillMes(); fillSemana('');
+  if(_sv){
+    F.preset=_sv.preset||''; F.ano=_sv.ano||q('mm-ano').value; F.mes=_sv.mes||''; F.semana=_sv.semana||'';
+    q('mm-ano').value=F.ano; fillMes(F.mes); fillSemana(F.semana);
+    setChipsOn(F.preset);
+    if(F.preset==='custom'){ q('mm-custom-row').style.display='flex'; if(_sv.de)q('mm-de').value=_sv.de; if(_sv.ate)q('mm-ate').value=_sv.ate; }
+  }
   await loadStore();
-  fillFilters(); populateCadDatalists(); populateCodServ();
+  fillAno(F.ano); F.ano=q('mm-ano').value; fillMes(F.mes); fillSemana(F.semana);
   if(_sv){
     try{
-      if(_sv.preset)q('mm-preset').value=_sv.preset;
-      if(_sv.preset==='custom'){ if(_sv.de)q('mm-de').value=_sv.de; if(_sv.ate)q('mm-ate').value=_sv.ate; }
-      ['cons','serv','icp','prop','tc'].forEach(function(k){var el2=q('mm-'+k); if(el2&&_sv[k]!=null){el2.value=_sv[k]; if(el2.value!==_sv[k])el2.value='';}});
-      var ecli=q('mm-cli'); if(ecli&&_sv.cliente!=null){ ecli.value=_sv.cliente; if(ecli.value!==_sv.cliente)ecli.value=''; }
-      fillUnidades(ecli?ecli.value:'', _sv.unidade||'');
+      ['icp','prop','tc','tipo'].forEach(function(k){var el2=q('mm-'+k); if(el2&&_sv[k]!=null){el2.value=_sv[k]; if(el2.value!==_sv[k])el2.value='';}});
+      var ecli=q('mm-cli'); if(ecli&&_sv.cliente!=null){ ecli.value=_sv.cliente; }
+      F.serv=Array.isArray(_sv.serv)?_sv.serv:[]; F.cons=Array.isArray(_sv.cons)?_sv.cons:[];
     }catch(e){}
-    applyF(_sv.preset!=='custom');
-  }else{
-    applyF(true);
   }
+  fillFilters(); populateCadDatalists(); populateCodServ();
+  applyPeriod();
 })();
 
 </script>
@@ -1542,7 +1683,11 @@ class App {
   }
   fval(id){const v=el(id).value;return v==='all'?null:v;}
   apply(){
-    const de=el('f-de').value||'1900-01-01', ate=el('f-ate').value||'2999-12-31';
+    /* 17/08/2026 — antes lia el('f-de')/el('f-ate') (a fileira de filtros escondida/decorativa,
+       nunca atualizada pelo usuário), então os rótulos do "gráfico mensal" ficavam sempre travados
+       em 2026-01-01..2026-12-31 (o valor padrão) não importa qual período fosse escolhido na barra
+       de filtros de verdade (mm-*). Agora usa RAW.de/RAW.ate, que é o período real recebido do shell. */
+    const de=RAW.de||el('f-de').value||'1900-01-01', ate=RAW.ate||el('f-ate').value||'2999-12-31';
     const cons=this.fval('f-cons'), serv=this.fval('f-serv'), icp=this.fval('f-icp'), tc=this.fval('f-tc'), prop=this.fval('f-prop');
     const ok=(r)=> true;
     this.de=de; this.ate=ate;
@@ -1911,7 +2056,7 @@ var _hojeBR=_pz(_hj.getDate())+'/'+_pz(_hj.getMonth()+1)+'/'+_hj.getFullYear();
 var CFG={metas:RAW.metas,dataRef:_hojeBR,dataISO:_hojeISO};
 function paRender(d){
   d=d||{};
-  RAW={leads:d.leads||[],vendas:d.vendas||[],eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO};
+  RAW={leads:d.leads||[],vendas:d.vendas||[],eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO,de:d.de||'',ate:d.ate||''};
   try{ if(!app){app=new App();} else {app.setup();} }catch(e){console.error('painel setup',e);}
   try{ el('f-de').value=d.de||'1900-01-01'; el('f-ate').value=d.ate||'2999-12-31'; }catch(e){}
   try{ app.apply(); }catch(e){console.error('painel apply',e);}
