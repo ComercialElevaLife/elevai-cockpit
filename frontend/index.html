@@ -258,23 +258,21 @@ td .up{color:var(--ok);font-weight:700}
     </div>
   </header>
 
-  <div class="section-title">Metas do mês — Propostas × Vendas (novas vendas)</div>
+  <!-- 18/08/2026: seções reordenadas macro→micro (visão geral → funil/status → detalhe por dimensão
+       → detalhe por registro → canal específico) e "Metas do mês"+"Visão executiva" mescladas numa
+       seção só — tinham cards redundantes (Vendas no período/Origem sócios duplicavam exatamente
+       Vendas-fechamento/Vendas-sócios-e-não-sócios, só que contra um modelo de meta antigo). -->
+  <div class="section-title">Metas &amp; Realizado — Propostas × Vendas (novas vendas)</div>
   <div class="kpis">
     <div class="kpi"><div class="lbl">Propostas enviadas</div><div class="val" id="m-prop">—</div><div class="chg" id="m-prop-c"></div></div>
     <div class="kpi"><div class="lbl">Vendas (fechamento)</div><div class="val" id="m-vend">—</div><div class="chg" id="m-vend-c"></div></div>
     <div class="kpi coral"><div class="lbl">Vendas — não-sócios</div><div class="val" id="m-nsoc">—</div><div class="chg" id="m-nsoc-c"></div></div>
     <div class="kpi coral"><div class="lbl">Vendas — sócios</div><div class="val" id="m-soc">—</div><div class="chg" id="m-soc-c"></div></div>
-  </div>
-  <div class="hint" id="m-conv" style="margin:-4px 0 12px;color:#8A7A78"></div>
-
-  <div class="section-title">Visão executiva — metas × realizado</div>
-  <div class="kpis">
-    <div class="kpi"><div class="lbl">Vendas no período</div><div class="val" id="k-vendas">—</div><div class="chg" id="k-vendas-c"></div></div>
     <div class="kpi"><div class="lbl">Recorrentes</div><div class="val" id="k-rec">—</div><div class="chg" id="k-rec-c"></div></div>
     <div class="kpi coral"><div class="lbl">Pontuais</div><div class="val" id="k-pont">—</div><div class="chg" id="k-pont-c"></div></div>
-    <div class="kpi coral"><div class="lbl">Origem sócios</div><div class="val" id="k-soc">—</div><div class="chg" id="k-soc-c"></div></div>
     <div class="kpi"><div class="lbl">Nº de vendas</div><div class="val" id="k-nv">—</div><div class="chg" id="k-nv-c"></div></div>
   </div>
+  <div class="hint" id="m-conv" style="margin:-4px 0 12px;color:#8A7A78"></div>
   <div class="qrow" id="qrow"></div>
   <div class="grid g2">
     <div class="card"><h3>Realizado mensal × meta (R$)</h3><div class="ch"><canvas id="ch-mensal"></canvas></div><div class="hint">Passe o mouse para explorar · clique numa barra para ver as vendas do mês</div></div>
@@ -292,16 +290,18 @@ td .up{color:var(--ok);font-weight:700}
     <div class="card"><h3>Funil do período</h3><div class="ch sm"><canvas id="ch-funil"></canvas></div><div class="hint">Clique numa etapa para listar os registros</div></div>
     <div class="card"><h3>Leads e propostas por mês</h3><div class="ch sm"><canvas id="ch-mes"></canvas></div><div class="hint">Clique num ponto para ver os leads do mês</div></div>
   </div>
-  <div class="grid g3">
-    <div class="card"><h3>Leads por fonte (top 10)</h3><div class="ch sm"><canvas id="ch-fonte"></canvas></div><div class="hint">Clique numa fonte para ver os leads</div></div>
-    <div class="card"><h3>Desempenho por consultor</h3><div class="ch sm"><canvas id="ch-cons"></canvas></div><div class="hint">Clique numa barra para detalhar</div></div>
-    <div class="card"><h3>Leads por ICP</h3><div class="ch sm"><canvas id="ch-icp"></canvas></div><div class="hint">Clique numa fatia para ver os leads</div></div>
-  </div>
 
   <div class="section-title">Propostas por status</div>
   <div class="grid g2">
-    <div class="card"><h3>Volume financeiro e quantidade por status</h3><div class="ch sm"><canvas id="ch-status"></canvas></div><div class="hint">Barra = R$ · linha = quantidade · clique para detalhar</div></div>
-    <div class="card"><h3>Resumo por status</h3><div id="status-kpis" class="statusgrid"></div></div>
+    <div class="card"><h3>Valor (R$) por status</h3><div class="ch sm"><canvas id="ch-status"></canvas></div><div class="hint">Clique numa barra para detalhar</div></div>
+    <div class="card"><h3>Resumo por status (quantidade e valor)</h3><div id="status-kpis" class="statusgrid"></div></div>
+  </div>
+
+  <div class="section-title">Leads por dimensão</div>
+  <div class="grid g3">
+    <div class="card"><h3>Leads por fonte (top 10)</h3><div class="ch sm"><canvas id="ch-fonte"></canvas></div><div class="hint">Clique numa fonte para ver os leads</div></div>
+    <div class="card"><h3>Desempenho por consultor</h3><div class="ch sm"><canvas id="ch-cons"></canvas></div><div class="hint">Clique numa barra para detalhar</div></div>
+    <div class="card"><h3>Leads por ICP</h3><div class="ch sm"><canvas id="ch-icp"></canvas></div><div class="hint">Clique numa barra para ver os leads</div></div>
   </div>
 
   <div class="section-title">Análise de propostas</div>
@@ -1843,8 +1843,13 @@ class App {
     const rec=fV.filter(v=>v.tipo==='R').reduce((s,v)=>s+v.valor,0);
     const pont=fV.filter(v=>v.tipo==='P').reduce((s,v)=>s+v.valor,0);
     const soc=fV.filter(v=>v.origem==='SÓCIOS').reduce((s,v)=>s+v.valor,0);
-    el('k-vendas').textContent=fmtBRLc(tot); el('k-rec').textContent=fmtBRLc(rec);
-    el('k-pont').textContent=fmtBRLc(pont); el('k-soc').textContent=fmtBRLc(soc);
+    /* 18/08/2026 — k-vendas e k-soc removidos daqui: duplicavam exatamente m-vend (Vendas/fechamento)
+       e m-soc+m-nsoc (Vendas sócios/não-sócios) da seção "Metas & Realizado", só que contra o modelo
+       de meta antigo (anual/4 trimestres, meta de 40% sócios) em vez do modelo oficial atual
+       (Propostas 1,75M / Vendas 333k mensal). tot/soc continuam calculados aqui pois this.metaTot
+       e o relatório PDF (app.pdf()) ainda usam essas variáveis locais. */
+    el('k-rec').textContent=fmtBRLc(rec);
+    el('k-pont').textContent=fmtBRLc(pont);
     el('k-nv').textContent=fV.length;
     el('k-nv-c').textContent='ticket médio '+fmtBRLc(fV.length?tot/fV.length:0);
     // metas proporcionais ao nº de meses do período
@@ -1858,9 +1863,10 @@ class App {
     const setChg=(id,val,meta)=>{const e=el(id);
       if(this.semSec){const p=val/meta;e.textContent=fmtPct(p)+' da meta '+fmtBRLc(meta);e.className='chg '+(p>=frac*0.95?'pos':'neg');}
       else{e.textContent='metas exibidas sem filtros secundários';e.className='chg';}};
-    setChg('k-vendas-c',tot,metaTot); setChg('k-rec-c',rec,metaRec); setChg('k-pont-c',pont,metaPont);
-    el('k-soc-c').textContent=tot?fmtPct(soc/tot)+' do vendido (meta 40%)':'';
-    el('k-soc-c').className='chg '+(tot&&soc/tot>=.4?'pos':'');
+    /* 18/08/2026 — k-vendas-c/k-soc-c removidos (mesma dedup acima). k-rec-c/k-pont-c simplificados
+       pra mostrar % do total vendido em vez do antigo "% da meta anual" (modelo superado). */
+    el('k-rec-c').textContent=tot?fmtPct(rec/tot)+' do total vendido':'';
+    el('k-pont-c').textContent=tot?fmtPct(pont/tot)+' do total vendido':'';
     // trimestres (apenas ano fechado)
     const qr=el('qrow'); qr.innerHTML='';
     const anoCheio=this.de.slice(5)==='01-01'&&this.ate.slice(5)==='12-31'&&this.de.slice(0,4)===this.ate.slice(0,4);
@@ -1929,19 +1935,27 @@ class App {
         if(ds==='Leads')this.showModal('Leads — '+c,'Consultor '+c,fL.filter(l=>l.cons===c),LEAD_COLS);
         else if(ds==='Propostas')this.showModal('Propostas — '+c,'Consultor '+c,props.filter(l=>l.cons===c),LEAD_COLS);
         else this.showModal('Vendas — '+c,'Consultor '+c,fV.filter(v=>v.cons===c),VENDA_COLS);});
-    const icps=['A','B','C','NA'];
-    this.mkChart('ch-icp',{type:'doughnut',data:{labels:icps,datasets:[{data:icps.map(i=>fL.filter(l=>l.icp===i).length),backgroundColor:[AZ9+'DD',AZ+'DD',CO+'DD','#b9c8cbDD'],borderColor:'#fff',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'right',labels:{usePointStyle:true}},tooltip:{callbacks:{label:c=>{const t=c.dataset.data.reduce((a,b)=>a+b,0);return c.label+': '+c.parsed+' ('+fmtPct(t?c.parsed/t:0)+')';}}}}}},
+    /* 18/08/2026 — trocado de rosquinha (doughnut) para barra: rosquinha é boa pra "fatia grande do
+       todo" num relance, mas ruim pra comparar magnitudes parecidas (o olho mede ângulo pior que
+       comprimento). Como o objetivo aqui é comparar a quantidade entre A/B/C/D, barra lê mais rápido.
+       Também incluído o ICP "D" (existia no filtro mas faltava neste gráfico). */
+    const icps=['A','B','C','D','NA'];
+    const icpCnt=icps.map(i=>fL.filter(l=>l.icp===i).length);
+    this.mkChart('ch-icp',{type:'bar',data:{labels:icps,datasets:[{data:icpCnt,backgroundColor:[AZ9+'DD',AZ7+'DD',AZ+'DD',CO+'DD','#b9c8cbDD'],borderRadius:4}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const t=icpCnt.reduce((a,b)=>a+b,0);return c.parsed.x+' leads ('+fmtPct(t?c.parsed.x/t:0)+')';}}}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}},
       (elm,chart)=>{const i=chart.data.labels[elm.index];this.showModal('Leads ICP '+i,'Todos os inputs',fL.filter(l=>l.icp===i),LEAD_COLS);});
     const STs=['VENDIDA','EM NEGOCIAÇÃO','PERDIDA','NÃO ENVIADA','PAUSADA'];
     const stCol={'VENDIDA':'#2E5F62','EM NEGOCIAÇÃO':'#8A5A2B','PERDIDA':'#B0463F','NÃO ENVIADA':'#8A7A78','PAUSADA':'#3B5A80'};
     const stCnt=STs.map(x=>fL.filter(l=>l.status===x).length);
     const stVal=STs.map(x=>fL.filter(l=>l.status===x).reduce((a,l)=>a+(l.valor||0),0));
+    /* 18/08/2026 — removido o eixo duplo (R$ numa escala + Quantidade em outra no mesmo gráfico):
+       é o erro clássico nº1 de dataviz — o alinhamento visual entre as duas escalas é arbitrário e
+       pode sugerir uma relação que não existe. O gráfico agora mostra só Valor (R$); a Quantidade
+       já aparece nos cards "Resumo por status" ao lado (stCnt continua calculado pra eles). */
     this.mkChart('ch-status',{type:'bar',data:{labels:STs,datasets:[
-      {type:'bar',label:'Valor (R$)',data:stVal,backgroundColor:STs.map(x=>stCol[x]+'CC'),borderRadius:4,yAxisID:'y',order:2},
-      {type:'line',label:'Quantidade',data:stCnt,borderColor:'#5E2A30',backgroundColor:'#5E2A30',yAxisID:'y1',tension:.3,pointRadius:4,order:1}
-    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{usePointStyle:true}},
-      tooltip:{callbacks:{label:c=>c.dataset.label==='Quantidade'?c.parsed.y+' propostas':fmtBRL(c.parsed.y)}}},
-      scales:{y:{position:'left',beginAtZero:true,ticks:{callback:v=>fmtBRLc(v)}},y1:{position:'right',beginAtZero:true,grid:{display:false},ticks:{precision:0}},x:{grid:{display:false}}}}},
+      {label:'Valor (R$)',data:stVal,backgroundColor:STs.map(x=>stCol[x]+'CC'),borderRadius:4}
+    ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>fmtBRL(c.parsed.y)}}},
+      scales:{y:{beginAtZero:true,ticks:{callback:v=>fmtBRLc(v)}},x:{grid:{display:false}}}}},
       (elm,chart)=>{const x=STs[elm.index];this.showModal('Propostas — '+x,'Registros com status '+x,fL.filter(l=>l.status===x),LEAD_COLS);});
     const sg=el('status-kpis'); if(sg){sg.innerHTML=STs.map((x,k)=>`<div class="stcard" style="border-top:3px solid ${stCol[x]}"><div class="stl">${x}</div><div class="stv">${stCnt[k]}</div><div class="stc">${fmtBRLc(stVal[k])}</div></div>`).join('');}
   }
