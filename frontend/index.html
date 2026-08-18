@@ -49,6 +49,12 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .msel{position:relative}
 .msel-btn{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;min-width:120px;text-align:left;display:flex;justify-content:space-between;gap:6px}
 .msel-btn:hover{border-color:var(--w)}
+/* 18/08/2026 — barra de filtros retrátil: recolhe pra virar um botão só, ganhando espaço em tela
+   (pedido do Léo: filtros estáticos ocupando espaço demais + faixa sobrepondo visualmente) */
+.top .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+#fltbar{transition:max-height .22s ease,opacity .18s ease,padding .18s ease,margin .18s ease,border-width .18s ease;overflow:hidden;max-height:600px}
+#fltbar.collapsed{max-height:0;opacity:0;padding-top:0;padding-bottom:0;border-width:0;margin:0;pointer-events:none}
+#flt-toggle{white-space:nowrap}
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -201,6 +207,8 @@ td .up{color:var(--ok);font-weight:700}
     <h2 id="vtitle">Painel KPI</h2><span id="elevai-src" title="origem dos dados" style="font-size:11px;opacity:.6;margin-left:8px"></span>
     <span id="warnbar" class="warnbar" style="display:none"></span>
     <div class="sp"></div>
+    <!-- 18/08/2026 — botão para recolher/expandir a barra de filtros e ganhar espaço em tela -->
+    <button type="button" class="clr" id="flt-toggle" title="Mostrar/ocultar filtros" onclick="toggleFltBar()">▾ Filtros</button>
     <div class="flt" id="fltbar">
       <div class="flt-period">
         <span class="flt-lbl">Período</span>
@@ -226,8 +234,14 @@ td .up{color:var(--ok);font-weight:700}
       <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
       <button class="clr" id="mm-clr">Limpar</button>
     </div>
-    <button class="clr" id="btn-reload" title="Rebuscar a base viva e re-renderizar" style="margin-left:6px">↻ Atualizar</button>
-    <button class="clr" id="cfg-btn" title="Configurar automação" style="margin-left:6px">⚙ Automação</button>
+    <!-- 18/08/2026 — botões de ação agrupados (antes: PDF ficava sozinho lá embaixo no banner do
+         Painel, e Atualizar/Automação aqui em cima, separados — pedido do Léo p/ ficarem próximos) -->
+    <div class="actions">
+      <button class="clr" id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
+      <button class="clr" id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
+      <button class="clr" id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
+      <button class="clr" id="cfg-btn" title="Configurar automação">⚙ Automação</button>
+    </div>
   </div>
 
   <section class="view" id="view-painel">
@@ -254,7 +268,7 @@ td .up{color:var(--ok);font-weight:700}
         <select id="f-prop"><option value="all">Todas</option><option>SIM</option><option>NÃO</option></select>
         <select id="f-tc"><option value="all">Todos</option><option>NOVO</option><option>ATUAL</option></select>
       </div>
-      <button class="btn" onclick="app.pdf()">⬇ Relatório PDF</button>
+      <!-- 18/08/2026 — botão de PDF movido pra barra de ações lá em cima, junto com Excel/Atualizar/Automação -->
     </div>
   </header>
 
@@ -945,6 +959,37 @@ function applyF(){
   F.icp=q('mm-icp').value; F.prop=q('mm-prop').value; F.tc=q('mm-tc').value; F.tipo=(q('mm-tipo')||{}).value||'';
   F.cliente=(q('mm-cli')||{}).value||''; F.unidade=(q('mm-uni')||{}).value||'';
   saveF(); compute(); renderActive();
+  updateFltToggle();
+}
+/* 18/08/2026 — recolher/expandir a barra de filtros (#fltbar), pra virar um botão só quando fechada
+   e liberar espaço em tela. Estado (aberto/fechado) fica salvo no localStorage entre sessões. */
+function countActiveFiltros(){
+  let n=0;
+  if(F.preset) n++;
+  if(F.mes) n++;
+  if(F.semana) n++;
+  if(F.tipo) n++;
+  if(F.cliente) n++;
+  if(F.unidade) n++;
+  if(F.icp) n++;
+  if(F.prop) n++;
+  if(F.tc) n++;
+  if(F.serv && F.serv.length) n++;
+  if(F.cons && F.cons.length) n++;
+  return n;
+}
+function updateFltToggle(){
+  const bar=q('fltbar'), b=q('flt-toggle'); if(!bar||!b) return;
+  const collapsed=bar.classList.contains('collapsed');
+  const n=countActiveFiltros();
+  b.textContent=(collapsed?'▸':'▾')+' Filtros'+(n?' ('+n+')':'');
+}
+function toggleFltBar(force){
+  const bar=q('fltbar'); if(!bar) return;
+  const collapse = force!==undefined ? force : !bar.classList.contains('collapsed');
+  bar.classList.toggle('collapsed', collapse);
+  try{ localStorage.setItem('elevai_flt_collapsed', collapse?'1':'0'); }catch(e){}
+  updateFltToggle();
 }
 
 /* ---- RENOVACOES (contratos recorrentes, da base viva /api/contratos) ---- */
@@ -1647,6 +1692,7 @@ function setChipsOn(which){
     }catch(e){}
   }
   fillFilters(); populateCadDatalists(); populateCodServ();
+  try{ toggleFltBar(localStorage.getItem('elevai_flt_collapsed')==='1'); }catch(e){}
   applyPeriod();
 })();
 
@@ -2091,6 +2137,31 @@ ${multiRows?`<table><thead><tr><th>Data</th><th>Empresa</th><th>Serviço</th><th
 <div class="pb"></div><h2>Insights e recomendações — 2026 (YTD até 07/07)</h2><div class="kgrid"><div class="k"><div class="l">Meta anual</div><div class="v">35,0%</div><div class="c">R$ 1,40 mi de R$ 4,0 mi · ano 52% decorrido</div></div><div class="k"><div class="l">Recorrente</div><div class="v">24,8%</div><div class="c">R$ 794 mil de R$ 3,2 mi — atrasado</div></div><div class="k"><div class="l">Pontual</div><div class="v">75,7%</div><div class="c">R$ 605 mil de R$ 800 mil — adiantado</div></div><div class="k"><div class="l">Conversão funil</div><div class="v">58% → 42%</div><div class="c">lead→proposta → proposta→venda</div></div><div class="k"><div class="l">Tempo de proposta</div><div class="v">3,4 dias</div><div class="c">média lead → envio</div></div></div><div class="two"><div><div style="font-family:'Montserrat Alternates',sans-serif;color:#5E2A30;font-weight:700;margin:4px 0 6px">O que os números dizem</div><table><thead><tr><th>Achado</th><th>Leitura</th></tr></thead><tbody><tr><td><b>Recorrente é o maior gap</b></td><td>Em 24,8% da meta com 52% do ano corrido; só 6 vendas recorrentes. É a alavanca prioritária para os R$ 4 mi.</td></tr><tr><td><b>Pontual segura o resultado</b></td><td>Quase batido (75,7%). Bom no curto prazo, mas cria dependência de receita não recorrente.</td></tr><tr><td><b>ICP A concentra a receita</b></td><td>ICP A responde por ~94% do valor vendido (R$ 1,32 mi de R$ 1,40 mi). B e C convertem pouco valor.</td></tr><tr><td><b>Relacionamento e base ativa vendem</b></td><td>Relacionamento (R$ 638 mil) + Cliente ativo (R$ 527 mil) = 83% do valor. Canais pagos quase não aparecem em venda.</td></tr><tr><td><b>Evento gera lead, não proposta</b></td><td>Maior fonte de leads (62), mas só 8% viram proposta — o oposto de Cliente ativo/Relacionamento (~100%).</td></tr><tr><td><b>Propostas "MKT" não fecham</b></td><td>32 propostas / R$ 4,3 mi marcadas com consultor MKT geraram 1 venda de R$ 6,4 mil. Sinal de falta de dono/follow-up no fechamento.</td></tr></tbody></table></div><div><div style="font-family:'Montserrat Alternates',sans-serif;color:#5E2A30;font-weight:700;margin:4px 0 6px">Ações sugeridas</div><table><thead><tr><th>#</th><th>Ação</th><th>Prioridade</th></tr></thead><tbody><tr><td>1</td><td>Criar meta e pipeline específicos de <b>recorrente</b> por consultor; revisar propostas recorrentes em aberto.</td><td style="color:#B0463F;font-weight:700">Alta</td></tr><tr><td>2</td><td>Atribuir <b>dono de fechamento</b> às propostas "MKT" (R$ 4,3 mi) e instituir cadência de follow-up.</td><td style="color:#B0463F;font-weight:700">Alta</td></tr><tr><td>3</td><td>Requalificar leads de <b>Evento</b>: roteiro de nutrição pós-evento para elevar os 8% de conversão em proposta.</td><td style="color:#8B3A42;font-weight:700">Média</td></tr><tr><td>4</td><td>Concentrar esforço em <b>ICP A</b> e nos canais de relacionamento/base ativa (maior retorno por proposta).</td><td style="color:#8B3A42;font-weight:700">Média</td></tr><tr><td>5</td><td>Padronizar o preenchimento de <b>TIPO</b> e <b>FONTE</b> no cadastro para manter os indicadores confiáveis.</td><td style="color:#8B3A42;font-weight:700">Contínua</td></tr></tbody></table><div style="font-size:8.5px;color:#8A7A78;margin-top:4px">Base tratada: Acrisure classificada como Recorrente, CTG como Pontual, linha órfã GERDAU/Charqueadas excluída e FONTE padronizada (51→16 categorias).</div></div></div><div class="foot"><span><b>ElevaLife</b> · Cuidado que gera resultado</span><span>Fonte: base viva (/api) · Confidencial — uso interno</span></div>
 </body></html>`);
     w.document.close();
+  }
+  // ---------- exportar Excel (CSV) ----------
+  /* 18/08/2026 — botão de Excel pedido pelo Léo junto do PDF/Atualizar/Automação. Gera um CSV
+     (abre direto no Excel) com os LEADS/PROPOSTAS e as VENDAS do período/filtros atuais, usando
+     as mesmas colunas (LEAD_COLS/VENDA_COLS) já usadas nos modais de detalhe do Painel. Sem libs
+     externas — funciona 100% no navegador. */
+  exportCsv(){
+    const esc=s=>{ s=(s==null?'':String(s)); return /[;"\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; };
+    const row=arr=>arr.map(esc).join(';')+'\r\n';
+    const val=v=>(v==null||v===''?'':String(v).replace('.',','));
+    const cell=(o,c)=>{ let v=o?o[c[0]]:''; if(c[2]==='d') v=dBR(v); else if(c[2]==='m') v=val(v); return v==null?'':v; };
+    let out='﻿';
+    out+=row(['LEADS / PROPOSTAS — '+dBR(this.de)+' a '+dBR(this.ate)]);
+    out+=row(LEAD_COLS.map(c=>c[1]));
+    this.fL.forEach(l=>{ out+=row(LEAD_COLS.map(c=>cell(l,c))); });
+    out+=row([]);
+    out+=row(['VENDAS — '+dBR(this.de)+' a '+dBR(this.ate)]);
+    out+=row(VENDA_COLS.map(c=>c[1]));
+    this.fV.forEach(v=>{ out+=row(VENDA_COLS.map(c=>cell(v,c))); });
+    const blob=new Blob([out],{type:'text/csv;charset=utf-8;'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download='elevai_painel_'+(this.de||'periodo')+'_a_'+(this.ate||'atual')+'.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(()=>URL.revokeObjectURL(url),1500);
   }
 }
 
