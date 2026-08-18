@@ -146,7 +146,15 @@ flowchart LR
   <h2><span class="n">3.</span> Manual por aba</h2>
 
   <h3 class="sub">📊 Painel KPI</h3>
-  <p>Visão executiva dos números do período. Use os <b>filtros mestres</b> no topo (Período, Cliente → Unidade, Consultor, Serviço, ICP, Proposta?, Novo/Atual) — eles valem para o Painel e o CRM ao mesmo tempo e ficam salvos no navegador. Clique em qualquer <b>gráfico</b> para abrir a lista dos registros que o compõem; nas listas de leads há o botão <b>✏ editar</b>, que leva à ficha do lead para ajustar qualquer campo. A data no topo mostra <b>“atualizado em”</b> = a base é ao vivo.</p>
+  <p>Visão executiva dos números do período. A barra de filtros (redesenhada em 17/08/2026) fica no topo e vale para o Painel e o CRM ao mesmo tempo, com os valores salvos no navegador:</p>
+  <ul>
+    <li><b>Período</b> em cascata: Ano → Mês → Semana (a semana some se "ano todo" estiver selecionado), mais os atalhos <b>90 dias</b>, <b>Histórico</b> e <b>Personalizado</b> (data De/Até).</li>
+    <li><b>Tipo</b> — Pontual ou Recorrente.</li>
+    <li><b>Empresa</b> — campo de busca com autocomplete (não é mais uma lista fixa); ao escolher, <b>Unidade</b> filtra em cascata.</li>
+    <li><b>Serviço</b> e <b>Consultor</b> — seleção múltipla por checkbox (dá para marcar mais de um ao mesmo tempo), com contador de quantos estão selecionados.</li>
+    <li><b>ICP</b> (A/B/C/D), <b>Categoria</b> (Novo/Atual) e <b>Proposta enviada?</b> — como antes.</li>
+  </ul>
+  <p>Mudar o Período recalcula automaticamente as opções disponíveis dos outros filtros (Empresa/Unidade/Serviço/Consultor) — assim você nunca vê uma opção que não existe naquele período. Clique em qualquer <b>gráfico</b> para abrir a lista dos registros que o compõem; nas listas de leads há o botão <b>✏ editar</b>, que leva à ficha do lead para ajustar qualquer campo. A data no topo mostra <b>“atualizado em”</b> = a base é ao vivo. As <b>metas do mês</b> são duas: Propostas (R$1.750.000) e Vendas (R$333.000 = R$200.000 não-sócios + R$133.000 sócios) — uma venda conta no mês em que foi <b>fechada</b> (não no mês em que a oportunidade foi criada).</p>
 
   <h3 class="sub">🗂️ CRM · Kanban</h3>
   <p>Quadro por status (5 colunas). Use o botão <b>＋ Nova Oportunidade</b> (no topo) para abrir um negócio a partir de uma <b>empresa já cadastrada</b> — ao escolher a empresa, os contatos dela são carregados automaticamente; a oportunidade entra em <span class="tag st-n">NÃO ENVIADA</span>. <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
@@ -201,6 +209,8 @@ flowchart LR
   <p><b>Mudei algo e sumiu ao atualizar (F5)?</b> Não deve mais acontecer — status, tarefas e edições ficam salvos. Se acontecer, use <b>↻ Atualizar</b> e avise.</p>
   <p><b>O lead da Landing Page não apareceu.</b> Clique em <b>↻ Atualizar</b> no Cockpit; ele entra na coluna “Não Enviada”.</p>
   <p><b>Quem recebe o aviso de lead pausado?</b> Clara (clara@elevalife.com.br), com cópia para Léo.</p>
+  <p><b>Uma venda fechada num mês aparece no mês errado?</b> Não deve mais acontecer (corrigido em 17/08/2026). O Painel agora conta a venda pelo <b>mês em que ela foi fechada</b> (data real da mudança de status para VENDIDA), e não pelo mês em que a oportunidade foi criada.</p>
+  <p><b>Dá para usar pelo celular?</b> Sim — o Cockpit se adapta a telas pequenas (menu vira barra no topo, quadro do CRM rola lateralmente, gráficos e tabelas se ajustam).</p>
 </section>
 
 <section id="seg">

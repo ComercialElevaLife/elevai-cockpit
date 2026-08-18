@@ -740,17 +740,16 @@ window.toast=toast;
 async function persistStatus(kind,spid,novoStatus,onOkLocal,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOkLocal)onOkLocal(); return; }
   try{
-    /* 17/08/2026 — BUG REAL encontrado pelo Léo: uma venda marcada como VENDIDA no Kanban aparecia
-       no Painel com a data de CRIAÇÃO da oportunidade, não a data em que foi de fato marcada como
-       vendida (ex.: ZF criada em maio, vendida em 14/08, aparecia como "vendida em maio"). Causa:
-       este PATCH só enviava {status:novoStatus} pro backend — o alteradoEm/alteradoPor eram
-       atualizados SÓ na cópia em memória do navegador (STORE.leads), nunca gravados no SharePoint.
-       Então, ao recarregar a página (ou em outro dispositivo/dia), o registro voltava da API sem
-       alteradoEm, e a lógica de data de venda no Painel caía pro campo `dt` (data de criação).
-       Fix: gravar alteradoEm/alteradoPor de verdade no backend, junto com o status. */
+    /* 17/08/2026 — este PATCH manda só {status:novoStatus}: o backend (api/_shared/crud.js
+       doUpdate()) já carimba alteradoEm/alteradoPor no servidor em TODA chamada PATCH,
+       independente do que o cliente envia — então não precisa (nem adianta) mandar esses
+       campos daqui. O BUG REAL do "venda no mês errado" (ex.: ZF) não estava aqui: estava no
+       filtro de período do shell, que usava a data de CRIAÇÃO da oportunidade (`dt`) em vez da
+       data de fechamento (`alteradoEm`) — corrigido em compute()/App.apply()/App.metasMes()
+       via o array `filteredLeadsVendidos`/RAW.vendidos. */
     const agora=new Date().toISOString();
     const r=await fetch('/api/'+kind,{method:'PATCH',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:spid,fields:{status:novoStatus,alteradoEm:agora,alteradoPor:'(você)'}})});
+      body:JSON.stringify({id:spid,fields:{status:novoStatus}})});
     let j=null; try{ j=await r.json(); }catch(e){}
     if(r.ok && j && j.ok){
       const it=(STORE.leads||[]).find(x=>x.__id===spid);
