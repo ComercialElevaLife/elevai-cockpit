@@ -198,37 +198,46 @@ td .up{color:var(--ok);font-weight:700}
 <aside class="side">
   <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
-       Marketing / Operações). Marketing e Operações entram por enquanto como placeholders (pedido do
-       Léo: primeiro a estrutura de menu, o conteúdo de cada área entra depois, em blocos). -->
+       Operações). Dentro de Novas Receitas ficam dois sub-grupos: Comercial (tudo que já existia) e
+       Marketing (novo). Operações também é novo. Marketing e Operações entram por enquanto como
+       placeholders (pedido do Léo: primeiro a estrutura de menu, o conteúdo entra depois, em blocos). -->
   <nav class="nav">
     <div class="navgroup toplvl open" id="navgroup-receitas">
       <button type="button" class="navgroup-btn" onclick="toggleTopGroup('receitas')"><span class="ic">💰</span><span class="lbl">Novas Receitas</span><span class="caret">▸</span></button>
       <div class="subnav" id="subnav-receitas">
-        <button class="subitem on" data-v="painel"><span class="ic">📊</span><span class="lbl">Painel KPI</span></button>
-        <button class="subitem" data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
-        <button class="subitem" data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
-        <button class="subitem" data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
-        <button class="subitem" data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
-        <div class="navgroup" id="navgroup-cadastro">
-          <button class="subitem" data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
-          <div class="subnav" id="subnav-cadastro">
-            <button class="subitem on" data-sub="empresa" onclick="cadSubNav('empresa')"><span class="ic">🏢</span><span class="lbl">Empresa</span></button>
-            <button class="subitem" data-sub="contato" onclick="cadSubNav('contato')"><span class="ic">👤</span><span class="lbl">Contato</span></button>
-            <button class="subitem" data-sub="lead" onclick="cadSubNav('lead')"><span class="ic">➕</span><span class="lbl">Oportunidade</span></button>
+        <div class="navgroup open" id="navgroup-comercial">
+          <button type="button" class="subitem" onclick="toggleSubGroup('comercial')"><span class="ic">💼</span><span class="lbl">Comercial</span><span class="caret">▸</span></button>
+          <div class="subnav" id="subnav-comercial">
+            <button class="subitem on" data-v="painel"><span class="ic">📊</span><span class="lbl">Painel KPI</span></button>
+            <button class="subitem" data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
+            <button class="subitem" data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
+            <button class="subitem" data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
+            <button class="subitem" data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
+            <div class="navgroup" id="navgroup-cadastro">
+              <button class="subitem" data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
+              <div class="subnav" id="subnav-cadastro">
+                <button class="subitem on" data-sub="empresa" onclick="cadSubNav('empresa')"><span class="ic">🏢</span><span class="lbl">Empresa</span></button>
+                <button class="subitem" data-sub="contato" onclick="cadSubNav('contato')"><span class="ic">👤</span><span class="lbl">Contato</span></button>
+                <button class="subitem" data-sub="lead" onclick="cadSubNav('lead')"><span class="ic">➕</span><span class="lbl">Oportunidade</span></button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-    <div class="navgroup toplvl" id="navgroup-marketing">
-      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('marketing')"><span class="ic">📣</span><span class="lbl">Marketing</span><span class="caret">▸</span></button>
-      <div class="subnav" id="subnav-marketing">
-        <button class="subitem" data-v="mkt-novas"><span class="ic">🆕</span><span class="lbl">Novas Campanhas</span></button>
+        <div class="navgroup" id="navgroup-marketing">
+          <button type="button" class="subitem" onclick="toggleSubGroup('marketing')"><span class="ic">📣</span><span class="lbl">Marketing</span><span class="caret">▸</span></button>
+          <div class="subnav" id="subnav-marketing">
+            <button class="subitem" data-v="mkt-novas"><span class="ic">🆕</span><span class="lbl">Novas Campanhas</span></button>
         <button class="subitem" data-v="mkt-ativas"><span class="ic">📢</span><span class="lbl">Campanhas Ativas</span></button>
       </div>
     </div>
     <div class="navgroup toplvl" id="navgroup-operacoes">
       <button type="button" class="navgroup-btn" onclick="toggleTopGroup('operacoes')"><span class="ic">🧩</span><span class="lbl">Operações</span><span class="caret">▸</span></button>
       <div class="subnav" id="subnav-operacoes">
+        <!-- 20/08/2026 — atalho pro Painel de Implantação de Serviços (sistema à parte, feito pelo
+             Cristiano — não portado pra cá ainda). Léo pediu só o link por enquanto; futuramente
+             precisa existir uma conexão real: quando uma oportunidade vira VENDIDA no CRM, isso deve
+             abrir um novo processo de implantação lá. Ver nota em elevai-backlog-melhorias.md. -->
+        <a href="https://elevalife-sistemas.github.io/painel-implantacao-servicos/" target="_blank" rel="noopener" class="subitem" style="text-decoration:none"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></a>
         <button class="subitem" data-v="op-ergo"><span class="ic">🧍</span><span class="lbl">Ergonomia</span></button>
         <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
         <button class="subitem" data-v="op-fisio"><span class="ic">💆</span><span class="lbl">Fisioterapia</span></button>
@@ -1724,12 +1733,18 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-ergo','op-gl','op-fisio','op-enf'];
 const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-ergo':'Ergonomia','op-gl':'Ginástica Laboral','op-fisio':'Fisioterapia','op-enf':'Enfermagem'};
 function toggleTopGroup(id){
-  ['receitas','marketing','operacoes'].forEach(g=>{
+  ['receitas','operacoes'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
     el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
   });
 }
 window.toggleTopGroup=toggleTopGroup;
+/* 20/08/2026 — Marketing virou sub-módulo de Novas Receitas (junto de um novo grupo Comercial),
+   conforme correção do Léo. Esses dois grupos aninhados abrem/fecham de forma independente. */
+function toggleSubGroup(id){
+  const el=q('navgroup-'+id); if(el) el.classList.toggle('open');
+}
+window.toggleSubGroup=toggleSubGroup;
 function bindNav(){
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.nav button[data-v]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
