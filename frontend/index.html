@@ -668,12 +668,20 @@ td .up{color:var(--ok);font-weight:700}
     </div></div>
   </section>
   <section class="view" id="view-op-gl" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">🤸</span>
-      <h2>Ginástica Laboral</h2>
-      <p>Em construção. Área de Operações — Ginástica Laboral.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
+    <!-- 20/08/2026 — BI de Ginástica Laboral embutido via iframe (sistema vivo, feito à parte,
+         com upload de planilha/SharePoint próprio). Não foi portado pra cá: continua rodando
+         no Netlify dele, só passou a aparecer dentro do Cockpit. Se o site bloquear exibição
+         embutida (X-Frame-Options), o aviso abaixo do quadro orienta abrir em nova aba. -->
+    <div class="wrap" style="max-width:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <h2 style="margin:0;font-size:16px">🤸 Ginástica Laboral · BI</h2>
+        <a href="https://elevalife-ginastica-laboral.netlify.app/" target="_blank" rel="noopener" class="clr" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Abrir em nova aba</a>
+      </div>
+      <div style="position:relative;width:100%;height:78vh;min-height:520px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff">
+        <iframe src="https://elevalife-ginastica-laboral.netlify.app/" title="BI Ginástica Laboral" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:8px">Se a tela não aparecer aqui (alguns sites bloqueiam exibição embutida), use "Abrir em nova aba" acima.</div>
+    </div>
   </section>
   <section class="view" id="view-op-fisio" hidden>
     <div class="wrap"><div class="placeholder-view">
