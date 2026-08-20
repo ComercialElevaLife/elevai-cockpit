@@ -235,11 +235,12 @@ td .up{color:var(--ok);font-weight:700}
     <div class="navgroup toplvl" id="navgroup-operacoes">
       <button type="button" class="navgroup-btn" onclick="toggleTopGroup('operacoes')"><span class="ic">🧩</span><span class="lbl">Operações</span><span class="caret">▸</span></button>
       <div class="subnav" id="subnav-operacoes">
-        <!-- 20/08/2026 — atalho pro Painel de Implantação de Serviços (sistema à parte, feito pelo
-             Cristiano — não portado pra cá ainda). Léo pediu só o link por enquanto; futuramente
-             precisa existir uma conexão real: quando uma oportunidade vira VENDIDA no CRM, isso deve
-             abrir um novo processo de implantação lá. Ver nota em elevai-backlog-melhorias.md. -->
-        <a href="https://elevalife-sistemas.github.io/painel-implantacao-servicos/" target="_blank" rel="noopener" class="subitem" style="text-decoration:none"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></a>
+        <!-- 20/08/2026 — Painel de Implantação de Serviços (sistema à parte, feito pelo Cristiano —
+             não portado pra cá). Antes era só um link em nova aba; agora, a pedido do Léo, embutido
+             via iframe igual o BI de Ginástica Laboral. Futuramente precisa existir uma conexão real:
+             quando uma oportunidade vira VENDIDA no CRM, isso deve abrir um novo processo de
+             implantação lá. Ver nota em elevai-backlog-melhorias.md. -->
+        <button class="subitem" data-v="op-implant"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></button>
         <button class="subitem" data-v="op-ergo"><span class="ic">🧍</span><span class="lbl">Ergonomia</span></button>
         <button class="subitem" data-v="op-fisio"><span class="ic">💆</span><span class="lbl">Fisioterapia</span></button>
         <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
@@ -658,6 +659,21 @@ td .up{color:var(--ok);font-weight:700}
       <p>Em construção. Aqui você vai acompanhar as campanhas de marketing em andamento.</p>
       <span class="tag">Em breve</span>
     </div></div>
+  </section>
+  <section class="view" id="view-op-implant" hidden>
+    <!-- 20/08/2026 — Painel de Implantação de Serviços do Cristiano, embutido via iframe (mesmo
+         padrão do BI de Ginástica Laboral). Sistema à parte — não foi portado, só passou a
+         aparecer dentro do Cockpit. -->
+    <div class="wrap" style="max-width:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <h2 style="margin:0;font-size:16px">🚀 Implantação de Serviços</h2>
+        <a href="https://elevalife-sistemas.github.io/painel-implantacao-servicos/" target="_blank" rel="noopener" class="clr" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Abrir em nova aba</a>
+      </div>
+      <div style="position:relative;width:100%;height:78vh;min-height:520px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff">
+        <iframe src="https://elevalife-sistemas.github.io/painel-implantacao-servicos/" title="Painel de Implantação de Serviços" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
+      </div>
+      <div style="font-size:11px;color:var(--mut);margin-top:8px">Se a tela não aparecer aqui (alguns sites bloqueiam exibição embutida), use "Abrir em nova aba" acima.</div>
+    </div>
   </section>
   <section class="view" id="view-op-ergo" hidden>
     <div class="wrap"><div class="placeholder-view">
@@ -1767,8 +1783,8 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 /* ---- navegacao + binds ---- */
 /* 20/08/2026 — ids das novas telas-placeholder de Marketing/Operações (ElevAI deixando de ser só
    Comercial). Sem dados ainda: view+título só pra existir no menu; conteúdo entra depois, por bloco. */
-const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-ergo','op-fisio','op-gl','op-enf','op-med','op-masso'];
-const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-ergo':'Ergonomia','op-fisio':'Fisioterapia','op-gl':'Ginástica Laboral','op-enf':'Enfermagem do Trabalho','op-med':'Medicina do Trabalho','op-masso':'Massoterapia'};
+const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-implant','op-ergo','op-fisio','op-gl','op-enf','op-med','op-masso'];
+const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-implant':'Implantação de Serviços','op-ergo':'Ergonomia','op-fisio':'Fisioterapia','op-gl':'Ginástica Laboral','op-enf':'Enfermagem do Trabalho','op-med':'Medicina do Trabalho','op-masso':'Massoterapia'};
 function toggleTopGroup(id){
   ['receitas','operacoes','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
