@@ -64,6 +64,12 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .view{flex:1;min-height:0}
 .view[hidden]{display:none}
 .empty{color:var(--mut);font-size:12px;text-align:center;padding:18px 6px}
+/* 20/08/2026 — placeholders de Marketing/Operações (ElevAI deixando de ser só Comercial) */
+.placeholder-view{max-width:640px;margin:60px auto;text-align:center;padding:40px 30px;background:#fff;border:1px dashed var(--ln);border-radius:16px}
+.placeholder-view .ic{font-size:40px;display:block;margin-bottom:12px}
+.placeholder-view h2{margin:0 0 8px;color:var(--wd);font-size:20px}
+.placeholder-view p{margin:0;color:var(--mut);font-size:13.5px;line-height:1.6}
+.placeholder-view .tag{display:inline-block;margin-top:14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--w);background:var(--bg);border:1px solid var(--ln);padding:4px 10px;border-radius:20px}
 /* renov */
 .wrap{padding:18px 22px}
 .kpis{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px}
@@ -164,9 +170,16 @@ td .up{color:var(--ok);font-weight:700}
 .side-toggle:hover{background:rgba(255,255,255,.14);opacity:1}
 .nav .navgroup{display:flex;flex-direction:column}
 .nav .caret{margin-left:auto;font-size:11px;transition:.2s;opacity:.8}
-.nav .navgroup.open .caret{transform:rotate(90deg)}
+.nav .navgroup.open>button>.caret{transform:rotate(90deg)}
 .nav .subnav{display:none;flex-direction:column;gap:2px;margin:2px 0 4px 6px;padding-left:8px;border-left:2px solid rgba(255,255,255,.18)}
-.nav .navgroup.open .subnav{display:flex}
+.nav .navgroup.open>.subnav{display:flex}
+/* 20/08/2026 — nível novo de menu (Novas Receitas / Marketing / Operações) acima dos submenus que já
+   existiam. Usei ">" (filho direto) em vez de espaço acima pra abrir "Novas Receitas" não vazar e
+   já mostrar o submenu do Cadastro (que agora mora dentro dela) sem o Cadastro também estar aberto. */
+.navgroup.toplvl{margin-bottom:2px}
+.navgroup.toplvl>.navgroup-btn{width:100%}
+.navgroup.toplvl.open>.navgroup-btn{background:rgba(255,255,255,.10);opacity:1}
+.navgroup.toplvl>.subnav{margin-left:2px;padding-left:10px}
 .nav .subnav .subitem{all:unset;cursor:pointer;padding:8px 12px;border-radius:9px;font-weight:600;font-size:13px;display:flex;align-items:center;gap:9px;color:#fff;opacity:.8;transition:.15s}
 .nav .subnav .subitem:hover{background:rgba(255,255,255,.12);opacity:1}
 .nav .subnav .subitem.on{background:rgba(255,255,255,.92);color:var(--w);opacity:1}
@@ -183,19 +196,43 @@ td .up{color:var(--ok);font-weight:700}
 
 <body><div class="app">
 <aside class="side">
-  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit Comercial</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
+       Marketing / Operações). Marketing e Operações entram por enquanto como placeholders (pedido do
+       Léo: primeiro a estrutura de menu, o conteúdo de cada área entra depois, em blocos). -->
   <nav class="nav">
-    <button data-v="painel" class="on"><span class="ic">📊</span><span class="lbl">Painel KPI</span></button>
-    <button data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
-    <button data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
-    <button data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
-    <button data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
-    <div class="navgroup" id="navgroup-cadastro">
-      <button data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
-      <div class="subnav" id="subnav-cadastro">
-        <button class="subitem on" data-sub="empresa" onclick="cadSubNav('empresa')"><span class="ic">🏢</span><span class="lbl">Empresa</span></button>
-        <button class="subitem" data-sub="contato" onclick="cadSubNav('contato')"><span class="ic">👤</span><span class="lbl">Contato</span></button>
-        <button class="subitem" data-sub="lead" onclick="cadSubNav('lead')"><span class="ic">➕</span><span class="lbl">Oportunidade</span></button>
+    <div class="navgroup toplvl open" id="navgroup-receitas">
+      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('receitas')"><span class="ic">💰</span><span class="lbl">Novas Receitas</span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-receitas">
+        <button class="subitem on" data-v="painel"><span class="ic">📊</span><span class="lbl">Painel KPI</span></button>
+        <button class="subitem" data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
+        <button class="subitem" data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
+        <button class="subitem" data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
+        <button class="subitem" data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
+        <div class="navgroup" id="navgroup-cadastro">
+          <button class="subitem" data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
+          <div class="subnav" id="subnav-cadastro">
+            <button class="subitem on" data-sub="empresa" onclick="cadSubNav('empresa')"><span class="ic">🏢</span><span class="lbl">Empresa</span></button>
+            <button class="subitem" data-sub="contato" onclick="cadSubNav('contato')"><span class="ic">👤</span><span class="lbl">Contato</span></button>
+            <button class="subitem" data-sub="lead" onclick="cadSubNav('lead')"><span class="ic">➕</span><span class="lbl">Oportunidade</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="navgroup toplvl" id="navgroup-marketing">
+      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('marketing')"><span class="ic">📣</span><span class="lbl">Marketing</span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-marketing">
+        <button class="subitem" data-v="mkt-novas"><span class="ic">🆕</span><span class="lbl">Novas Campanhas</span></button>
+        <button class="subitem" data-v="mkt-ativas"><span class="ic">📢</span><span class="lbl">Campanhas Ativas</span></button>
+      </div>
+    </div>
+    <div class="navgroup toplvl" id="navgroup-operacoes">
+      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('operacoes')"><span class="ic">🧩</span><span class="lbl">Operações</span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-operacoes">
+        <button class="subitem" data-v="op-ergo"><span class="ic">🧍</span><span class="lbl">Ergonomia</span></button>
+        <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
+        <button class="subitem" data-v="op-fisio"><span class="ic">💆</span><span class="lbl">Fisioterapia</span></button>
+        <button class="subitem" data-v="op-enf"><span class="ic">💉</span><span class="lbl">Enfermagem</span></button>
       </div>
     </div>
     <a href="manual.html" target="_blank" rel="noopener" style="all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85"><span class="ic">📖</span><span class="lbl">Manual</span></a>
@@ -582,6 +619,57 @@ td .up{color:var(--ok);font-weight:700}
     </div>
     </div>
   </div>
+  </section>
+
+  <!-- 20/08/2026 — placeholders de Marketing e Operações. Sem dados/CRUD ainda; entram por blocos,
+       conforme o Léo for definindo o que cada área precisa. -->
+  <section class="view" id="view-mkt-novas" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">🆕</span>
+      <h2>Novas Campanhas</h2>
+      <p>Em construção. Aqui você vai poder planejar e criar campanhas novas de marketing.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-mkt-ativas" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">📢</span>
+      <h2>Campanhas Ativas</h2>
+      <p>Em construção. Aqui você vai acompanhar as campanhas de marketing em andamento.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-ergo" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">🧍</span>
+      <h2>Ergonomia</h2>
+      <p>Em construção. Área de Operações — Ergonomia.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-gl" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">🤸</span>
+      <h2>Ginástica Laboral</h2>
+      <p>Em construção. Área de Operações — Ginástica Laboral.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-fisio" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">💆</span>
+      <h2>Fisioterapia</h2>
+      <p>Em construção. Área de Operações — Fisioterapia.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-enf" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">💉</span>
+      <h2>Enfermagem</h2>
+      <p>Em construção. Área de Operações — Enfermagem.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
   </section>
 </div></div>
 
@@ -1631,13 +1719,24 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
   alert(ok?'Enviado. Confira o canal no Teams.':'Não foi possível enviar (verifique a URL).');}
 
 /* ---- navegacao + binds ---- */
+/* 20/08/2026 — ids das novas telas-placeholder de Marketing/Operações (ElevAI deixando de ser só
+   Comercial). Sem dados ainda: view+título só pra existir no menu; conteúdo entra depois, por bloco. */
+const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-ergo','op-gl','op-fisio','op-enf'];
+const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-ergo':'Ergonomia','op-gl':'Ginástica Laboral','op-fisio':'Fisioterapia','op-enf':'Enfermagem'};
+function toggleTopGroup(id){
+  ['receitas','marketing','operacoes'].forEach(g=>{
+    const el=q('navgroup-'+g); if(!el) return;
+    el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
+  });
+}
+window.toggleTopGroup=toggleTopGroup;
 function bindNav(){
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.nav button[data-v]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     const v=b.dataset.v; ACTIVE=v;
-    ['painel','crm','renov','qual','tarefas','cadastro'].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
-    q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro'}[v];
-    q('fltbar').hidden=(v==='cadastro'||v==='renov');
+    ['painel','crm','renov','qual','tarefas','cadastro',...NOVAS_VIEWS].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
+    q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro',...NOVOS_TITULOS}[v];
+    q('fltbar').hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
     var grp=q('navgroup-cadastro'); if(grp)grp.classList.toggle('open', v==='cadastro');
     renderActive();
   });
