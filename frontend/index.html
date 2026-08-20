@@ -239,12 +239,21 @@ td .up{color:var(--ok);font-weight:700}
              abrir um novo processo de implantação lá. Ver nota em elevai-backlog-melhorias.md. -->
         <a href="https://elevalife-sistemas.github.io/painel-implantacao-servicos/" target="_blank" rel="noopener" class="subitem" style="text-decoration:none"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></a>
         <button class="subitem" data-v="op-ergo"><span class="ic">🧍</span><span class="lbl">Ergonomia</span></button>
-        <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
         <button class="subitem" data-v="op-fisio"><span class="ic">💆</span><span class="lbl">Fisioterapia</span></button>
-        <button class="subitem" data-v="op-enf"><span class="ic">💉</span><span class="lbl">Enfermagem</span></button>
+        <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
+        <button class="subitem" data-v="op-enf"><span class="ic">💉</span><span class="lbl">Enfermagem do Trabalho</span></button>
+        <button class="subitem" data-v="op-med"><span class="ic">🩺</span><span class="lbl">Medicina do Trabalho</span></button>
+        <button class="subitem" data-v="op-masso"><span class="ic">💆‍♀️</span><span class="lbl">Massoterapia</span></button>
       </div>
     </div>
-    <a href="manual.html" target="_blank" rel="noopener" style="all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85"><span class="ic">📖</span><span class="lbl">Manual</span></a>
+    <!-- 20/08/2026 — Ajuda ao Usuário: área própria, fora de Novas Receitas/Operações, pois o Manual
+         é do sistema todo, não de uma área específica. -->
+    <div class="navgroup toplvl" id="navgroup-ajuda">
+      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('ajuda')"><span class="ic">❓</span><span class="lbl">Ajuda ao Usuário</span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-ajuda">
+        <a href="manual.html" target="_blank" rel="noopener" class="subitem" style="text-decoration:none"><span class="ic">📖</span><span class="lbl">Manual</span></a>
+      </div>
+    </div>
   </nav>
   <div class="foot">ElevaLife · Ergonomos<br>15 anos elevando pessoas e resultados</div>
 </aside>
@@ -675,8 +684,24 @@ td .up{color:var(--ok);font-weight:700}
   <section class="view" id="view-op-enf" hidden>
     <div class="wrap"><div class="placeholder-view">
       <span class="ic">💉</span>
-      <h2>Enfermagem</h2>
-      <p>Em construção. Área de Operações — Enfermagem.</p>
+      <h2>Enfermagem do Trabalho</h2>
+      <p>Em construção. Área de Operações — Enfermagem do Trabalho.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-med" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">🩺</span>
+      <h2>Medicina do Trabalho</h2>
+      <p>Em construção. Área de Operações — Medicina do Trabalho.</p>
+      <span class="tag">Em breve</span>
+    </div></div>
+  </section>
+  <section class="view" id="view-op-masso" hidden>
+    <div class="wrap"><div class="placeholder-view">
+      <span class="ic">💆‍♀️</span>
+      <h2>Massoterapia</h2>
+      <p>Em construção. Área de Operações — Massoterapia.</p>
       <span class="tag">Em breve</span>
     </div></div>
   </section>
@@ -1730,10 +1755,10 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 /* ---- navegacao + binds ---- */
 /* 20/08/2026 — ids das novas telas-placeholder de Marketing/Operações (ElevAI deixando de ser só
    Comercial). Sem dados ainda: view+título só pra existir no menu; conteúdo entra depois, por bloco. */
-const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-ergo','op-gl','op-fisio','op-enf'];
-const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-ergo':'Ergonomia','op-gl':'Ginástica Laboral','op-fisio':'Fisioterapia','op-enf':'Enfermagem'};
+const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-ergo','op-fisio','op-gl','op-enf','op-med','op-masso'];
+const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-ergo':'Ergonomia','op-fisio':'Fisioterapia','op-gl':'Ginástica Laboral','op-enf':'Enfermagem do Trabalho','op-med':'Medicina do Trabalho','op-masso':'Massoterapia'};
 function toggleTopGroup(id){
-  ['receitas','operacoes'].forEach(g=>{
+  ['receitas','operacoes','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
     el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
   });
