@@ -1050,7 +1050,9 @@ function compute(){
   filteredLeadsVendidos = STORE.leads.filter(r=>{
     if(r.status!=='VENDIDA') return false;
     if(!passDims(r,true)) return false;
-    const saleDt=(r.alteradoEm?String(r.alteradoEm).slice(0,10):r.dt)||r.dt;
+    /* 20/08/2026 — prioriza dataVenda (editável manualmente pelo Léo pra corrigir histórico
+       lançado com data errada); fallback alteradoEm (automático) e por fim dt (criação). */
+    const saleDt=(r.dataVenda?String(r.dataVenda).slice(0,10):(r.alteradoEm?String(r.alteradoEm).slice(0,10):r.dt))||r.dt;
     return inRange({dt:saleDt});
   });
 }
@@ -1914,7 +1916,8 @@ class App {
     const vvPainel=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
     const vendidosSrc=RAW.vendidos||this.fL.filter(l=>l.status==='VENDIDA');
     this.fV=vendidosSrc.map(l=>{
-      const saleDt=(l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
+      /* 20/08/2026 — prioriza dataVenda (editável, corrige histórico lançado com data errada). */
+      const saleDt=(l.dataVenda?String(l.dataVenda).slice(0,10):(l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt))||l.dt;
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
       return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id};
     });
@@ -2407,7 +2410,7 @@ function render(){
         <div class="emp">${l.cliente||'—'}</div><div class="uni">${l.unidade||''}</div>
         <div class="row"><span class="tag ${l.tipo}">${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
         <div class="row"><span class="meta">${l.cons||'—'} · ICP ${l.icp||'-'}</span>${nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:''}</div>
-        <div class="row"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.alteradoEm)||'—'}</span>`:''}</div>
+        <div class="row"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>`:''}</div>
       </div>`;
     });
     h+='</div></div>';
@@ -2418,13 +2421,24 @@ function render(){
 let dragId=null;
 function dstart(e,id){dragId=id;e.dataTransfer.effectAllowed='move';}
 function dover(e,col){e.preventDefault();col.classList.add('over');}
+/* 20/08/2026 — ao entrar em VENDIDA, grava a data OFICIAL da venda (dataVenda) automaticamente,
+   igual à data da movimentação. Fica separada de alteradoEm (que o backend sempre carimba com
+   "agora" a cada PATCH — não dá pra usar pra guardar/corrigir uma data). Só define se ainda não
+   houver dataVenda (não sobrescreve uma correção manual já feita). Editável depois no drawer. */
+function _autoDataVenda(l,era,novoStatus){
+  if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
+    const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
+    l.dataVenda=_dv;
+    if(window.persistLeadFields)window.persistLeadFields(l.spid,{dataVenda:_dv},function(){},function(){});
+  }
+}
 function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   const l=LEADS.find(x=>x.id===dragId);
   if(l&&l.status!==status){const era=l.status, eraMan=manual[l.id]; l.status=status; manual[l.id]=status;
     if(status==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l);
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,status,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; if(curId===l.id)openDrawer(l.id); },
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); if(curId===l.id)openDrawer(l.id); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[l.id]; else manual[l.id]=eraMan; render(); if(curId===l.id)openDrawer(l.id); });
   }
   render();
@@ -2470,6 +2484,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
      <label>Recebimento<select id="le-receb">${['','Boleto','Crédito em conta','Nota Fiscal'].map(o=>`<option value="${o}"${String(l.recebimento||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Valor de fechamento (R$)<input id="le-fechamento" type="number" step="0.01" min="0" value="${l.valorFechamento!=null?l.valorFechamento:''}" placeholder="valor final da venda"></label>
+     ${l.status==='VENDIDA'?`<label>Data da venda<input id="le-datavenda" type="date" value="${esc((l.dataVenda||(l.alteradoEm?String(l.alteradoEm).slice(0,10):''))||'')}" title="Data oficial da venda. Preenchida automaticamente ao mover pra VENDIDA; edite aqui pra corrigir histórico lançado com data errada."></label>`:''}
      <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
    </div>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -2513,6 +2528,10 @@ function saveLead(id){
   f.valor=parseFloat(g('le-valor'))||0;
   if(g('le-tipo')==='R'&&_vm!=='')f.valor=(parseFloat(_vm)||0)*(parseInt(_nm||'12',10)||12);
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
+  /* 20/08/2026 — "Data da venda" só existe no drawer quando status é VENDIDA; se o campo foi
+     editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
+     "quando foi mexido" (o backend sempre sobrescreve com "agora" de qualquer forma). */
+  var _dv=g('le-datavenda'); if(_dv!=='')f.dataVenda=_dv;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
     function(){}); }
@@ -2550,7 +2569,7 @@ function toggleTask(id,i){tasks[id][i].feito=!tasks[id][i].feito;persistTasks(id
 function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
 function setStatus(id,v){const l=LEADS.find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; if(curId===id)openDrawer(id); },
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); if(curId===id)openDrawer(id); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
 function delLead(id){ var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
