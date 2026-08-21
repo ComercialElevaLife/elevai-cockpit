@@ -633,10 +633,10 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Proposta enviada?<select id="cad-prop" onchange="elevaiPropTgl()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO</option><option>SIM</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Status<select id="cad-status" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO ENVIADA</option><option>EM NEGOCIAÇÃO</option><option>VENDIDA</option><option>PERDIDA</option><option>PAUSADA</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Data de envio<input id="cad-envio" type="date" disabled style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px"><span id="cad-valor-lab">Valor (R$)</span><input id="cad-valor" type="number" step="0.01" min="0" placeholder="0" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px"><span id="cad-valor-lab">Valor (R$)</span><input id="cad-valor" type="text" inputmode="decimal" placeholder="0,00" oninput="maskMoney(this)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="cad-tipo" onchange="elevaiRecToggle()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>N/A</option><option>P</option><option>R</option></select></label>
         <div id="cad-recbox" style="display:none;grid-column:1/3;grid-template-columns:1fr 1fr;gap:12px 16px">
-          <label style="display:flex;flex-direction:column;gap:4px">Valor mensal (R$)<input id="cad-valormensal" type="number" step="0.01" min="0" placeholder="ex.: 10000" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Valor mensal (R$)<input id="cad-valormensal" type="text" inputmode="decimal" placeholder="ex.: 10.000,00" oninput="maskMoney(this);elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Nº de meses (mín 3 · padrão 12)<input id="cad-nummeses" type="number" min="3" step="1" value="12" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         </div>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente novo/atual<select id="cad-tc" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NOVO</option><option>ATUAL</option></select></label>
@@ -749,7 +749,7 @@ td .up{color:var(--ok);font-weight:700}
   <div class="mh"><h3>Minuta de renovação</h3><button class="x" onclick="document.getElementById('ov2').classList.remove('on')">&times;</button></div>
   <div class="mb">
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="flex:1;min-width:150px">Valor atual (R$)<input id="mn-valor" type="number" step="0.01" oninput="mnRecalc()"></label>
+      <label style="flex:1;min-width:150px">Valor atual (R$)<input id="mn-valor" type="text" inputmode="decimal" oninput="maskMoney(this);mnRecalc()"></label>
       <label style="flex:1;min-width:110px">IPCA (%)<input id="mn-ipca" type="number" step="0.01" oninput="mnRecalc()"></label>
       <label style="flex:1;min-width:150px">Novo valor<input id="mn-novo" type="text" readonly></label>
     </div>
@@ -781,7 +781,7 @@ td .up{color:var(--ok);font-weight:700}
       <label style="flex:1;min-width:150px">Vigência — fim<input id="ed-vf" type="date"></label>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-      <label style="flex:1;min-width:140px">Valor mensal (R$)<input id="ed-valor" type="number" step="0.01" min="0"></label>
+      <label style="flex:1;min-width:140px">Valor mensal (R$)<input id="ed-valor" type="text" inputmode="decimal" oninput="maskMoney(this)"></label>
       <label style="flex:1;min-width:140px">Status do contrato<select id="ed-status"><option>VIGENTE</option><option>ATRASADO</option><option>PRÓX. VENC</option><option>CANCELADO</option></select></label>
     </div>
     <label>Situação da renovação<select id="ed-sit"><option>PENDENTE</option><option>RENOVADO</option><option>NÃO RENOVARÁ (ENCERRADO)</option><option>EM NEGOCIAÇÃO</option></select></label>
@@ -1235,7 +1235,7 @@ async function loadIpcaOficial(){
   return IPCA_OFICIAL;
 }
 async function renovar(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c;
-  q('mn-valor').value=(+c.valorPadrao||0);
+  moneySet('mn-valor',c.valorPadrao||0);
   q('mn-ipca').value=(c.ipcaPct!=null?c.ipcaPct:'');
   q('mn-para').value=c.responsavelEmail||'';
   q('mn-assunto').value='Renovação de contrato — '+(c.cliente||'')+' ('+(c.servico||'')+')';
@@ -1247,9 +1247,9 @@ async function renovar(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; const c=o.c
   else { q('mn-ipcainfo').textContent='IPCA do IBGE indisponível agora — informe o percentual manualmente.'; }
   mnRecalc(); mnMontar();
 }
-function mnRecalc(){ const val=+q('mn-valor').value||0, ip=parseFloat(q('mn-ipca').value); const nv=isNaN(ip)?val:val*(1+ip/100);
+function mnRecalc(){ const val=moneyNum('mn-valor'), ip=parseFloat(q('mn-ipca').value); const nv=isNaN(ip)?val:val*(1+ip/100);
   q('mn-novo').value=brl(nv); return nv; }
-function mnMontar(){ if(!MNC)return; const c=MNC; const val=+q('mn-valor').value||0, ip=q('mn-ipca').value; const nv=mnRecalc();
+function mnMontar(){ if(!MNC)return; const c=MNC; const val=moneyNum('mn-valor'), ip=q('mn-ipca').value; const nv=mnRecalc();
   q('mn-corpo').value='Prezado(a) '+(c.responsavel||'')+',\n\n'+
     'Segue proposta de renovação do contrato recorrente abaixo, para sua conferência e envio ao cliente:\n\n'+
     'Cliente: '+(c.cliente||'')+'\nServiço: '+(c.servico||'')+'\nUnidade: '+(c.unidade||'')+'\n'+
@@ -1287,7 +1287,7 @@ let EDMODE='edit';  /* 'edit' = PATCH no contrato atual | 'new' = POST novo cont
 function _edFill(c){
   q('ed-cli').value=c.cliente||''; q('ed-uni').value=c.unidade||''; q('ed-cnpj').value=c.cnpj||''; q('ed-resp').value=c.responsavel||'';
   q('ed-serv').value=c.servico||''; q('ed-vi').value=String(c.vigInicio||'').slice(0,10); q('ed-vf').value=String(c.vigFim||'').slice(0,10);
-  q('ed-valor').value=(c.valorPadrao!=null?(+c.valorPadrao):''); q('ed-status').value=c.status||'VIGENTE';
+  q('ed-valor').value=(c.valorPadrao!=null&&c.valorPadrao!==''?moneyFmt(c.valorPadrao):''); q('ed-status').value=c.status||'VIGENTE';
   q('ed-sit').value=c.statusRenovacao||'PENDENTE'; q('ed-obs').value=c.obsRenovacao||'';
 }
 function editarContrato(i){ const o=RNVIEW[i]; if(!o)return; MNC=o.c; EDMODE='edit'; _edFill(o.c);
@@ -1303,7 +1303,7 @@ async function salvarContrato(){
   const fields={
     cliente:q('ed-cli').value.trim(), unidade:q('ed-uni').value.trim(), cnpj:q('ed-cnpj').value.trim(), responsavel:q('ed-resp').value.trim(),
     servico:q('ed-serv').value.trim(), vigInicio:q('ed-vi').value||'', vigFim:q('ed-vf').value||'',
-    valorPadrao:(+q('ed-valor').value||0), status:q('ed-status').value,
+    valorPadrao:moneyNum('ed-valor'), status:q('ed-status').value,
     statusRenovacao:q('ed-sit').value, obsRenovacao:q('ed-obs').value.trim()
   };
   if(!fields.cliente){ alert('Informe o cliente.'); return; }
@@ -1447,6 +1447,23 @@ async function cnpjLookup(cnpj, elRazao, elEnd, elMsg, elCnae){
   }catch(e){ if(elMsg){elMsg.style.color='#B23A48';elMsg.textContent='falha ao consultar CNPJ';} }
 }
 window.cnpjLookup=cnpjLookup;
+/* 22/08/2026 — máscara de moeda BR (R$ 1.000,00) a pedido do Léo, pra todo campo de "Valor" do
+   sistema. maskMoney() formata enquanto digita (estilo "centavos", igual app de banco: os 2
+   últimos dígitos digitados são sempre os centavos). moneyNum()/moneyFmt() convertem entre o
+   texto mascarado (visual) e o número puro (cálculo/gravação na API) — os campos continuam
+   guardando/enviando number puro, só a exibição na tela muda. */
+function moneyFmt(n){ n=parseFloat(n); if(isNaN(n))n=0; return n.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function moneyNum(idOrEl){
+  const e=(typeof idOrEl==='string')?document.getElementById(idOrEl):idOrEl; if(!e)return 0;
+  const s=String(e.value||'').replace(/\./g,'').replace(',', '.').replace(/[^\d.\-]/g,'');
+  const n=parseFloat(s); return isNaN(n)?0:n;
+}
+function moneySet(idOrEl,n){ const e=(typeof idOrEl==='string')?document.getElementById(idOrEl):idOrEl; if(e)e.value=(n===''||n==null)?'':moneyFmt(n); }
+function maskMoney(elx){
+  const d=String(elx.value||'').replace(/\D/g,'');
+  elx.value=d?(parseInt(d,10)/100).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}):'';
+}
+window.moneyFmt=moneyFmt; window.moneyNum=moneyNum; window.moneySet=moneySet; window.maskMoney=maskMoney;
 /* recorrente: valor total = valor mensal × nº de meses (padrão 12, mín 3) */
 function recTotal(mensal,meses){ const m=parseFloat(mensal)||0, n=Math.max(1,parseInt(meses,10)||12); return m*n; }
 function elevaiRecToggle(){
@@ -1458,8 +1475,8 @@ function elevaiRecToggle(){
 }
 function elevaiRecCalc(){
   const tipo=(document.getElementById('cad-tipo')||{}).value; if(tipo!=='R')return;
-  const t=recTotal((document.getElementById('cad-valormensal')||{}).value,(document.getElementById('cad-nummeses')||{}).value);
-  const v=document.getElementById('cad-valor'); if(v)v.value=t?t.toFixed(2):'';
+  const t=recTotal(moneyNum('cad-valormensal'),(document.getElementById('cad-nummeses')||{}).value);
+  const v=document.getElementById('cad-valor'); if(v)v.value=t?moneyFmt(t):'';
 }
 window.elevaiRecToggle=elevaiRecToggle; window.elevaiRecCalc=elevaiRecCalc;
 /* popula a lista pesquisável de códigos de serviço (LC 116/2003) */
@@ -1736,7 +1753,7 @@ async function elevaiCad(ev){
   const rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,nome:g('cad-nome')||'',cliente:empNome,
     empresaId:(hitEmp&&hitEmp.__id)?String(hitEmp.__id):'',
     unidade:g('cad-unidade')||'',fonte:g('cad-fonte')||'NA',campanha:g('cad-campanha')||'NA',icp:g('cad-icp'),
-    cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:parseFloat(g('cad-valor')||'0')||0,
+    cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:moneyNum('cad-valor'),
     tipo:g('cad-tipo')||'N/A',envio:(prop==='SIM'&&envio)?envio:null,
     dias:(prop==='SIM'&&envio)?Math.max(0,Math.round((Date.now()-new Date(envio+'T00:00:00').getTime())/864e5)):null,
     tc:g('cad-tc')||'NOVO',status:g('cad-status'),
@@ -1744,7 +1761,7 @@ async function elevaiCad(ev){
     cnae:g('cad-cnae')||'',grauRisco:g('cad-grau')||'',contatoSobrenome:g('cad-sobrenome')||'',
     telefone:g('cad-telefone')||'',email:g('cad-email')||'',
     contatoTipo:g('cad-contatotipo')||'',origem:g('cad-origem')||'NÃO SÓCIOS',
-    valorMensal:(g('cad-tipo')==='R'?(parseFloat(g('cad-valormensal')||'0')||0):null),
+    valorMensal:(g('cad-tipo')==='R'?moneyNum('cad-valormensal'):null),
     numMeses:(g('cad-tipo')==='R'?(parseInt(g('cad-nummeses')||'12',10)||12):null)};
   const editId=window._cadEditId||null;
   if(editId) rec.__id=editId;
@@ -1776,8 +1793,8 @@ function editLead(id){
   if(it.prop==='SIM') set('cad-envio',it.envio);
   set('cad-tipo',it.tipo);
   try{ elevaiRecToggle(); }catch(e){}
-  if(it.tipo==='R'){ set('cad-valormensal',it.valorMensal); set('cad-nummeses',it.numMeses); }
-  set('cad-valor',it.valor);
+  if(it.tipo==='R'){ moneySet('cad-valormensal',it.valorMensal); set('cad-nummeses',it.numMeses); }
+  moneySet('cad-valor',it.valor);
   set('cad-tc',it.tc); set('cad-status',it.status);
   set('cad-cnpj',it.cnpj); set('cad-razao',it.razaoSocial); set('cad-endereco',it.endereco);
   set('cad-cnae',it.cnae); set('cad-grau',it.grauRisco); set('cad-sobrenome',it.contatoSobrenome);
@@ -2590,7 +2607,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Campanha<input id="le-campanha" value="${esc(l.campanha)}"></label>
      <label>ICP<select id="le-icp">${['NA','A','B','C','D'].map(o=>`<option${String(l.icp)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Tipo<select id="le-tipo" onchange="leRecCalc()">${['N/A','P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Valor (R$)<input id="le-valor" type="number" step="0.01" min="0" value="${l.valor||0}" title="Recorrente: calculado automaticamente (mensal × meses) ao editar os campos abaixo — pode ser ajustado manualmente depois."></label>
+     <label>Valor (R$)<input id="le-valor" type="text" inputmode="decimal" value="${moneyFmt(l.valor||0)}" oninput="maskMoney(this)" title="Recorrente: calculado automaticamente (mensal × meses) ao editar os campos abaixo — pode ser ajustado manualmente depois."></label>
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
@@ -2608,13 +2625,13 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>CNAE<input id="le-cnae" value="${esc(l.cnae)}"></label>
      <label>Grau de risco<select id="le-grau">${['','1','2','3','4'].map(o=>`<option value="${o}"${String(l.grauRisco||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Contato sobrenome<input id="le-sobrenome" value="${esc(l.contatoSobrenome)}"></label>
-     <label>Recorrente — valor mensal<input id="le-valormensal" type="number" step="0.01" min="0" value="${l.valorMensal!=null?l.valorMensal:''}" placeholder="só recorrente" oninput="leRecCalc()"></label>
+     <label>Recorrente — valor mensal<input id="le-valormensal" type="text" inputmode="decimal" value="${l.valorMensal!=null?moneyFmt(l.valorMensal):''}" placeholder="só recorrente" oninput="maskMoney(this);leRecCalc()"></label>
      <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12" oninput="leRecCalc()"></label>
      <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
      <label>Código de serviço<input id="le-codserv" list="dl-codserv" value="${esc(l.codServico)}" placeholder="digite p/ buscar (ex.: fisio)"></label>
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
      <label>Recebimento<select id="le-receb">${['','Boleto','Crédito em conta','Nota Fiscal'].map(o=>`<option value="${o}"${String(l.recebimento||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
-     <label>Valor de fechamento (R$)<input id="le-fechamento" type="number" step="0.01" min="0" value="${l.valorFechamento!=null?l.valorFechamento:''}" placeholder="valor final da venda"></label>
+     <label>Valor de fechamento (R$)<input id="le-fechamento" type="text" inputmode="decimal" value="${l.valorFechamento!=null?moneyFmt(l.valorFechamento):''}" placeholder="valor final da venda" oninput="maskMoney(this)"></label>
      ${l.status==='VENDIDA'?`<label>Data da venda<input id="le-datavenda" type="date" value="${esc((l.dataVenda||(l.alteradoEm?String(l.alteradoEm).slice(0,10):''))||'')}" title="Data oficial da venda. Preenchida automaticamente ao mover pra VENDIDA; edite aqui pra corrigir histórico lançado com data errada."></label>`:''}
      <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
    </div>
@@ -2653,8 +2670,8 @@ function leRecCalc(){
   var tipoEl=el('le-tipo'); if(!tipoEl||tipoEl.value!=='R')return;
   var vmEl=el('le-valormensal'), nmEl=el('le-nummeses'), vEl=el('le-valor');
   if(!vmEl||!vEl)return;
-  var t=(typeof recTotal==='function')?recTotal(vmEl.value,nmEl?nmEl.value:'12'):0;
-  if(t)vEl.value=t.toFixed(2);
+  var t=(typeof recTotal==='function')?recTotal(moneyNum(vmEl),nmEl?nmEl.value:'12'):0;
+  if(t)vEl.value=moneyFmt(t);
 }
 window.leRecCalc=leRecCalc;
 function saveLead(id){
@@ -2662,17 +2679,20 @@ function saveLead(id){
   var g=function(x){var e=el(x);return e?e.value:'';};
   var _vf=g('le-fechamento');
   var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs'),
-    cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),cnae:g('le-cnae'),grauRisco:g('le-grau'),contatoSobrenome:g('le-sobrenome'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?(parseFloat(_vf)||0):null)};
+    cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),cnae:g('le-cnae'),grauRisco:g('le-grau'),contatoSobrenome:g('le-sobrenome'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?moneyNum('le-fechamento'):null)};
   if(_vf==='')delete f.valorFechamento;
   var _vm=g('le-valormensal'), _nm=g('le-nummeses');
-  if(_vm!=='')f.valorMensal=parseFloat(_vm)||0;
+  // 22/08/2026 — os campos de valor agora ficam mascarados (R$ 1.000,00), então a leitura tem
+  // que passar por moneyNum() (converte "1.000,00" -> 1000), não mais parseFloat() direto no
+  // texto (que quebraria: parseFloat("1.000,00") lê só "1.000" = 1, não 1000).
+  if(_vm!=='')f.valorMensal=moneyNum('le-valormensal');
   if(_nm!=='')f.numMeses=parseInt(_nm,10)||12;
   // 21/08/2026 — antes disso havia uma 2ª leitura de le-valor que SOBRESCREVIA o cálculo
   // automático (mensal × meses) com o texto bruto do campo, anulando o recálculo. Essa era
   // a causa raiz de recorrentes ficarem com valor = só o mensal (ex.: LIBBS). Removida: agora
   // só lemos le-valor uma vez — que já chega calculado via leRecCalc() (oninput), com a opção
   // de o usuário sobrescrever manualmente digitando direto no campo antes de salvar.
-  var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
+  f.valor=moneyNum('le-valor');
   /* 20/08/2026 — "Data da venda" só existe no drawer quando status é VENDIDA; se o campo foi
      editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
      "quando foi mexido" (o backend sempre sobrescreve com "agora" de qualquer forma). */
