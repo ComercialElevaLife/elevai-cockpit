@@ -47,6 +47,11 @@ const LISTS = {
       { name: 'valorFechamento', type: 'number' },// Fase 3 — valor de fechamento da venda (redução vs proposta)
       { name: 'empresaId', type: 'text' },       // Fase C — vínculo com Empresas_Comercial (id do item)
       { name: 'servicosJson', type: 'text' },    // Fase C — múltiplos serviços da oportunidade (JSON: cód/escopo/tipo/mensal/meses/valor)
+      // 21/08/2026 — quando a tela de Cadastro cria N oportunidades de uma vez (um clique, "+
+      // adicionar serviço", mesma empresa/contato/consultor), todas ganham o MESMO grupoNegociacaoId
+      // pra sinalizar "vieram do mesmo lançamento" — cada uma continua sendo uma oportunidade normal,
+      // independente, com seu próprio status/valor no Kanban (não muda o pipeline de status).
+      { name: 'grupoNegociacaoId', type: 'text' },
       // 20/08/2026 — data OFICIAL da venda (YYYY-MM-DD), separada de alteradoEm (que o backend
       // sempre carimba com "agora" em TODO PATCH, então não serve pra guardar uma data corrigível).
       // Preenchida automaticamente quando o lead entra em VENDIDA; editável manualmente depois

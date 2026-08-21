@@ -447,7 +447,18 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Contato<select id="op-contato" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option value="">—</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Origem<select id="op-origem" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option>NÃO SÓCIOS</option><option>SÓCIOS</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="op-cons" list="op-dl-cons" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Serviço<input id="op-serv" list="op-dl-serv" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
+        <!-- 21/08/2026 — múltiplos serviços na mesma oportunidade (Fase C, recomendado ao Léo):
+             cada linha vira UMA oportunidade separada no Kanban ao salvar (mesma empresa/contato/
+             consultor/origem/fonte/campanha/icp/unidade/data), com o mesmo grupoNegociacaoId pra
+             sinalizar "vieram do mesmo lançamento". Zero mudança no pipeline de status/Kanban. -->
+        <div style="grid-column:1/3;display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <label style="margin:0">Serviço(s) <span style="color:#B23A48">*</span></label>
+            <a href="#" onclick="opAddServ();return false" style="font-size:12px;color:#8B3A42;font-weight:600">+ adicionar serviço</a>
+          </div>
+          <div id="op-serv-list"></div>
+          <span style="font-size:11px;color:#8A7A78">Cada serviço vira uma oportunidade própria no Kanban (status/valor independentes), todas vinculadas a esta empresa.</span>
+        </div>
         <label style="display:flex;flex-direction:column;gap:4px">Fonte<input id="op-fonte" list="op-dl-fonte" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Campanha<input id="op-campanha" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">ICP<select id="op-icp" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option>NA</option><option>A</option><option>B</option><option>C</option><option>D</option></select></label>
@@ -2731,9 +2742,19 @@ function opNovaOportunidade(){
   var d=el('op-dt'); if(d)d.value=new Date().toISOString().slice(0,10);
   el('op-msg').textContent=''; el('op-emp-msg').textContent='';
   el('op-contato').innerHTML='<option value="">—</option>';
+  var sl=el('op-serv-list'); if(sl)sl.innerHTML=''; opAddServ();
   el('op-ov').style.display='flex';
   setTimeout(function(){var e=el('op-empresa'); if(e)e.focus();},50);
 }
+function opServRowHtml(){
+  return '<div class="op-serv-row" style="display:flex;gap:6px;margin-bottom:6px">'
+    +'<input class="op-serv-input" list="op-dl-serv" placeholder="ex.: Ergonomia" style="flex:1;padding:8px;border:1px solid #C99AA0;border-radius:8px">'
+    +'<button type="button" onclick="opRemServ(this)" title="Remover este serviço" style="all:unset;cursor:pointer;color:#B0463F;padding:0 8px;font-size:16px">✕</button>'
+    +'</div>';
+}
+function opAddServ(){ var sl=el('op-serv-list'); if(!sl)return; sl.insertAdjacentHTML('beforeend',opServRowHtml()); }
+function opRemServ(btn){ var sl=el('op-serv-list'); if(!sl)return; var rows=sl.querySelectorAll('.op-serv-row'); if(rows.length<=1)return; btn.closest('.op-serv-row').remove(); }
+window.opAddServ=opAddServ;window.opRemServ=opRemServ;
 function opFechar(){ var o=el('op-ov'); if(o)o.style.display='none'; }
 function opEmpChange(){
   var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato');
@@ -2753,21 +2774,32 @@ async function opSalvar(ev){
   ev.preventDefault();
   var v=el('op-empresa').value.trim(), hit=_opEmpresaByName(v), msg=el('op-msg');
   if(!hit){ var em=el('op-emp-msg'); if(em){em.style.color='#B0463F';em.textContent='cadastre a empresa antes (+ nova empresa)';} return false; }
+  var servs=Array.from(document.querySelectorAll('#op-serv-list .op-serv-input')).map(function(i){return i.value.trim();}).filter(Boolean);
+  if(!servs.length)servs=['NA'];
   var sel=el('op-contato'), con=(sel._list&&sel.value!=='')?sel._list[parseInt(sel.value,10)]:null;
   var dt=el('op-dt').value||new Date().toISOString().slice(0,10), d=new Date(dt+'T00:00:00');
-  var rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,cliente:(hit.cliente||hit.razaoSocial||v),empresaId:String(hit.__id||''),
+  /* 21/08/2026 — N serviços preenchidos = N oportunidades criadas, todas com o mesmo
+     grupoNegociacaoId (só pra sinalizar "vieram do mesmo lançamento"); cada uma é uma linha
+     independente no Kanban, com seu próprio status/valor, do jeito que já funciona hoje. */
+  var grupoId=servs.length>1?('g'+Date.now()):'';
+  var base={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,cliente:(hit.cliente||hit.razaoSocial||v),empresaId:String(hit.__id||''),
     unidade:el('op-unidade').value.trim(),origem:el('op-origem').value,cons:el('op-cons').value.trim(),
-    serv:el('op-serv').value.trim()||'NA',fonte:el('op-fonte').value.trim()||'NA',campanha:el('op-campanha').value.trim()||'NA',
+    fonte:el('op-fonte').value.trim()||'NA',campanha:el('op-campanha').value.trim()||'NA',
     icp:el('op-icp').value,prop:'NÃO',status:'NÃO ENVIADA',tipo:'N/A',valor:0,tc:'NOVO',
-    cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),
+    cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),grupoNegociacaoId:grupoId,
     nome:con?(con.nome||''):'',contatoSobrenome:con?(con.sobrenome||''):'',telefone:con?(con.telefone||''):'',email:con?(con.email||''):'',contatoTipo:con?(con.tipo||''):''};
   var btn=el('op-btn'); btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Criando...';
-  try{
-    var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
-    var j=await r.json().catch(()=>({}));
-    if(r.ok&&j.ok){ msg.style.color='#2E7D5B'; msg.textContent='✓ Oportunidade criada.'; setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700); }
-    else{ msg.style.color='#B0463F'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.'; }
-  }catch(e){ msg.style.color='#B0463F'; msg.textContent='Falha de rede: '+e.message; }
+  var ok=0, falhas=[];
+  for(var i=0;i<servs.length;i++){
+    var rec=Object.assign({},base,{serv:servs[i]});
+    try{
+      var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+      var j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok)ok++; else falhas.push(servs[i]+' ('+(j.error||('HTTP '+r.status))+')');
+    }catch(e){ falhas.push(servs[i]+' (falha de rede: '+e.message+')'); }
+  }
+  if(!falhas.length){ msg.style.color='#2E7D5B'; msg.textContent='✓ '+ok+' oportunidade'+(ok>1?'s criadas':' criada')+'.'; setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700); }
+  else{ msg.style.color='#B0463F'; msg.textContent=ok+' criada(s), falhou: '+falhas.join('; ')+'. Verifique se a base já foi publicada.'; if(window.reloadData)reloadData(); }
   btn.disabled=false; return false;
 }
 window.opNovaOportunidade=opNovaOportunidade;window.opFechar=opFechar;window.opEmpChange=opEmpChange;window.opNovaEmpresa=opNovaEmpresa;window.opSalvar=opSalvar;
