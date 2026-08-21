@@ -798,6 +798,36 @@ td .up{color:var(--ok);font-weight:700}
   <div class="mf"><button class="btn gh" onclick="testWh()">Testar</button><button class="btn" onclick="saveWh()">Salvar conexão</button></div>
 </div></div>
 
+<!-- 21/08/2026 — "Nova comunicação de venda": modelo trazido pelo Léo (P7). Gera o texto pronto pra
+     copiar e colar manualmente no Teams (ele revisa antes de postar — não envia sozinho). Alguns
+     campos já existem no lead/empresa; o que falta (cargo, volume de entrega, dias/horário, docs
+     exigidas etc.) é preenchido aqui na hora — mesmos campos que faltam pra Fase C e a integração
+     com o Painel de Implantação (ver elevai-integracao-painel-implantacao.md), só que capturados
+     manualmente por enquanto em vez de virar campo permanente do cadastro. -->
+<div class="ov" id="ov-venda"><div class="mdl" style="max-width:640px">
+  <div class="mh"><h3>📣 Nova comunicação de venda</h3><button class="x" onclick="document.getElementById('ov-venda').classList.remove('on')">&times;</button></div>
+  <div class="mb">
+    <p class="hint" style="margin:0 0 6px">Preencha o que faltar (o resto já veio do cadastro) e clique em "Gerar texto". Depois é só copiar e colar no Teams.</p>
+    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
+      <label>Área do projeto<input id="cv-area" placeholder="ex.: Ergonomia"></label>
+      <label>Resumo breve do serviço<input id="cv-resumo" placeholder="ex.: Avaliações ergonômicas mensais"></label>
+      <label>Volume de entrega<input id="cv-volume" placeholder="ex.: 40h/mês ou 150 avaliações"></label>
+      <label>Cargo desejado<input id="cv-cargo" placeholder="ex.: Técnico em Segurança do Trabalho"></label>
+      <label>Data de início<input id="cv-inicio" placeholder="dd/mm/aaaa ou 'A alinhar'" value="A alinhar"></label>
+      <label>Dias da semana<input id="cv-dias" placeholder="ex.: Seg a Sex"></label>
+      <label>Horário — entrada<input id="cv-hent" placeholder="ex.: 08:00"></label>
+      <label>Horário — saída<input id="cv-hsai" placeholder="ex.: 17:00"></label>
+      <label style="grid-column:1/3">Endereço (com sigla da unidade, se houver)<input id="cv-endereco"></label>
+    </div>
+    <label>Pontos focais (Cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
+    <label>Documentação exigida<textarea id="cv-docs" rows="2" placeholder="ex.: ASO, PPRA, PCMSO, CREF, Integração..."></textarea></label>
+    <label>Observações/materiais (EPI, uniforme, controle de ponto etc.)<textarea id="cv-obs" rows="2"></textarea></label>
+    <div style="display:flex;gap:8px;margin:8px 0"><button class="btn" onclick="gerarTextoComunicacao()">Gerar texto</button></div>
+    <label>Texto pronto (copie e cole no Teams)<textarea id="cv-out" rows="16" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
+  </div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button></div>
+</div></div>
+
 <script>
 
 /* ================= ELEVAI COCKPIT — shell (fonte unica de dados + filtros mestres) ================= */
@@ -2380,6 +2410,66 @@ function notifyTeams(l){
 function reenviarVenda(id){ var l=LEADS.find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Reenviar/atualizar o aviso desta venda ('+(l.cliente||'')+') no Teams?'))return; _teamsPost(_teamsVendaCard(l)).then(function(ok){ if(typeof toast==='function')toast(ok?'Aviso reenviado ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
 function retratarVenda(id){ var l=LEADS.find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?'))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
 window.reenviarVenda=reenviarVenda;window.retratarVenda=retratarVenda;
+/* 21/08/2026 — "Nova comunicação de venda" (P7): gera o texto no modelo exato trazido pelo Léo,
+   pronto pra copiar/colar no Teams (não posta sozinho — regra dele: "apenas entregue o texto pronto
+   para ser copiado"). Guarda o id do lead atual em _cvId enquanto a janela está aberta. */
+let _cvId=null;
+function abrirComunicacaoVenda(id){
+  var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
+  _cvId=id;
+  var g=function(x,v){var e=el(x); if(e)e.value=v||'';};
+  g('cv-area',l.serv); g('cv-resumo',''); g('cv-volume',''); g('cv-cargo','');
+  g('cv-inicio','A alinhar'); g('cv-dias',''); g('cv-hent',''); g('cv-hsai','');
+  g('cv-endereco',l.endereco||'');
+  var focais=(_opContatos()||[]).filter(function(c){
+    return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||
+      String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();
+  }).map(function(c){
+    var nome=[c.nome,c.sobrenome].filter(Boolean).join(' ');
+    return [nome||'—',c.cargo||'—',(c.email||c.telefone||'—')].join(' - ');
+  }).join('\n');
+  g('cv-focais',focais);
+  g('cv-docs',''); g('cv-obs','');
+  var out=el('cv-out'); if(out)out.value='';
+  var ov=el('ov-venda'); if(ov)ov.classList.add('on');
+}
+function gerarTextoComunicacao(){
+  var l=LEADS.find(function(x){return x.id===_cvId;}); if(!l){alert('Lead não encontrado.');return;}
+  var v=function(x){var e=el(x);return e?e.value.trim():'';};
+  var hora=new Date().getHours();
+  var saud=(hora<12?'Bom dia':'Boa tarde')+', Time!';
+  var area=v('cv-area')||l.serv||'—';
+  var resumo=v('cv-resumo')||'—';
+  var horario=(v('cv-hent')||'—')+' às '+(v('cv-hsai')||'—');
+  var t='**'+saud+'**\n'
+    +'**🚀 NOVO CLIENTE: '+(l.cliente||'—')+' | '+area+' | '+resumo+'**\n\n'
+    +'É com alegria que anunciamos a conquista deste novo cliente, **'+(l.cliente||'—')+'**. Abaixo, os detalhes para o start da operação:\n\n'
+    +'**📋 ESCOPO TÉCNICO**\n'
+    +'* **Tipo de Serviço:** '+(l.serv||'—')+'\n'
+    +'* **Volume de Entrega:** '+(v('cv-volume')||'—')+'\n'
+    +'* **Cargo Desejado:** '+(v('cv-cargo')||'—')+'\n\n'
+    +'**⏰ CRONOGRAMA & LOGÍSTICA**\n'
+    +'* **Data de Início:** '+(v('cv-inicio')||'A alinhar')+'\n'
+    +'* **Dias da Semana:** '+(v('cv-dias')||'—')+'\n'
+    +'* **Horário de Atuação:** '+horario+'\n'
+    +'* **Endereço:** '+(v('cv-endereco')||'—')+'\n\n'
+    +'**👥 PONTOS DE CONTATO & REQUISITOS**\n'
+    +'* **Pontos Focais (Cliente):** '+(v('cv-focais').split('\n').filter(Boolean).join('; ')||'—')+'\n'
+    +'* **Documentação Exigida:** '+(v('cv-docs')||'—')+'\n'
+    +'* **Observações/Materiais:** '+(v('cv-obs')||'—')+'\n\n'
+    +'💰 **BUDGET:** *Enviado no privado*\n\n'
+    +'Agradeço o apoio de todos e desejo sucesso nessa nova operação.\n\n'
+    +'**Rafael e João**\n'
+    +'*PSC*';
+  var out=el('cv-out'); if(out)out.value=t;
+}
+function copiarComunicacaoVenda(){
+  var out=el('cv-out'); if(!out||!out.value){alert('Clique em "Gerar texto" primeiro.');return;}
+  out.select();
+  try{document.execCommand('copy'); if(typeof toast==='function')toast('Texto copiado ✓');}
+  catch(e){ if(navigator.clipboard)navigator.clipboard.writeText(out.value).then(function(){if(typeof toast==='function')toast('Texto copiado ✓');}); }
+}
+window.abrirComunicacaoVenda=abrirComunicacaoVenda;window.gerarTextoComunicacao=gerarTextoComunicacao;window.copiarComunicacaoVenda=copiarComunicacaoVenda;
 function notifyNutricao(l){
   /* Aviso de lead pausado — SOMENTE E-MAIL (sem card no Teams). Editável/desativável em ⚙ Automação. */
   if(window.getModoTeste && window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: e-mail de pausa NÃO enviado.'); return; }
@@ -2521,7 +2611,7 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
      <button class="btn ghost" onclick="setStatus(${id},'PAUSADA')" title="Esfriou: marca como Pausada e avisa a Clara para o fluxo de nutrição">⏸ Pausar (esfriou)</button>
      <button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="delLead(${id})">🗑 Excluir</button>
-     ${l.status==='VENDIDA'?`<button class="btn ghost" onclick="reenviarVenda(${id})" title="Reenviar/atualizar o aviso desta venda no Teams">✏️ Reenviar aviso</button><button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="retratarVenda(${id})" title="Postar no Teams que a venda anterior deve ser desconsiderada (teste/cancelada)">🗑️ Retratar aviso</button>`:''}
+     ${l.status==='VENDIDA'?`<button class="btn ghost" onclick="abrirComunicacaoVenda(${id})" title="Gerar o texto completo de anúncio da venda (modelo do Léo) pra copiar e colar no Teams">📣 Nova comunicação de venda</button><button class="btn ghost" onclick="reenviarVenda(${id})" title="Reenviar/atualizar o aviso desta venda no Teams">✏️ Reenviar aviso</button><button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="retratarVenda(${id})" title="Postar no Teams que a venda anterior deve ser desconsiderada (teste/cancelada)">🗑️ Retratar aviso</button>`:''}
    </div>
    ${l.alteradoEm?`<div class="fld"><b>Alterado em</b> ${fmtAlt(l.alteradoEm)} por ${l.alteradoPor||'—'}</div>`:''}
    <h4>Tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
