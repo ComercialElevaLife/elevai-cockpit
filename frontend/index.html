@@ -2589,8 +2589,8 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>Fonte<input id="le-fonte" value="${esc(l.fonte)}"></label>
      <label>Campanha<input id="le-campanha" value="${esc(l.campanha)}"></label>
      <label>ICP<select id="le-icp">${['NA','A','B','C','D'].map(o=>`<option${String(l.icp)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Tipo<select id="le-tipo">${['N/A','P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Valor (R$)<input id="le-valor" type="number" step="0.01" min="0" value="${l.valor||0}"></label>
+     <label>Tipo<select id="le-tipo" onchange="leRecCalc()">${['N/A','P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
+     <label>Valor (R$)<input id="le-valor" type="number" step="0.01" min="0" value="${l.valor||0}" title="Recorrente: calculado automaticamente (mensal × meses) ao editar os campos abaixo — pode ser ajustado manualmente depois."></label>
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
@@ -2608,8 +2608,8 @@ function openDrawer(id){curId=id;const l=LEADS.find(x=>x.id===id);if(!l)return;
      <label>CNAE<input id="le-cnae" value="${esc(l.cnae)}"></label>
      <label>Grau de risco<select id="le-grau">${['','1','2','3','4'].map(o=>`<option value="${o}"${String(l.grauRisco||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Contato sobrenome<input id="le-sobrenome" value="${esc(l.contatoSobrenome)}"></label>
-     <label>Recorrente — valor mensal<input id="le-valormensal" type="number" step="0.01" min="0" value="${l.valorMensal!=null?l.valorMensal:''}" placeholder="só recorrente"></label>
-     <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12"></label>
+     <label>Recorrente — valor mensal<input id="le-valormensal" type="number" step="0.01" min="0" value="${l.valorMensal!=null?l.valorMensal:''}" placeholder="só recorrente" oninput="leRecCalc()"></label>
+     <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12" oninput="leRecCalc()"></label>
      <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
      <label>Código de serviço<input id="le-codserv" list="dl-codserv" value="${esc(l.codServico)}" placeholder="digite p/ buscar (ex.: fisio)"></label>
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
@@ -2646,6 +2646,17 @@ function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.dat
   return `<div class="task"><div class="t1">${ic} ${t.titulo||'(sem título)'} ${t.feito?'✅':''}</div><div class="t2">${t.tipo||'Tarefa'}${t.resp?' · '+t.resp:''}${quando?' · '+quando:''}${t.tipo==='Reunião'?' · '+(t.dur||30)+'min':''}</div>${t.conteudo?`<div class="t2">${t.conteudo}</div>`:''}<div class="t2">${ac}</div></div>`;}
 function onTipo(){const b=el('t-rbox');if(b)b.style.display=(el('t-tipo').value==='Reunião')?'block':'none';}
 function persistTasks(id){try{var l=LEADS.find(function(x){return x.id===id;});if(l&&window.persistLeadTasks)window.persistLeadTasks(l.spid,tasks[id]||[]);}catch(e){}}
+/* 21/08/2026 — recálculo automático (mensal × meses, padrão 12) no drawer do Kanban, igual ao
+   cadastro (reaproveita recTotal, já definido globalmente). "Valor" continua editável: o usuário
+   pode sobrescrever manualmente depois do cálculo, se precisar ajustar (ex.: desconto negociado). */
+function leRecCalc(){
+  var tipoEl=el('le-tipo'); if(!tipoEl||tipoEl.value!=='R')return;
+  var vmEl=el('le-valormensal'), nmEl=el('le-nummeses'), vEl=el('le-valor');
+  if(!vmEl||!vEl)return;
+  var t=(typeof recTotal==='function')?recTotal(vmEl.value,nmEl?nmEl.value:'12'):0;
+  if(t)vEl.value=t.toFixed(2);
+}
+window.leRecCalc=leRecCalc;
 function saveLead(id){
   var l=LEADS.find(function(x){return x.id===id;}); if(!l)return;
   var g=function(x){var e=el(x);return e?e.value:'';};
@@ -2656,8 +2667,11 @@ function saveLead(id){
   var _vm=g('le-valormensal'), _nm=g('le-nummeses');
   if(_vm!=='')f.valorMensal=parseFloat(_vm)||0;
   if(_nm!=='')f.numMeses=parseInt(_nm,10)||12;
-  f.valor=parseFloat(g('le-valor'))||0;
-  if(g('le-tipo')==='R'&&_vm!=='')f.valor=(parseFloat(_vm)||0)*(parseInt(_nm||'12',10)||12);
+  // 21/08/2026 — antes disso havia uma 2ª leitura de le-valor que SOBRESCREVIA o cálculo
+  // automático (mensal × meses) com o texto bruto do campo, anulando o recálculo. Essa era
+  // a causa raiz de recorrentes ficarem com valor = só o mensal (ex.: LIBBS). Removida: agora
+  // só lemos le-valor uma vez — que já chega calculado via leRecCalc() (oninput), com a opção
+  // de o usuário sobrescrever manualmente digitando direto no campo antes de salvar.
   var v=parseFloat(g('le-valor')); f.valor=isNaN(v)?0:v;
   /* 20/08/2026 — "Data da venda" só existe no drawer quando status é VENDIDA; se o campo foi
      editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
