@@ -355,7 +355,7 @@ td .up{color:var(--ok);font-weight:700}
   <div class="kpis">
     <div class="kpi"><div class="lbl">Leads</div><div class="val" id="k-leads">—</div><div class="chg" id="k-leads-c"></div></div>
     <div class="kpi"><div class="lbl">Propostas enviadas</div><div class="val" id="k-props">—</div><div class="chg" id="k-props-c"></div></div>
-    <div class="kpi coral"><div class="lbl">Conversão lead → proposta</div><div class="val" id="k-c1">—</div></div>
+    <div class="kpi coral"><div class="lbl">Propostas por lead</div><div class="val" id="k-c1">—</div></div>
     <div class="kpi coral"><div class="lbl">Conversão proposta → venda</div><div class="val" id="k-c2">—</div></div>
   </div>
   <div class="grid g2">
@@ -2115,21 +2115,27 @@ class App {
       (elm)=>{const k=keys[elm.index];const rows=fV.filter(v=>v.y*100+v.m===k);this.showModal('Vendas de '+labels[elm.index],'Todas as vendas do mês',rows,VENDA_COLS);});
   }
   // ---------- funil ----------
+  /* 21/08/2026 — Léo: "lead = empresa" (ex. Cargill nacional = 1 lead, 20 unidades = 20 propostas).
+     Até aqui "Leads" contava linha/oportunidade (fL.length), sem nenhuma dedup por empresa. Fix
+     de baixo risco (recomendado e aprovado por ele): só a contagem da etapa "Leads" do funil passa
+     a ser por empresa única (empresaId, com fallback normCli(cliente) pros registros antigos sem
+     empresaId) — Propostas/Vendas continuam por oportunidade, sem mudar Kanban/status/persistência. */
+  _uniqEmpresas(arr){ const s=new Set(); arr.forEach(l=>{ const k=l.empresaId?('E:'+l.empresaId):('N:'+normCli(l.cliente||'')); if(k!=='N:')s.add(k); }); return s.size; }
   funil(){
     const fL=this.fL, fV=this.fV;
     const props=fL.filter(l=>l.prop==='SIM');
-    const nL=fL.length,nP=props.length,nV=fV.length;
+    const nL=this._uniqEmpresas(fL),nP=props.length,nV=fV.length;
     el('k-leads').textContent=nL; el('k-props').textContent=nP;
     el('k-props-c').textContent=fmtBRLc(props.reduce((s,l)=>s+l.valor,0))+' propostos';
-    el('k-leads-c').textContent=fL.filter(l=>l.tc==='NOVO').length+' novos · '+fL.filter(l=>l.tc==='ATUAL').length+' atuais';
-    el('k-c1').textContent=nL?fmtPct(nP/nL):'—';
+    el('k-leads-c').textContent=this._uniqEmpresas(fL.filter(l=>l.tc==='NOVO'))+' novos · '+this._uniqEmpresas(fL.filter(l=>l.tc==='ATUAL'))+' atuais';
+    el('k-c1').textContent=nL?(nP/nL).toFixed(1).replace('.',',')+'×':'—';
     el('k-c2').textContent=nP?fmtPct(nV/nP):'—';
-    this.mkChart('ch-funil',{type:'bar',data:{labels:['Leads','Propostas','Vendas'],datasets:[{data:[nL,nP,nV],backgroundColor:[AZ9+'DD',AZ+'DD',CO+'DD'],borderRadius:5}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const i=c.dataIndex;const pct=i===0?'':i===1?(nL?' · '+fmtPct(nP/nL)+' dos leads':''):(nP?' · '+fmtPct(nV/nP)+' das propostas':'');return c.parsed.x+pct;}}}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}},
+    this.mkChart('ch-funil',{type:'bar',data:{labels:['Leads','Propostas','Vendas'],datasets:[{data:[nL,nP,nV],backgroundColor:[AZ9+'DD',AZ+'DD',CO+'DD'],borderRadius:5}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{const i=c.dataIndex;const pct=i===0?'':i===1?(nL?' · '+(nP/nL).toFixed(1)+'× por lead':''):(nP?' · '+fmtPct(nV/nP)+' das propostas':'');return c.parsed.x+pct;}}}},scales:{x:{beginAtZero:true,ticks:{precision:0}}}}},
       (elm)=>{ if(elm.index===0)this.showModal('Leads do período','Etapa 1 do funil',fL,LEAD_COLS);
         else if(elm.index===1)this.showModal('Propostas enviadas','Etapa 2 do funil',props,LEAD_COLS);
         else this.showModal('Vendas do período','Etapa 3 do funil',fV,VENDA_COLS);});
     const keys=this.keys,labels=this.labels;
-    const lM=keys.map(k=>fL.filter(l=>l.y*100+l.m===k).length);
+    const lM=keys.map(k=>this._uniqEmpresas(fL.filter(l=>l.y*100+l.m===k)));
     const pM=keys.map(k=>props.filter(l=>l.y*100+l.m===k).length);
     this.mkChart('ch-mes',{type:'line',data:{labels,datasets:[{label:'Leads',data:lM,borderColor:AZ7,backgroundColor:AZ+'22',tension:.25,pointRadius:3},{label:'Propostas',data:pM,borderColor:CO,tension:.25,pointRadius:3}]},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',labels:{usePointStyle:true}}},scales:{x:{grid:{display:false}},y:{beginAtZero:true,ticks:{precision:0}}}}},
       (elm,chart)=>{const k=keys[elm.index];const isProp=chart.data.datasets[elm.datasetIndex].label==='Propostas';
