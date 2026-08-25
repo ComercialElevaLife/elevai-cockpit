@@ -2881,9 +2881,20 @@ function dlEventICS(l,t,start,end){const uid='eleva-'+Date.now()+'@elevalife';co
 function waOpen(id,i){const l=_allLeads().find(x=>x.id===id),t=(tasks[id]||[])[i]||{};const msg=encodeURIComponent('Follow-up ElevaLife — '+(l.cliente||'')+' ('+(l.serv||'')+'). '+(t.titulo||''));window.open('https://web.whatsapp.com/send?phone='+WA_NUMBER+'&text='+msg,'_blank');}
 function toggleTask(id,i){tasks[id][i].feito=!tasks[id][i].feito;persistTasks(id);openDrawer(id);render();}
 function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
+/* 25/08/2026 — Léo: "existe a possibilidade de alterar o status, mas manter inativa?" Sim — este
+   select do drawer nunca mexeu em `inativo` (só drag-and-drop reativa/inativa, ver drop()/
+   dropInativar() acima), então trocar o status por aqui já funciona sem reativar. O que faltava:
+   quando `l` vem de uma inativada, ele é um objeto "de uso único" devolvido por _allLeads() (recém
+   remapeado de STORE.leads a cada chamada — ver comentário lá) — sem sincronizar o registro cru,
+   a troca de status seria perdida no próximo render() (volta a mostrar o status antigo, mesmo com
+   o backend já correto). Igual ao raw-sync que drop()/dropInativar()/toggleInativoLead() já fazem
+   pra `inativo`, agora `status`/`alteradoEm`/`alteradoPor` também sincronizam pro STORE.leads cru. */
 function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); if(curId===id)openDrawer(id); },
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v);
+        var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+        if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
+        if(curId===id)openDrawer(id); render(); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
 function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
