@@ -432,11 +432,7 @@ td .up{color:var(--ok);font-weight:700}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
-    <!-- 25/08/2026 — os dois botões abaixo foram parar aqui (e não em .bar) porque #view-crm .bar
-         tem display:none!important (o filtro local de Consultor/Serviço/Buscar foi substituído pelo
-         painel global "Filtros" no topo — ver CSS "filtros internos dos filhos escondidos"). Botão
-         dentro de .bar simplesmente não aparece na tela; aqui, ao lado de Nova Oportunidade/Testar
-         Teams, é visível. */
+    <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
     <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
     <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Oportunidades inativadas: backlog fora do Kanban ativo e fora dos indicadores do Painel — nada é apagado">🗄 Inativas</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
