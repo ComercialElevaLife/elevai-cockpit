@@ -57,6 +57,12 @@ const LISTS = {
       // Preenchida automaticamente quando o lead entra em VENDIDA; editável manualmente depois
       // (drawer do Kanban), pra corrigir histórico lançado com data errada.
       { name: 'dataVenda', type: 'text' },
+      // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
+      // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
+      // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
+      // de sempre). Não é um status novo do funil — é ortogonal ao `status`, que fica congelado como
+      // estava no momento de inativar.
+      { name: 'inativo', type: 'text' },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
