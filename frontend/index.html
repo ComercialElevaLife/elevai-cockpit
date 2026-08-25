@@ -133,7 +133,15 @@ td .up{color:var(--ok);font-weight:700}
 /* 25/08/2026 — visão de inativas (Léo: backlog fora dos indicadores, sem apagar histórico) */
 #view-crm .card.inativo{opacity:.6;background:#FAF6F3}
 #view-crm .card .emp .ina{font-size:10.5px;margin-left:3px}
-#view-crm #crm-compact-btn.on,#view-crm #crm-inativas-btn.on{background:var(--wine);color:#fff}#view-crm .drawer{position:fixed;top:0;right:0;width:420px;max-width:94vw;height:100%;background:#fff;box-shadow:-8px 0 30px rgba(94,42,48,.25);transform:translateX(100%);transition:.2s;z-index:50;display:flex;flex-direction:column}#view-crm .drawer.on{transform:none}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
+#view-crm #crm-compact-btn.on,#view-crm #crm-inativas-btn.on{background:var(--wine);color:#fff}
+/* 25/08/2026 — coluna 🗄 REATIVAÇÃO (Léo: "inativo virar uma coluna, com transparência"), opt-in
+   via botão. Translúcida/tracejada de propósito — sinaliza visualmente que não é uma etapa real do
+   funil, é só um estacionamento de backlog ao lado das 5 colunas de status. */
+#view-crm .board .col.reativacao{opacity:.7;background:repeating-linear-gradient(135deg,#FBF3F1,#FBF3F1 10px,#F5E9E7 10px,#F5E9E7 20px);border:1px dashed #C9A8A5}
+#view-crm .board .col.reativacao h2{color:#8A7A78}
+/* .board é grid de 5 colunas fixas (repeat(5,1fr)) — sem isso a 6ª coluna (Reativação) não fica ao
+   lado das outras, cai numa linha nova por baixo (grid-auto-flow padrão é linha). */
+#view-crm .board.has-reativacao{grid-template-columns:repeat(6,1fr)}#view-crm .drawer{position:fixed;top:0;right:0;width:420px;max-width:94vw;height:100%;background:#fff;box-shadow:-8px 0 30px rgba(94,42,48,.25);transform:translateX(100%);transition:.2s;z-index:50;display:flex;flex-direction:column}#view-crm .drawer.on{transform:none}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
 
 #view-crm .db .lead-edit label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt2);font-weight:700;display:flex;flex-direction:column;gap:3px}
 #view-crm .db .lead-edit input,#view-crm .db .lead-edit select{width:100%;padding:5px 7px;border:1px solid #C99AA0;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:12px;color:#3D2E30;background:#fff;text-transform:none;letter-spacing:0;font-weight:500}
@@ -434,7 +442,7 @@ td .up{color:var(--ok);font-weight:700}
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
     <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
     <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
-    <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Oportunidades inativadas: backlog fora do Kanban ativo e fora dos indicadores do Painel — nada é apagado">🗄 Inativas</button>
+    <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Mostra/esconde a coluna de backlog: oportunidades inativadas dentro do período filtrado, fora do Kanban ativo e dos indicadores do Painel — arraste de volta pra qualquer status pra reativar">🗄 Reativação</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
   </div>
 </header>
@@ -2569,26 +2577,13 @@ function filtered(){
   return LEADS.filter(l=>(!c||l.cons===c)&&(!s||l.serv===s)&&(!q||(l.cliente+' '+l.unidade).toLowerCase().includes(q)));
 }
 function render(){
-  /* 25/08/2026 — visão de inativas: em vez de `filtered()` (que já exclui inativas, porque lê de
-     LEADS/filteredLeads — ver compute() no shell), lê STORE.leads inteiro (sem limite de período)
-     e pega só quem tem inativo==='SIM'. É uma troca de FONTE, não um filtro a mais — por isso não
-     mexe em filtered()/F. */
-  const data=showInativas?((STORE.leads||[]).map(_mapLead).filter(l=>l.inativo==='SIM')):filtered();
-  const totalInativas=(STORE.leads||[]).filter(l=>l.inativo==='SIM').length;
+  const data=filtered();
   try{
     var cBtn=el('crm-compact-btn'); if(cBtn){ cBtn.textContent=compact?'▤ Completo':'⛶ Compacto'; cBtn.classList.toggle('on',compact); }
-    var iBtn=el('crm-inativas-btn'); if(iBtn){ iBtn.textContent='🗄 Inativas'+(totalInativas?' ('+totalInativas+')':''); iBtn.classList.toggle('on',showInativas); }
     var brd=el('board'); if(brd)brd.classList.toggle('compact',compact);
-    var nt=el('crm-note'); if(nt)nt.textContent=showInativas
-      ? 'Mostrando oportunidades INATIVADAS (backlog) — de todos os períodos, fora dos indicadores do Painel. Clique num card e use "↩ Reativar" para trazer de volta ao Kanban ativo.'
-      : 'Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).';
+    var nt=el('crm-note'); if(nt)nt.textContent='Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).';
   }catch(e){}
   let h='';
-  if(showInativas && !data.length){
-    el('board').innerHTML='<div class="empty" style="grid-column:1/-1;padding:30px;text-align:center;color:#8A7A78">Nenhuma oportunidade inativada no momento.</div>';
-    el('cnt').textContent='0 leads';
-    return;
-  }
   /* 24/08/2026 — sinalização visual de empresa TARGET no card do Kanban. "Target" é
      característica da EMPRESA cadastrada (campo "Etiqueta" no Cadastro de Empresas: TARGET /
      NÃO TARGET) — não tem nada a ver com Origem (sócios/não sócios), que é outra coisa (por
@@ -2626,27 +2621,55 @@ function render(){
     arr.sort((a,b)=>(a.data+'T'+(a.hora||'23:59')).localeCompare(b.data+'T'+(b.hora||'23:59')));
     return arr[0];
   };
-  COLS.forEach(([name,cls])=>{
-    const items=data.filter(l=>l.status===name);
-    const sum=items.reduce((a,l)=>a+(l.valor||0),0);
-    h+=`<div class="col ${cls}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="drop(event,'${name}',this)">
-      <h2>${name}<span>${items.length}</span></h2><div class="sum">${brl(sum)}</div><div class="drop">`;
-    items.forEach(l=>{
-      const nt=(tasks[l.id]||[]).length;
-      const nx=_nextTask(l);
-      const ti=_tipoInfo(l);
-      const nxHtml=nx?`<span class="nxt${_isLate(nx)?' late':''}" title="${esc(nx.titulo||nx.tipo||'')}${nt>1?' · +'+(nt-1)+' outra(s)':''}">${(_TKICON[nx.tipo]||'📌')} ${_taskWhen(nx)}</span>`:(nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:'');
-      h+=`<div class="card${l.inativo==='SIM'?' inativo':''}" draggable="true" ondragstart="dstart(event,${l.id})" onclick="openDrawer(${l.id})" style="border-left-color:${ti.cor}">
+  const _cardHtml=l=>{
+    const nt=(tasks[l.id]||[]).length;
+    const nx=_nextTask(l);
+    const ti=_tipoInfo(l);
+    const nxHtml=nx?`<span class="nxt${_isLate(nx)?' late':''}" title="${esc(nx.titulo||nx.tipo||'')}${nt>1?' · +'+(nt-1)+' outra(s)':''}">${(_TKICON[nx.tipo]||'📌')} ${_taskWhen(nx)}</span>`:(nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:'');
+    return `<div class="card${l.inativo==='SIM'?' inativo':''}" draggable="true" ondragstart="dstart(event,${l.id})" onclick="openDrawer(${l.id})" style="border-left-color:${ti.cor}">
         <div class="emp">${l.cliente||'—'}${isTarget(l)?'<span class="tgt" title="Empresa TARGET">🎯</span>':''}${l.origem==='SÓCIOS'?'<span class="soc" title="Empresa sócia">★</span>':''}${l.inativo==='SIM'?'<span class="ina" title="Inativada — backlog, fora dos indicadores">🗄</span>':''}</div><div class="uni">${l.unidade||''}</div>
         <div class="row"><span class="tag ${ti.cls}" title="${ti.tit}"><b>${ti.lbl}</b> · ${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
         <div class="row r2"><span class="meta">${l.cons||'—'} · ICP ${l.icp||'-'}</span>${nxHtml}</div>
         <div class="row r3"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>`:''}</div>
       </div>`;
-    });
+  };
+  COLS.forEach(([name,cls])=>{
+    const items=data.filter(l=>l.status===name);
+    const sum=items.reduce((a,l)=>a+(l.valor||0),0);
+    h+=`<div class="col ${cls}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="drop(event,'${name}',this)">
+      <h2>${name}<span>${items.length}</span></h2><div class="sum">${brl(sum)}</div><div class="drop">`;
+    items.forEach(l=>{ h+=_cardHtml(l); });
     h+='</div></div>';
   });
+  /* 25/08/2026 — Léo: "inativo virar uma coluna (com transparência)". Coluna opt-in (só aparece
+     com 🗄 Reativação ligado, senão volta a poluir visualmente igual o Rafael reclamou), NÃO faz
+     parte de COLS (não é status do funil — persistLeadFields grava só `inativo`, `status` continua
+     congelado). Arrastar PRA FORA dela (drop, mais abaixo) já reativa E muda pro status de destino.
+     Arrastar PRA DENTRO (dropInativar) inativa e congela o status de origem, igual ao botão do
+     drawer. "Respeitar os filtros sempre precisa prevalecer" (Léo) — por isso lê STORE.leads com
+     os MESMOS inRange()/passDims() do compute() global, não a base toda sem filtro. */
+  let totalInativas=0;
+  if(showInativas){
+    const inativasItems=(STORE.leads||[]).filter(l=>{
+      try{ return inRange(l)&&passDims(l,true)&&l.inativo==='SIM'; }catch(e){ return l.inativo==='SIM'; }
+    }).map(_mapLead);
+    /* essas nunca passaram pelo crmRender()->tasks={} original (só LEADS entra lá), então sem isso
+       _nextTask()/contagem de tarefas do card ficariam sempre vazias pras inativadas */
+    inativasItems.forEach(l=>{ if(l.tarefasJson&&!(l.id in tasks)){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
+    totalInativas=inativasItems.length;
+    const sum=inativasItems.reduce((a,l)=>a+(l.valor||0),0);
+    h+=`<div class="col reativacao" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="dropInativar(event,this)">
+      <h2>🗄 REATIVAÇÃO<span>${inativasItems.length}</span></h2><div class="sum">${brl(sum)}</div><div class="drop">`;
+    if(!inativasItems.length){ h+='<div class="meta" style="padding:10px;text-align:center">Nenhuma inativada no período selecionado.</div>'; }
+    inativasItems.forEach(l=>{ h+=_cardHtml(l); });
+    h+='</div></div>';
+  }
+  try{
+    var iBtn=el('crm-inativas-btn'); if(iBtn){ iBtn.textContent='🗄 Reativação'+(totalInativas?' ('+totalInativas+')':''); iBtn.classList.toggle('on',showInativas); }
+    if(brd)brd.classList.toggle('has-reativacao',showInativas);
+  }catch(e){}
   el('board').innerHTML=h;
-  el('cnt').textContent=data.length+' leads';
+  el('cnt').textContent=data.length+(showInativas?' + '+totalInativas+' em reativação':'')+' leads';
 }
 let dragId=null;
 function dstart(e,id){dragId=id;e.dataTransfer.effectAllowed='move';}
@@ -2662,17 +2685,56 @@ function _autoDataVenda(l,era,novoStatus){
     if(window.persistLeadFields)window.persistLeadFields(l.spid,{dataVenda:_dv},function(){},function(){});
   }
 }
+/* 25/08/2026 — arrastar PRA FORA da coluna 🗄 REATIVAÇÃO cai aqui igual qualquer outro drop entre
+   colunas normais: além de mudar o status (comportamento de sempre), também limpa `inativo` se a
+   origem era uma inativada — reativa E já manda pro status de destino escolhido no arrasto, em vez
+   de forçar voltar pro status congelado (mais previsível: o usuário está literalmente arrastando
+   pra onde quer que ela vá). Se soltar na MESMA coluna do status congelado, só reativa mesmo (não
+   dispara persistStatus à toa). */
 function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   const l=_allLeads().find(x=>x.id===dragId);
-  if(l&&l.status!==status){const era=l.status, eraMan=manual[l.id]; l.status=status; manual[l.id]=status;
+  if(!l)return;
+  const era=l.status, eraMan=manual[l.id];
+  const wasInativa=l.inativo==='SIM';
+  const statusChanged=(era!==status);
+  const reactivateIfNeeded=function(){
+    if(!wasInativa){ render(); if(curId===l.id)openDrawer(l.id); return; }
+    persistLeadFields(l.spid,{inativo:''},function(){
+      l.inativo='';
+      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.inativo='';
+      if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
+      if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+'.');
+      DATA_VER++;
+      render(); if(curId===l.id)openDrawer(l.id);
+    },function(){ render(); if(curId===l.id)openDrawer(l.id); });
+  };
+  if(statusChanged){
+    l.status=status; manual[l.id]=status;
     if(status==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l);
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
-    if(window.persistStatus)window.persistStatus('leads',l.spid,status,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); if(curId===l.id)openDrawer(l.id); },
-      function(){ l.status=era; if(eraMan===undefined)delete manual[l.id]; else manual[l.id]=eraMan; render(); if(curId===l.id)openDrawer(l.id); });
+    if(window.persistStatus){
+      window.persistStatus('leads',l.spid,status,
+        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); reactivateIfNeeded(); },
+        function(){ l.status=era; if(eraMan===undefined)delete manual[l.id]; else manual[l.id]=eraMan; render(); if(curId===l.id)openDrawer(l.id); });
+    } else { reactivateIfNeeded(); }
+  } else {
+    reactivateIfNeeded();
   }
-  render();
-  if(curId===dragId)openDrawer(dragId);}
+}
+/* 25/08/2026 — arrastar PRA DENTRO da coluna 🗄 REATIVAÇÃO: inativa e congela o status de origem,
+   igual ao botão "🗄 Inativar" do drawer (mesma persistLeadFields, mesmo raw-sync). */
+function dropInativar(e,col){e.preventDefault();col.classList.remove('over');
+  const l=_allLeads().find(x=>x.id===dragId);
+  if(!l||l.inativo==='SIM')return;
+  persistLeadFields(l.spid,{inativo:'SIM'},function(){
+    l.inativo='SIM';
+    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.inativo='SIM';
+    var idx=LEADS.findIndex(function(x){return x.id===l.id;}); if(idx>-1)LEADS.splice(idx,1);
+    if(typeof toast==='function')toast('Oportunidade inativada — some dos indicadores, mas não foi apagada.');
+    DATA_VER++;
+    render(); if(curId===l.id)openDrawer(l.id);
+  },function(){});
+}
 function openDrawer(id){curId=id;
   /* 25/08/2026 — _allLeads() cobre tanto LEADS (ativas) quanto as inativadas — necessário porque
      esse drawer também abre a partir da visão "🗄 Inativas". */
@@ -2877,13 +2939,22 @@ function toggleInativoLead(id){
   persistLeadFields(l.spid,{inativo:novo},function(){
     l.inativo=novo;
     var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.inativo=novo;
-    if(novo==='SIM'&&typeof toast==='function')toast('Oportunidade inativada — some dos indicadores, mas não foi apagada.');
-    else if(typeof toast==='function')toast('Oportunidade reativada.');
+    /* 25/08/2026 — mesmo ajuste de LEADS que drop()/dropInativar() fazem: o botão do drawer também
+       precisa entrar/sair de LEADS na hora, senão o card só reflete a mudança na coluna 🗄
+       REATIVAÇÃO (que sempre recalcula do zero) e fica desatualizado nas 5 colunas de status
+       (que usam o cache LEADS) até a próxima carga completa da base. */
+    if(novo==='SIM'){
+      var idx=LEADS.findIndex(function(x){return x.id===l.id;}); if(idx>-1)LEADS.splice(idx,1);
+      if(typeof toast==='function')toast('Oportunidade inativada — some dos indicadores, mas não foi apagada.');
+    } else {
+      if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
+      if(typeof toast==='function')toast('Oportunidade reativada.');
+    }
     DATA_VER++; openDrawer(id); render();
   },function(){});
 }
 Object.assign(window,{render:render,testTeams:testTeams,closeDrawer:closeDrawer,
-  dover:dover,drop:drop,dstart:dstart,openDrawer:openDrawer,setStatus:setStatus,delLead:delLead,
+  dover:dover,drop:drop,dropInativar:dropInativar,dstart:dstart,openDrawer:openDrawer,setStatus:setStatus,delLead:delLead,
   addTask:addTask,onTipo:onTipo,toggleTask:toggleTask,delTask:delTask,
   scheduleTask:scheduleTask,waOpen:waOpen,saveLead:saveLead,
   toggleCompact:toggleCompact,toggleInativas:toggleInativas,toggleInativoLead:toggleInativoLead});
