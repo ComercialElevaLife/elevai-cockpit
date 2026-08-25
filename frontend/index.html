@@ -432,6 +432,13 @@ td .up{color:var(--ok);font-weight:700}
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
+    <!-- 25/08/2026 — os dois botões abaixo foram parar aqui (e não em .bar) porque #view-crm .bar
+         tem display:none!important (o filtro local de Consultor/Serviço/Buscar foi substituído pelo
+         painel global "Filtros" no topo — ver CSS "filtros internos dos filhos escondidos"). Botão
+         dentro de .bar simplesmente não aparece na tela; aqui, ao lado de Nova Oportunidade/Testar
+         Teams, é visível. */
+    <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
+    <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Oportunidades inativadas: backlog fora do Kanban ativo e fora dos indicadores do Painel — nada é apagado">🗄 Inativas</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
   </div>
 </header>
@@ -439,8 +446,6 @@ td .up{color:var(--ok);font-weight:700}
   <div><label>Consultor</label><select id="fc" onchange="render()"><option value="">Todos</option></select></div>
   <div><label>Serviço</label><select id="fs" onchange="render()"><option value="">Todos</option></select></div>
   <div><label>Buscar</label><input id="fq" placeholder="empresa..." oninput="render()"></div>
-  <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
-  <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Oportunidades inativadas: backlog fora do Kanban ativo e fora dos indicadores do Painel — nada é apagado">🗄 Inativas</button>
   <span id="cnt" class="meta"></span>
 </div>
 <div class="note" id="crm-note">Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).</div>
