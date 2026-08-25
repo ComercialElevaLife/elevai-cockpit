@@ -442,7 +442,7 @@ td .up{color:var(--ok);font-weight:700}
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
     <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
     <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
-    <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Mostra/esconde a coluna de backlog: oportunidades inativadas dentro do período filtrado, fora do Kanban ativo e dos indicadores do Painel — arraste de volta pra qualquer status pra reativar">🗄 Reativação</button>
+    <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Mostra/esconde a coluna de backlog: oportunidades inativadas dentro do período filtrado, fora do Kanban ativo e dos indicadores do Painel — arraste de volta pra qualquer status pra reativar. Vem visível por padrão; clique pra ocultar.">🗄 Reativação</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
   </div>
 </header>
@@ -1026,13 +1026,18 @@ function periodoRange(){
   const wks=weeksInMonth(y,mNum), w=wks.find(w=>String(w.n)===String(F.semana));
   return w?{de:w.de,ate:w.ate}:{de:y+'-'+_p2(mNum)+'-01',ate:y+'-'+_p2(mNum)+'-28'};
 }
-/* Ano: opções a partir dos dados existentes (+ ano corrente), Mês: em cascata do Ano, Semana: em cascata do Mês */
+/* Ano: opções a partir dos dados existentes (+ ano corrente), Mês: em cascata do Ano, Semana: em cascata do Mês.
+   26/08/2026 — Léo pediu uma opção "todo o histórico" direto no campo Ano (já existia como o chip
+   "Histórico" ao lado, mas ficava escondida ali); a opção "todos" aqui só é um atalho que liga o
+   mesmo F.preset='all' que o chip usa — não é uma fonte de verdade nova. */
 function fillAno(keep){
   const sel=q('mm-ano'); if(!sel)return;
   const anosDados=[...new Set([...STORE.leads,...STORE.vendas].map(r=>r.dt?Number(String(r.dt).slice(0,4)):null).filter(Boolean))];
   const anos=[...new Set([...anosDados,new Date().getFullYear()])].sort((a,b)=>b-a);
-  sel.innerHTML=''; anos.forEach(a=>sel.add(new Option('Ano '+a,a)));
-  sel.value=(keep&&anos.map(String).includes(String(keep)))?keep:String(new Date().getFullYear());
+  sel.innerHTML='';
+  sel.add(new Option('Todo o histórico','todos'));
+  anos.forEach(a=>sel.add(new Option('Ano '+a,a)));
+  sel.value=(keep==='todos')?'todos':(keep&&anos.map(String).includes(String(keep)))?keep:String(new Date().getFullYear());
 }
 function fillMes(keep){
   const sel=q('mm-mes'); if(!sel)return;
@@ -1897,7 +1902,10 @@ function bindNav(){
   try{ if(localStorage.getItem('elevai_side_mini')==='1'){ var sd=document.querySelector('.side'); if(sd)sd.classList.add('mini'); } }catch(e){}
 }
 function bindFilters(){
-  q('mm-ano').addEventListener('change',()=>{ F.preset=''; setChipsOn(''); applyPeriod(); });
+  q('mm-ano').addEventListener('change',()=>{
+    if(q('mm-ano').value==='todos'){ F.preset='all'; setChipsOn('all'); q('mm-custom-row').style.display='none'; applyPeriod(); return; }
+    F.preset=''; setChipsOn(''); applyPeriod();
+  });
   q('mm-mes').addEventListener('change',()=>{ F.preset=''; F.semana=''; setChipsOn(''); applyPeriod(); });
   q('mm-semana').addEventListener('change',()=>applyPeriod());
   q('mm-90').onclick=()=>{ F.preset='90'; setChipsOn('90'); q('mm-custom-row').style.display='none'; applyPeriod(); };
@@ -2450,9 +2458,13 @@ const COLS=[["NÃO ENVIADA","st-n"],["EM NEGOCIAÇÃO","st-m"],["VENDIDA","st-v"
 let LEADS=[];
 let manual={}, tasks={}, curId=null;
 /* 25/08/2026 — card compacto (Rafael: poluição visual) e visão de inativas (Léo: backlog que
-   não perde histórico mas some dos indicadores). Ambos client-side, sem tocar em filtered()/COLS. */
-let compact=false, showInativas=false;
+   não perde histórico mas some dos indicadores). Ambos client-side, sem tocar em filtered()/COLS.
+   26/08/2026 — Reativação agora vem visível por padrão (Rafael precisa ver/sugerir reativações
+   sem precisar saber que o botão existe); o botão passou a servir pra OCULTAR, não pra mostrar.
+   Estado do toggle fica salvo por navegador, igual o compacto. */
+let compact=false, showInativas=true;
 try{ compact=localStorage.getItem('elevai_crm_compact')==='1'; }catch(e){}
+try{ var _si=localStorage.getItem('elevai_crm_show_inativas'); if(_si!==null) showInativas=(_si==='1'); }catch(e){}
 const FLOW_URL=''; /* cole aqui a URL do fluxo Power Automate (Fluxo 4). Vazio = gera .ics para o Outlook. */
 /* TEAMS_URL agora vem do shell (getTeamsWebhook) */
 const CAL_FLOW_URL=''; /* webhook Power Automate que cria evento/reunião no Outlook. Vazio = baixa .ics. */
@@ -2937,6 +2949,7 @@ function toggleCompact(){
 }
 function toggleInativas(){
   showInativas=!showInativas;
+  try{ localStorage.setItem('elevai_crm_show_inativas', showInativas?'1':'0'); }catch(e){}
   render();
 }
 /* 25/08/2026 — "Inativar": não é um status novo do funil (fica de fora de PERDIDA/PAUSADA), é uma
