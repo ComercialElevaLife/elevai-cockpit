@@ -2697,6 +2697,18 @@ function _autoDataVenda(l,era,novoStatus){
     if(window.persistLeadFields)window.persistLeadFields(l.spid,{dataVenda:_dv},function(){},function(){});
   }
 }
+/* 27/08/2026 — Léo identificou que reativar um lead precisa "resetar o relógio": a data de
+   entrada (dt) tem que virar HOJE, senão o lead reativado continua contando com uma data de
+   entrada antiga (às vezes anos atrás) nos filtros de período — não reflete que ele voltou a
+   ser trabalhado agora. A data antiga não se perde: fica registrada em obs como histórico da
+   reativação (padrão ad-hoc já usado na base para anotar proveniência/migração). y/m também são
+   recalculados a partir do novo dt, no mesmo padrão usado ao criar um lead (ver elevaiCad). */
+function _dadosReativacao(l){
+  var hoje=new Date().toISOString().slice(0,10);
+  var dtAnterior=l.dt||'';
+  var nota='[Reativado em '+hoje+(dtAnterior?' — data de entrada anterior: '+dtAnterior:'')+']';
+  return {dt:hoje,y:Number(hoje.slice(0,4)),m:Number(hoje.slice(5,7)),obs:(l.obs?l.obs+' | ':'')+nota};
+}
 /* 25/08/2026 — arrastar PRA FORA da coluna 🗄 REATIVAÇÃO cai aqui igual qualquer outro drop entre
    colunas normais: além de mudar o status (comportamento de sempre), também limpa `inativo` se a
    origem era uma inativada — reativa E já manda pro status de destino escolhido no arrasto, em vez
@@ -2711,11 +2723,12 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   const statusChanged=(era!==status);
   const reactivateIfNeeded=function(){
     if(!wasInativa){ render(); if(curId===l.id)openDrawer(l.id); return; }
-    persistLeadFields(l.spid,{inativo:''},function(){
-      l.inativo='';
-      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.inativo='';
+    const _rd=_dadosReativacao(l);
+    persistLeadFields(l.spid,{inativo:'',dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs},function(){
+      l.inativo=''; l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs;
+      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw){ raw.inativo=''; raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; }
       if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
-      if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+'.');
+      if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+' — data de entrada atualizada para hoje.');
       DATA_VER++;
       render(); if(curId===l.id)openDrawer(l.id);
     },function(){ render(); if(curId===l.id)openDrawer(l.id); });
@@ -2960,9 +2973,15 @@ function toggleInativoLead(id){
   var l=_allLeads().find(function(x){return x.id===id;});
   if(!l)return;
   var novo=(l.inativo==='SIM')?'':'SIM';
-  persistLeadFields(l.spid,{inativo:novo},function(){
+  /* 27/08/2026 — mesma regra do drop() (ver _dadosReativacao acima): reativar pelo botão do
+     drawer também tem que atualizar a data de entrada (dt) para hoje, guardando a anterior em obs. */
+  var _rd=(novo==='')?_dadosReativacao(l):null;
+  var fields=_rd?{inativo:novo,dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs}:{inativo:novo};
+  persistLeadFields(l.spid,fields,function(){
     l.inativo=novo;
-    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.inativo=novo;
+    if(_rd){ l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs; }
+    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+    if(raw){ raw.inativo=novo; if(_rd){ raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; } }
     /* 25/08/2026 — mesmo ajuste de LEADS que drop()/dropInativar() fazem: o botão do drawer também
        precisa entrar/sair de LEADS na hora, senão o card só reflete a mudança na coluna 🗄
        REATIVAÇÃO (que sempre recalcula do zero) e fica desatualizado nas 5 colunas de status
@@ -2972,7 +2991,7 @@ function toggleInativoLead(id){
       if(typeof toast==='function')toast('Oportunidade inativada — some dos indicadores, mas não foi apagada.');
     } else {
       if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
-      if(typeof toast==='function')toast('Oportunidade reativada.');
+      if(typeof toast==='function')toast('Oportunidade reativada — data de entrada atualizada para hoje.');
     }
     DATA_VER++; openDrawer(id); render();
   },function(){});
