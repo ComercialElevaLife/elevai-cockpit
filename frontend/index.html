@@ -634,11 +634,20 @@ td .up{color:var(--ok);font-weight:700}
       <form id="cadForm" onsubmit="return elevaiCad(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
         <label style="display:flex;flex-direction:column;gap:4px">Data<input id="cad-dt" type="date" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<input id="cad-nome" type="text" list="dl-contatos" placeholder="Ex.: Priscila (busque um contato já cadastrado)" onfocus="window.fillContatoDatalistCad&&fillContatoDatalistCad()" oninput="window.elevaiCadConMatch&&elevaiCadConMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Contato — sobrenome<input id="cad-sobrenome" type="text" placeholder="Ex.: Almeida" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — telefone<input id="cad-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — e-mail<input id="cad-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" list="dl-empresas" placeholder="Empresa (busque a cadastrada)" required onfocus="window.fillEmpresaDatalist&&fillEmpresaDatalist()" oninput="window.elevaiCadEmpMatch&&elevaiCadEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="cad-unidade" type="text" placeholder="Cidade/planta" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <!-- 27/08/2026 — Rafael achou o cadastro complexo demais; Léo pediu 2 fases: Fase 1 (acima)
+             é só o essencial pra abrir o registro (contato + empresa/unidade), Fase 2 (aqui dentro)
+             são os dados comerciais/faturamento/operacionais, que só importam de fato quando a
+             oportunidade avança — por isso ficam recolhidos por padrão, nenhum campo aqui é
+             obrigatório pra cadastrar. Gatilho pra completar: quando o status vira EM NEGOCIAÇÃO no
+             Kanban, o Cockpit abre o drawer com este bloco expandido (ver drop()/setStatus()). -->
+        <details id="cad-fase2" style="grid-column:1/3;border:1px dashed #EADDE0;border-radius:10px;padding:10px 12px">
+          <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Dados comerciais, faturamento e operacionais <span style="font-weight:400;color:#8A7A78">(preencher quando a oportunidade avançar)</span></summary>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;margin-top:12px">
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — sobrenome<input id="cad-sobrenome" type="text" placeholder="Ex.: Almeida" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="cad-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('cad-razao'),document.getElementById('cad-endereco'),document.getElementById('cad-cnpj-msg'),document.getElementById('cad-cnae'))" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="cad-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Endereço<input id="cad-endereco" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -661,6 +670,8 @@ td .up{color:var(--ok);font-weight:700}
           <label style="display:flex;flex-direction:column;gap:4px">Nº de meses (mín 3 · padrão 12)<input id="cad-nummeses" type="number" min="3" step="1" value="12" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         </div>
         <label style="display:flex;flex-direction:column;gap:4px">Cliente novo/atual<select id="cad-tc" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NOVO</option><option>ATUAL</option></select></label>
+          </div>
+        </details>
         <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
           <button type="submit" id="cad-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Cadastrar lead</button>
           <span id="cad-msg" style="font-size:13px"></span>
@@ -1833,6 +1844,10 @@ function editLead(id){
   set('cad-cnae',it.cnae); set('cad-grau',it.grauRisco); set('cad-sobrenome',it.contatoSobrenome);
   set('cad-telefone',it.telefone); set('cad-email',it.email); set('cad-contatotipo',it.contatoTipo);
   set('cad-origem',it.origem);
+  /* 27/08/2026 — ao editar um lead que já tem dados comerciais (fase 2) preenchidos, expande o
+     bloco recolhido pra não esconder informação que já existe. */
+  var _f2=q('cad-fase2');
+  if(_f2 && (it.status&&it.status!=='NÃO ENVIADA' || it.cons || it.serv || (+it.valor||0)>0)) _f2.open=true;
   window._cadEditId=String(id);
   const btn=q('cad-btn'); if(btn)btn.textContent='Salvar alterações';
   const cancel=q('cad-cancel-edit'); if(cancel)cancel.hidden=false;
@@ -1845,6 +1860,7 @@ function cancelCadEdit(){
   window._cadEditId=null;
   const btn=q('cad-btn'); if(btn)btn.textContent='Cadastrar lead';
   const cancel=q('cad-cancel-edit'); if(cancel)cancel.hidden=true;
+  const f2=q('cad-fase2'); if(f2)f2.open=false;
 }
 window.cancelCadEdit=cancelCadEdit;
 function deleteLeadCad(id){
@@ -2690,6 +2706,13 @@ function dover(e,col){e.preventDefault();col.classList.add('over');}
    igual à data da movimentação. Fica separada de alteradoEm (que o backend sempre carimba com
    "agora" a cada PATCH — não dá pra usar pra guardar/corrigir uma data). Só define se ainda não
    houver dataVenda (não sobrescreve uma correção manual já feita). Editável depois no drawer. */
+/* 27/08/2026 — split do cadastro em 2 fases (pedido do Rafael via Léo): considera que ainda
+   "falta preencher a fase 2" quando não tem consultor, serviço, tipo ou valor definidos. Só usado
+   como nudge visual (toast + abrir o drawer com a seção expandida) quando o card entra em
+   EM NEGOCIAÇÃO — não bloqueia a mudança de status, pra não travar o arrasto no Kanban. */
+function _faltaFase2(l){
+  return !(l.cons&&l.serv&&l.tipo&&l.tipo!=='N/A'&&(+l.valor||0)>0);
+}
 function _autoDataVenda(l,era,novoStatus){
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
     const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
@@ -2739,7 +2762,12 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
-        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); reactivateIfNeeded(); },
+        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status);
+          if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)){
+            if(typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
+            openDrawer(l.id);
+          }
+          reactivateIfNeeded(); },
         function(){ l.status=era; if(eraMan===undefined)delete manual[l.id]; else manual[l.id]=eraMan; render(); if(curId===l.id)openDrawer(l.id); });
     } else { reactivateIfNeeded(); }
   } else {
@@ -2774,6 +2802,17 @@ function openDrawer(id){curId=id;
      <label>Empresa<input id="le-cliente" value="${esc(l.cliente)}"></label>
      <label>Unidade<input id="le-unidade" value="${esc(l.unidade)}"></label>
      <label>Contato<input id="le-nome" value="${esc(l.nome)}"></label>
+     <label>Telefone<input id="le-telefone" value="${esc(l.telefone)}"></label>
+     <label>E-mail<input id="le-email" value="${esc(l.email)}"></label>
+     <label style="grid-column:1/3">Observação<input id="le-obs" value="${esc(l.obs)}"></label>
+   </div>
+   <!-- 27/08/2026 — mesmo racional do cadForm (cad-fase2): dados comerciais/faturamento/operacionais
+        agrupados e recolhidos por padrão, abrindo sozinhos quando já há algo preenchido ou quando a
+        oportunidade já passou de NÃO ENVIADA. Ver o gatilho automático em drop()/setStatus() quando
+        o status vira EM NEGOCIAÇÃO (abre o drawer com este bloco já expandido). -->
+   <details id="le-fase2"${(l.status!=='NÃO ENVIADA'||l.cons||l.serv||(l.valor||0)>0)?' open':''} style="margin-top:6px;border:1px dashed #EADDE0;border-radius:10px;padding:8px 10px">
+   <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Dados comerciais, faturamento e operacionais</summary>
+   <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:10px 0 8px">
      <label>Consultor<input id="le-cons" value="${esc(l.cons)}"></label>
      <label>Serviço<input id="le-serv" value="${esc(l.serv)}"></label>
      <label>Fonte<input id="le-fonte" value="${esc(l.fonte)}"></label>
@@ -2784,12 +2823,6 @@ function openDrawer(id){curId=id;
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Telefone<input id="le-telefone" value="${esc(l.telefone)}"></label>
-     <label>E-mail<input id="le-email" value="${esc(l.email)}"></label>
-     <label style="grid-column:1/3">Observação<input id="le-obs" value="${esc(l.obs)}"></label>
-   </div>
-   <h4 style="margin-top:6px">Dados comerciais (por fase)</h4>
-   <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">
      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
      <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
@@ -2808,6 +2841,7 @@ function openDrawer(id){curId=id;
      ${l.status==='VENDIDA'?`<label>Data da venda<input id="le-datavenda" type="date" value="${esc((l.dataVenda||(l.alteradoEm?String(l.alteradoEm).slice(0,10):''))||'')}" title="Data oficial da venda. Preenchida automaticamente ao mover pra VENDIDA; edite aqui pra corrigir histórico lançado com data errada."></label>`:''}
      <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
    </div>
+   </details>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
      <button class="btn ghost" onclick="setStatus(${id},'PAUSADA')" title="Esfriou: marca como Pausada e avisa a Clara para o fluxo de nutrição">⏸ Pausar (esfriou)</button>
@@ -2919,6 +2953,7 @@ function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=
       function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v);
         var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
         if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
+        if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)&&typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
         if(curId===id)openDrawer(id); render(); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
