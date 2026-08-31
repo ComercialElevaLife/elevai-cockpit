@@ -2924,7 +2924,7 @@ function _iniciarFup(l,origem){
      origem='status'). Guarda contra re-disparo: se o lead já tem um FUP em andamento (fupSeq
      definido), não reinicia o ciclo — evita recriar a tarefa "FUP 1" toda vez que o card volta a
      passar por EM NEGOCIAÇÃO (ex.: reaberto depois de PAUSADA). */
-  if(l.fupSeq)return;
+  if(l.fupSeq){ if(typeof toast==='function')toast('FUP já em andamento (FUP '+l.fupSeq+') — ciclo não reiniciado nesta oportunidade.'); return; }
   var id=l.id, era=l.status, eraSub=l.subEtapa, eraFup=l.fupSeq, eraHist=l.histEventosJson;
   var moveuStatus=(era!=='EM NEGOCIAÇÃO');
   var hist=_histAppend(l, origem==='status'
@@ -2997,6 +2997,21 @@ function _autoDataVenda(l,era,novoStatus){
     if(window.persistLeadFields)window.persistLeadFields(l.spid,{dataVenda:_dv},function(){},function(){});
   }
 }
+/* 31/08/2026 — Léo: "se eu coloquei para em negociação o status, proposta enviada precisa
+   automaticamente ir para o sim, e o campo envio precisa ir para a data de hoje." Entrar em EM
+   NEGOCIAÇÃO (arrasto ou seletor) implica que a proposta já foi enviada — mesmo raciocínio do
+   fluxo automático de FUP (ver _iniciarFup), só que aqui cobre TODA entrada em EM NEGOCIAÇÃO,
+   inclusive quando o lead já tem um FUP em andamento (_iniciarFup teria bloqueado por causa do
+   guard de fupSeq, mas Proposta/Envio precisam ser corrigidos de qualquer forma). Só mexe se
+   `prop` ainda não era SIM — não sobrescreve um envio já registrado antes. Best-effort, igual
+   _autoDataVenda: não bloqueia nem reverte o resto do fluxo se falhar. */
+function _autoProposta(l,era,novoStatus){
+  if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&l.prop!=='SIM'){
+    const _hoje=new Date().toISOString().slice(0,10);
+    l.prop='SIM'; l.envio=l.envio||_hoje;
+    if(window.persistLeadFields)window.persistLeadFields(l.spid,{prop:'SIM',envio:l.envio},function(){},function(){});
+  }
+}
 /* 27/08/2026 — Léo identificou que reativar um lead precisa "resetar o relógio": a data de
    entrada (dt) tem que virar HOJE, senão o lead reativado continua contando com uma data de
    entrada antiga (às vezes anos atrás) nos filtros de período — não reflete que ele voltou a
@@ -3039,7 +3054,7 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
-        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); _logStatus(l,era,status);
+        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); _autoProposta(l,era,status); _logStatus(l,era,status);
           /* 31/08/2026 — Léo: "precisamos ter a opção de marcando como proposta enviada e
              arrastando o card" — arrastar pra EM NEGOCIAÇÃO também dispara o fluxo automático de
              FUP (sub-etapa FUP + tarefa "FUP 1"), não só marcar Proposta=SIM no saveLead(). */
@@ -3288,7 +3303,7 @@ function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);ren
    pra `inativo`, agora `status`/`alteradoEm`/`alteradoPor` também sincronizam pro STORE.leads cru. */
 function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); _logStatus(l,era,v);
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); _autoProposta(l,era,v); _logStatus(l,era,v);
         var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
         if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
         /* 31/08/2026 — mesmo gatilho do drop(): trocar o status pelo seletor do drawer também
