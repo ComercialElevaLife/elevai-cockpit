@@ -72,16 +72,36 @@ async function findList(displayName) {
   return null;
 }
 
-// Garante que TODAS as colunas do schema existam na lista (adiciona as que faltam).
+// 31/08/2026 — colunas de texto do SharePoint nascem "linha única" por padrão (limite de 255
+// caracteres) quando criadas com `{ text: {} }`. Campos que guardam JSON e crescem a cada evento
+// (tarefasJson/historicoJson/servicosJson — ver `long:true` no schema.js) precisam ser "múltiplas
+// linhas" (sem esse limite), senão um PATCH que passa de 255 chars é rejeitado pelo Graph e a
+// gravação inteira é revertida no Cockpit ("Falha ao salvar — revertido" — foi exatamente isso
+// que aconteceu com historicoJson: passava de 255 chars já na 2ª ou 3ª entrada do histórico).
+function _colBody(c) {
+  if (c.type === 'number') return { name: c.name, number: {} };
+  return { name: c.name, text: c.long ? { allowMultipleLines: true } : {} };
+}
+
+// Garante que TODAS as colunas do schema existam na lista (adiciona as que faltam) e migra pra
+// multi-linha qualquer coluna `long:true` que já exista como linha única (schema antigo).
 async function ensureColumns(listId, columns) {
   const siteId = await getSiteId();
-  const j = await graph('GET', `/sites/${siteId}/lists/${listId}/columns?$select=name`);
-  const have = new Set((j.value || []).map(c => c.name));
+  const j = await graph('GET', `/sites/${siteId}/lists/${listId}/columns?$select=id,name,text`);
+  const byName = new Map((j.value || []).map(c => [c.name, c]));
   for (const c of columns) {
-    if (have.has(c.name)) continue;
-    const body = c.type === 'number' ? { name: c.name, number: {} } : { name: c.name, text: {} };
-    try { await graph('POST', `/sites/${siteId}/lists/${listId}/columns`, body); }
-    catch (e) { if (e.status !== 409) throw e; } // 409 = já existe (corrida)
+    const existing = byName.get(c.name);
+    if (!existing) {
+      try { await graph('POST', `/sites/${siteId}/lists/${listId}/columns`, _colBody(c)); }
+      catch (e) { if (e.status !== 409) throw e; } // 409 = já existe (corrida)
+      continue;
+    }
+    if (c.long && existing.text && existing.text.allowMultipleLines === false) {
+      // migração idempotente: não falha o request se a mudança de facet não for aceita por algum
+      // motivo (ex.: permissão) — só loga; a coluna continua utilizável do jeito que estava.
+      try { await graph('PATCH', `/sites/${siteId}/lists/${listId}/columns/${existing.id}`, { text: { allowMultipleLines: true } }); }
+      catch (e) { console.error('Falha ao migrar coluna pra multi-linha:', c.name, e.message || e); }
+    }
   }
 }
 
@@ -91,9 +111,7 @@ async function ensureList(def) {
   let id = await findList(def.displayName);
   let created = false;
   if (!id) {
-    const columns = def.columns.map(c =>
-      c.type === 'number' ? { name: c.name, number: {} } : { name: c.name, text: {} }
-    );
+    const columns = def.columns.map(_colBody);
     const c = await graph('POST', `/sites/${siteId}/lists`, {
       displayName: def.displayName, list: { template: 'genericList' }, columns,
     });

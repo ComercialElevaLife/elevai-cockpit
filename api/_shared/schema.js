@@ -28,7 +28,13 @@ const LISTS = {
       { name: 'telefone', type: 'text' },      // contato (LP/eventos)
       { name: 'email', type: 'text' },         // contato (LP/eventos)
       { name: 'obs', type: 'text' },           // observações livres
-      { name: 'tarefasJson', type: 'text' },   // tarefas do lead (JSON) — persistencia da aba Tarefas/CRM
+      // 31/08/2026 — `long:true` = coluna SharePoint criada/migrada como texto MULTI-LINHA, sem o
+      // limite de 255 caracteres do texto de linha única padrão. Achado depois que o Léo reportou
+      // "Falha ao salvar — revertido" ao mexer 2x em sub-etapa: historicoJson (JSON, cresce a cada
+      // evento) passava de 255 chars já na 2ª entrada e o PATCH era rejeitado pelo Graph/SharePoint
+      // (silenciosamente revertido no Cockpit). tarefasJson/servicosJson têm o mesmo risco
+      // estrutural (também guardam JSON que cresce), marcados aqui por precaução.
+      { name: 'tarefasJson', type: 'text', long: true },   // tarefas do lead (JSON) — persistencia da aba Tarefas/CRM
       // --- Reforma do cadastro (05/08/2026): fases do lead + condições comerciais ---
       { name: 'cnpj', type: 'text' },            // Fase 1 — CNPJ (dispara auto-preenchimento)
       { name: 'razaoSocial', type: 'text' },     // Fase 1 — razão social (auto via BrasilAPI)
@@ -46,7 +52,7 @@ const LISTS = {
       { name: 'recebimento', type: 'text' },     // Fase 3 — forma de recebimento (Boleto/Crédito em conta/NF)
       { name: 'valorFechamento', type: 'number' },// Fase 3 — valor de fechamento da venda (redução vs proposta)
       { name: 'empresaId', type: 'text' },       // Fase C — vínculo com Empresas_Comercial (id do item)
-      { name: 'servicosJson', type: 'text' },    // Fase C — múltiplos serviços da oportunidade (JSON: cód/escopo/tipo/mensal/meses/valor)
+      { name: 'servicosJson', type: 'text', long: true },    // Fase C — múltiplos serviços da oportunidade (JSON: cód/escopo/tipo/mensal/meses/valor)
       // 21/08/2026 — quando a tela de Cadastro cria N oportunidades de uma vez (um clique, "+
       // adicionar serviço", mesma empresa/contato/consultor), todas ganham o MESMO grupoNegociacaoId
       // pra sinalizar "vieram do mesmo lançamento" — cada uma continua sendo uma oportunidade normal,
@@ -73,7 +79,7 @@ const LISTS = {
       // limitado a 50 entradas). Registrado a partir de agora (criação, mudança de status, mudança
       // de sub-etapa, edição de dados comerciais) — não é retroativo, eventos anteriores a esta
       // data não existem na base. Mesmo padrão de tarefasJson (texto livre com JSON serializado).
-      { name: 'historicoJson', type: 'text' },
+      { name: 'historicoJson', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
