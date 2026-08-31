@@ -141,7 +141,21 @@ td .up{color:var(--ok);font-weight:700}
 #view-crm .board .col.reativacao h2{color:#8A7A78}
 /* .board é grid de 5 colunas fixas (repeat(5,1fr)) — sem isso a 6ª coluna (Reativação) não fica ao
    lado das outras, cai numa linha nova por baixo (grid-auto-flow padrão é linha). */
-#view-crm .board.has-reativacao{grid-template-columns:repeat(6,1fr)}#view-crm .drawer{position:fixed;top:0;right:0;width:420px;max-width:94vw;height:100%;background:#fff;box-shadow:-8px 0 30px rgba(94,42,48,.25);transform:translateX(100%);transition:.2s;z-index:50;display:flex;flex-direction:column}#view-crm .drawer.on{transform:none}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
+#view-crm .board.has-reativacao{grid-template-columns:repeat(6,1fr)}#view-crm .drawer{position:fixed;top:0;right:0;width:420px;max-width:94vw;height:100%;background:#fff;box-shadow:-8px 0 30px rgba(94,42,48,.25);transform:translateX(100%);transition:.2s;z-index:50;display:flex;flex-direction:column}#view-crm .drawer.on{transform:none}
+/* 31/08/2026 — drawer alargado (era 420px) pra caber o layout em 2 colunas inspirado no RD
+   Station (Léo). Abaixo de 860px o grid vira 1 coluna só (ver .d-grid), então mesmo em telas
+   menores/94vw continua legível — só perde a divisão lado a lado. */
+#view-crm .drawer{width:820px}
+#view-crm .d-grid{display:grid;grid-template-columns:280px 1fr;gap:0 22px}
+#view-crm .d-side{border-right:1px solid #F0E4E5;padding-right:18px}
+#view-crm .d-main{min-width:0}
+@media(max-width:860px){#view-crm .d-grid{grid-template-columns:1fr}#view-crm .d-side{border-right:none;border-bottom:1px solid #F0E4E5;padding-right:0;padding-bottom:10px;margin-bottom:6px}}
+/* Abas de sub-etapa (dentro de EM NEGOCIAÇÃO) — mesmo espírito do print do RD Station (Léo):
+   faixa de abas no topo do card detalhado, a atual destacada. */
+#view-crm .substeps{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #F0E4E5}
+#view-crm .substep{font-family:'Montserrat',sans-serif;font-size:10.5px;font-weight:700;padding:6px 9px;border:1px solid #E7D8D9;border-radius:7px;background:#FBF6F2;color:#8A7A78;cursor:pointer}
+#view-crm .substep.on{background:var(--wine);border-color:var(--wine);color:#fff}
+#view-crm .card .subtag{font-size:10.5px;font-weight:700;color:#7A2F42;background:#F5E6E8;display:inline-block;padding:1px 6px;border-radius:5px;margin:2px 0 4px}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
 
 #view-crm .db .lead-edit label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt2);font-weight:700;display:flex;flex-direction:column;gap:3px}
 #view-crm .db .lead-edit input,#view-crm .db .lead-edit select{width:100%;padding:5px 7px;border:1px solid #C99AA0;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:12px;color:#3D2E30;background:#fff;text-transform:none;letter-spacing:0;font-weight:500}
@@ -1868,6 +1882,9 @@ async function elevaiCad(ev){
     numMeses:(g('cad-tipo')==='R'?(parseInt(g('cad-nummeses')||'12',10)||12):null)};
   const editId=window._cadEditId||null;
   if(editId) rec.__id=editId;
+  /* 31/08/2026 — histórico começa aqui: só na criação (edição de cadastro existente não mexe no
+     historicoJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead). */
+  if(!editId) rec.historicoJson=JSON.stringify([{ts:new Date().toISOString(),texto:'Oportunidade criada',por:'(você)'}]);
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -2536,6 +2553,11 @@ window.PAINEL={render:paRender};
 <script>
 (function(){
 const COLS=[["NÃO ENVIADA","st-n"],["EM NEGOCIAÇÃO","st-m"],["VENDIDA","st-v"],["PERDIDA","st-p"],["PAUSADA","st-pause"]];
+/* 31/08/2026 — sub-etapas dentro de EM NEGOCIAÇÃO (Rafael via Léo, print do RD Station como
+   referência). Escolha do Léo: "sub-colunas dentro de EM NEGOCIAÇÃO" só como abas no card
+   detalhado (drawer) — os 5 status do COLS acima continuam intactos, sem risco pro resto do
+   sistema (nada que depende do texto 'EM NEGOCIAÇÃO' precisa mudar). */
+const SUBETAPAS=['Apresentação Técnica','Escopo Técnico','Proposta','FUP','Negociação','Repescagem'];
 let LEADS=[];
 let manual={}, tasks={}, curId=null;
 /* 25/08/2026 — card compacto (Rafael: poluição visual) e visão de inativas (Léo: backlog que
@@ -2721,6 +2743,7 @@ function render(){
     const nxHtml=nx?`<span class="nxt${_isLate(nx)?' late':''}" title="${esc(nx.titulo||nx.tipo||'')}${nt>1?' · +'+(nt-1)+' outra(s)':''}">${(_TKICON[nx.tipo]||'📌')} ${_taskWhen(nx)}</span>`:(nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:'');
     return `<div class="card${l.inativo==='SIM'?' inativo':''}" draggable="true" ondragstart="dstart(event,${l.id})" onclick="openDrawer(${l.id})" style="border-left-color:${ti.cor}">
         <div class="emp">${l.cliente||'—'}${isTarget(l)?'<span class="tgt" title="Empresa TARGET">🎯</span>':''}${l.origem==='SÓCIOS'?'<span class="soc" title="Empresa sócia">★</span>':''}${l.inativo==='SIM'?'<span class="ina" title="Inativada — backlog, fora dos indicadores">🗄</span>':''}</div><div class="uni">${l.unidade||''}</div>
+        ${(l.status==='EM NEGOCIAÇÃO'&&l.subEtapa)?`<div class="subtag" title="Sub-etapa da negociação">🔹 ${esc(l.subEtapa)}</div>`:''}
         <div class="row"><span class="tag ${ti.cls}" title="${ti.tit}"><b>${ti.lbl}</b> · ${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
         <div class="row r2"><span class="meta">${l.cons||'—'} · ICP ${l.icp||'-'}</span>${nxHtml}</div>
         <div class="row r3"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>`:''}</div>
@@ -2778,6 +2801,47 @@ function dover(e,col){e.preventDefault();col.classList.add('over');}
 function _faltaFase2(l){
   return !(l.cons&&l.serv&&l.tipo&&l.tipo!=='N/A'&&(+l.valor||0)>0);
 }
+/* 31/08/2026 — Histórico de eventos (Léo: "essa questão do histórico já temos algo similar, não
+   podemos aproveitar o que temos e dar um upgrade quando oportuno?"). O que já existia era só um
+   carimbo único (alteradoEm/alteradoPor, sempre sobrescrito a cada PATCH) — não dava pra ver uma
+   linha do tempo. historicoJson guarda um array (mais recente primeiro, limitado a 50 entradas)
+   alimentado DAQUI PRA FRENTE em: criação (elevaiCad), mudança de status (drop/setStatus), mudança
+   de sub-etapa (setSubEtapa) e edição de dados comerciais (saveLead). Não é retroativo — leads
+   antigos começam com o histórico vazio, mostrado no drawer com uma nota explicando isso. */
+function _historico(l){ try{ var a=JSON.parse(l.historicoJson||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function _histAppend(l,texto){
+  var arr=_historico(l);
+  arr.unshift({ts:new Date().toISOString(),texto:texto,por:'(você)'});
+  if(arr.length>50)arr=arr.slice(0,50);
+  return JSON.stringify(arr);
+}
+function _logStatus(l,era,novo){
+  var novoHist=_histAppend(l,'Status: '+(era||'—')+' → '+novo);
+  l.historicoJson=novoHist;
+  var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.historicoJson=novoHist;
+  if(window.persistLeadFields)window.persistLeadFields(l.spid,{historicoJson:novoHist},function(){},function(){});
+}
+function _diffLabel(l,f){
+  var map=[['cons','Consultor'],['serv','Serviço'],['valor','Valor'],['prop','Proposta'],['tc','Cliente'],['valorFechamento','Valor de fechamento']];
+  var ch=[];
+  map.forEach(function(p){ var k=p[0]; if(String(l[k]==null?'':l[k])!==String(f[k]==null?'':f[k]))ch.push(p[1]); });
+  return ch.length?('Dados atualizados: '+ch.join(', ')):'Dados do cadastro atualizados';
+}
+/* Abas de sub-etapa (drawer) — só fazem sentido dentro de EM NEGOCIAÇÃO (ver comentário do
+   SUBETAPAS, acima). Clicar muda subEtapa e registra no histórico, num único PATCH. */
+function setSubEtapa(id,etapa){
+  var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
+  if(l.subEtapa===etapa)return;
+  var era=l.subEtapa, eraHist=l.historicoJson;
+  var novoHist=_histAppend(l,'Sub-etapa: '+(era||'—')+' → '+etapa);
+  l.subEtapa=etapa; l.historicoJson=novoHist;
+  if(window.persistLeadFields){
+    window.persistLeadFields(l.spid,{subEtapa:etapa,historicoJson:novoHist},
+      function(){ var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw){raw.subEtapa=etapa;raw.historicoJson=novoHist;} render(); if(curId===id)openDrawer(id); },
+      function(){ l.subEtapa=era; l.historicoJson=eraHist; render(); if(curId===id)openDrawer(id); });
+  } else { render(); if(curId===id)openDrawer(id); }
+}
+window.setSubEtapa=setSubEtapa;
 function _autoDataVenda(l,era,novoStatus){
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
     const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
@@ -2827,7 +2891,7 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
-        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status);
+        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); _logStatus(l,era,status);
           if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)){
             if(typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
             openDrawer(l.id);
@@ -2853,6 +2917,25 @@ function dropInativar(e,col){e.preventDefault();col.classList.remove('over');
     render(); if(curId===l.id)openDrawer(l.id);
   },function(){});
 }
+/* 31/08/2026 — layout do drawer inspirado no print do RD Station que o Léo mandou (Rafael pediu
+   mais clareza de fase). Abas de sub-etapa só aparecem com status EM NEGOCIAÇÃO — fora disso não
+   fazem sentido (ver comentário do SUBETAPAS, lá em cima). */
+function _subEtapaTabsHtml(l){
+  if(l.status!=='EM NEGOCIAÇÃO')return '';
+  var cur=l.subEtapa||SUBETAPAS[0];
+  return '<div class="substeps">'+SUBETAPAS.map(function(s){
+    var sq=String(s).replace(/'/g,"\\'");
+    return '<button type="button" class="substep'+(s===cur?' on':'')+'" onclick="setSubEtapa('+l.id+',\''+sq+'\')">'+esc(s)+'</button>';
+  }).join('')+'</div>';
+}
+function _historicoHtml(l){
+  var arr=_historico(l);
+  if(!arr.length)return '<div class="meta">Histórico de eventos começou a ser registrado em 31/08/2026 — mudanças anteriores a esta data não aparecem aqui.</div>';
+  return arr.map(function(e){
+    var d=new Date(e.ts); var qd=isNaN(+d)?'':(d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+    return '<div class="task"><div class="t1">'+esc(e.texto||'')+'</div><div class="t2">'+qd+(e.por?' · '+esc(e.por):'')+'</div></div>';
+  }).join('');
+}
 function openDrawer(id){curId=id;
   /* 25/08/2026 — _allLeads() cobre tanto LEADS (ativas) quanto as inativadas — necessário porque
      esse drawer também abre a partir da visão "🗄 Inativas". */
@@ -2861,8 +2944,11 @@ function openDrawer(id){curId=id;
   el('d-emp').textContent=l.cliente||'—';el('d-uni').textContent=l.unidade||'';
   const ts=tasks[id]||[];
   el('d-body').innerHTML=`
+   ${_subEtapaTabsHtml(l)}
+   <div class="d-grid">
+   <div class="d-side">
    <div class="fld"><b>Status:</b> <select class="stpick" onchange="setStatus(${id},this.value)">${COLS.map(([n])=>`<option ${n===l.status?'selected':''}>${n}</option>`).join('')}</select> ${manual[id]?'<span class="tk">✎ manual</span>':''}</div>
-   <h4>Dados do lead</h4>
+   <h4>Negociação / Contato</h4>
    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">
      <label>Empresa<input id="le-cliente" value="${esc(l.cliente)}"></label>
      <label>Unidade<input id="le-unidade" value="${esc(l.unidade)}"></label>
@@ -2915,7 +3001,9 @@ function openDrawer(id){curId=id;
      ${l.status==='VENDIDA'?`<button class="btn ghost" onclick="abrirComunicacaoVenda(${id})" title="Gerar o texto completo de anúncio da venda (modelo do Léo) pra copiar e colar no Teams">📣 Nova comunicação de venda</button><button class="btn ghost" onclick="reenviarVenda(${id})" title="Reenviar/atualizar o aviso desta venda no Teams">✏️ Reenviar aviso</button><button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="retratarVenda(${id})" title="Postar no Teams que a venda anterior deve ser desconsiderada (teste/cancelada)">🗑️ Retratar aviso</button>`:''}
    </div>
    ${l.alteradoEm?`<div class="fld"><b>Alterado em</b> ${fmtAlt(l.alteradoEm)} por ${l.alteradoPor||'—'}</div>`:''}
-   <h4>Tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
+   </div>
+   <div class="d-main">
+   <h4>Próximas tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
    <div style="font-size:10.5px;color:#8A7A78;margin:4px 0">📌 Tarefa/Ligação = lembrete no calendário · 🟢 WhatsApp = registra o FUP (botão abre o WhatsApp) · 👥 Reunião = Teams (padrão 30min, editável). Com o fluxo de calendário ligado, o compromisso é criado <b>automaticamente</b> (sem abrir nada); sem ele, baixa um .ics.</div><h4>Nova tarefa / follow-up</h4>
    <div class="tform">
      <select id="t-tipo" onchange="onTipo()"><option>Tarefa</option><option>Ligação</option><option>WhatsApp</option><option>Reunião</option></select>
@@ -2926,6 +3014,10 @@ function openDrawer(id){curId=id;
      <div id="t-rbox" style="display:none"><div style="display:flex;gap:6px"><input id="t-dur" type="number" value="30" min="15" step="15" style="flex:1" placeholder="Duração (min)"></div><input id="t-part" placeholder="Participantes (e-mails, vírgula)"></div>
      <textarea id="t-cont" rows="2" placeholder="Conteúdo / observações"></textarea>
      <button class="btn" onclick="addTask(${id})">+ Adicionar / Agendar</button>
+   </div>
+   <h4>Histórico</h4>
+   <div id="hlist">${_historicoHtml(l)}</div>
+   </div>
    </div>`;
   el('drawer').classList.add('on');
 }
@@ -2970,6 +3062,7 @@ function saveLead(id){
      editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
      "quando foi mexido" (o backend sempre sobrescreve com "agora" de qualquer forma). */
   var _dv=g('le-datavenda'); if(_dv!=='')f.dataVenda=_dv;
+  f.historicoJson=_histAppend(l,_diffLabel(l,f));
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
     function(){}); }
@@ -3015,7 +3108,7 @@ function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);ren
    pra `inativo`, agora `status`/`alteradoEm`/`alteradoPor` também sincronizam pro STORE.leads cru. */
 function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v);
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); _logStatus(l,era,v);
         var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
         if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
         if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)&&typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
@@ -3037,7 +3130,8 @@ function _mapLead(Lx,i){return {
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
-    inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor };}
+    inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
+    subEtapa:Lx.subEtapa, historicoJson:Lx.historicoJson };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por

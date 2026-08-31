@@ -63,6 +63,17 @@ const LISTS = {
       // de sempre). Não é um status novo do funil — é ortogonal ao `status`, que fica congelado como
       // estava no momento de inativar.
       { name: 'inativo', type: 'text' },
+      // 31/08/2026 — sub-etapas DENTRO de EM NEGOCIAÇÃO (Rafael via Léo: "não está tendo clareza
+      // do status das propostas em negociação"). Não é um novo status do funil (status/COLS
+      // continuam intactos) — é ortogonal, só usado quando status==='EM NEGOCIAÇÃO'. Lista fixa
+      // no frontend (SUBETAPAS): Apresentação Técnica | Escopo Técnico | Proposta | FUP |
+      // Negociação | Repescagem (inspirado no funil do RD Station que o Léo trouxe de exemplo).
+      { name: 'subEtapa', type: 'text' },
+      // 31/08/2026 — histórico de eventos do lead (JSON: [{ts,texto,por}], mais recente primeiro,
+      // limitado a 50 entradas). Registrado a partir de agora (criação, mudança de status, mudança
+      // de sub-etapa, edição de dados comerciais) — não é retroativo, eventos anteriores a esta
+      // data não existem na base. Mesmo padrão de tarefasJson (texto livre com JSON serializado).
+      { name: 'historicoJson', type: 'text' },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
