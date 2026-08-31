@@ -516,6 +516,23 @@ td .up{color:var(--ok);font-weight:700}
     </div>
   </div>
 </div>
+<!-- 31/08/2026 — prompt de decisão ao concluir uma tarefa "FUP N" (fluxo automático pós-proposta,
+     Léo: playbook comercial). Mesmo padrão visual do #op-ov acima (overlay fixo, fecha ao clicar
+     fora). Os 3 botões chamam fupDecidir('venda'|'revisar'|'perdida') — ver perto de toggleTask. -->
+<div id="fup-modal" onclick="if(event.target===this)_fupFecharModal()" style="position:fixed;inset:0;background:rgba(94,42,48,.45);display:none;align-items:center;justify-content:center;z-index:70;padding:4vh 3vw;backdrop-filter:blur(2px)">
+  <div style="background:#fff;border-radius:14px;width:420px;max-width:92vw;box-shadow:0 18px 50px rgba(94,42,48,.35)">
+    <div style="background:#5E2A30;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
+      <h3 style="font-family:'Montserrat Alternates',sans-serif;font-size:16px;margin:0">🔄 FUP concluído — e agora?</h3>
+      <button onclick="_fupFecharModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">×</button>
+    </div>
+    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+      <p style="margin:0 0 4px;color:#8A7A78;font-size:12.5px">O que aconteceu com essa negociação?</p>
+      <button class="btn" style="background:#3E7B7E" onclick="fupDecidir('venda')">✅ Venda concluída</button>
+      <button class="btn ghost" onclick="fupDecidir('revisar')">🔁 Revisar (agenda o próximo FUP)</button>
+      <button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="fupDecidir('perdida')">❌ Perdida</button>
+    </div>
+  </div>
+</div>
   </section>
 
   <section class="view" id="view-renov" hidden>
@@ -2567,6 +2584,11 @@ const COLS=[["NÃO ENVIADA","st-n"],["EM NEGOCIAÇÃO","st-m"],["VENDIDA","st-v"
    detalhado (drawer) — os 5 status do COLS acima continuam intactos, sem risco pro resto do
    sistema (nada que depende do texto 'EM NEGOCIAÇÃO' precisa mudar). */
 const SUBETAPAS=['Apresentação Técnica','Escopo Técnico','Proposta','FUP','Negociação','Repescagem'];
+/* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: playbook comercial). FUP_DIAS = quantos
+   dias à frente cada tarefa de FUP é agendada (Léo pediu 2 dias pro FUP 1; usado também pros FUPs
+   seguintes gerados pelo botão "Revisar", na falta de uma cadência diferente informada por ele —
+   fácil de ajustar aqui se ele quiser prazos diferentes por FUP no futuro). */
+const FUP_DIAS=2;
 let LEADS=[];
 let manual={}, tasks={}, curId=null;
 /* 25/08/2026 — card compacto (Rafael: poluição visual) e visão de inativas (Léo: backlog que
@@ -2858,6 +2880,69 @@ function setSubEtapa(id,etapa){
   } else { render(); if(curId===id)openDrawer(id); }
 }
 window.setSubEtapa=setSubEtapa;
+/* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: "quando envia a proposta... deve ir
+   automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
+   (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
+   (_iniciarFup) quanto a cada "Revisar" (_avancarFup). */
+function _addAutoTask(l,id,titulo){
+  var dt=new Date(); dt.setDate(dt.getDate()+FUP_DIAS);
+  var iso=dt.toISOString().slice(0,10);
+  var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:'',data:iso,hora:'09:00',dur:30,part:'',conteudo:'Follow-up automático (playbook comercial).',feito:false};
+  (tasks[id]=tasks[id]||[]).push(t);
+  scheduleTask(id,tasks[id].length-1,true);
+  persistTasks(id);
+  if(typeof toast==='function')toast('📌 '+titulo+' agendado para '+iso.split('-').reverse().join('/'));
+}
+/* Disparado do saveLead() quando `prop` vira SIM (proposta enviada) numa oportunidade que ainda
+   não tinha proposta. Léo confirmou (AskUserQuestion): mover automaticamente pra EM NEGOCIAÇÃO
+   quando ainda estiver em NÃO ENVIADA, e agendar o FUP 1 pra 2 dias à frente. */
+function _iniciarFup(l){
+  var id=l.id, era=l.status, eraSub=l.subEtapa, eraFup=l.fupSeq, eraHist=l.histEventosJson;
+  var moveuStatus=(era!=='EM NEGOCIAÇÃO');
+  var hist=_histAppend(l,'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'+(moveuStatus?' (movido para EM NEGOCIAÇÃO)':''));
+  var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist};
+  if(moveuStatus)fields.status='EM NEGOCIAÇÃO';
+  l.subEtapa='FUP'; l.fupSeq=1; l.histEventosJson=hist; if(moveuStatus){ l.status='EM NEGOCIAÇÃO'; manual[id]='EM NEGOCIAÇÃO'; }
+  if(window.persistLeadFields){
+    window.persistLeadFields(l.spid,fields,function(){
+      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+      if(raw){ raw.subEtapa='FUP'; raw.fupSeq=1; raw.histEventosJson=hist; if(moveuStatus)raw.status='EM NEGOCIAÇÃO'; }
+      _addAutoTask(l,id,'FUP 1');
+      render(); if(curId===id)openDrawer(id);
+    }, function(){ l.subEtapa=eraSub; l.status=era; l.fupSeq=eraFup; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
+  }
+}
+/* Disparado pelo botão "🔁 Revisar" do prompt de decisão (ver fupDecidir, perto de toggleTask):
+   fecha o FUP atual e agenda o próximo (FUP N+1) — repete até o usuário escolher Venda ou Perdida. */
+function _avancarFup(l){
+  var id=l.id, eraSeq=l.fupSeq||1, eraHist=l.histEventosJson, novoSeq=eraSeq+1;
+  var hist=_histAppend(l,'FUP '+eraSeq+' concluído — revisão solicitada, FUP '+novoSeq+' agendado automaticamente');
+  l.fupSeq=novoSeq; l.histEventosJson=hist;
+  if(window.persistLeadFields){
+    window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist},function(){
+      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+      if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; }
+      _addAutoTask(l,id,'FUP '+novoSeq);
+      render(); if(curId===id)openDrawer(id);
+    }, function(){ l.fupSeq=eraSeq; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
+  }
+}
+/* Prompt de decisão ao concluir uma tarefa "FUP N" (ver toggleTask): Venda → VENDIDA (fluxo normal
+   de setStatus, com notificação Teams/dataVenda automáticos); Perdida → PERDIDA; Revisar → novo
+   FUP. _fupCtx guarda {id} enquanto o modal está aberto. */
+let _fupCtx=null;
+function fupDecidir(opc){
+  if(!_fupCtx)return;
+  var id=_fupCtx.id;
+  var l=_allLeads().find(function(x){return x.id===id;});
+  _fupFecharModal();
+  if(!l)return;
+  if(opc==='venda')setStatus(id,'VENDIDA');
+  else if(opc==='perdida')setStatus(id,'PERDIDA');
+  else if(opc==='revisar')_avancarFup(l);
+}
+function _fupFecharModal(){ _fupCtx=null; var m=el('fup-modal'); if(m)m.style.display='none'; }
+function _fupAbrirModal(id){ _fupCtx={id:id}; var m=el('fup-modal'); if(m)m.style.display='flex'; }
 function _autoDataVenda(l,era,novoStatus){
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
     const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
@@ -3084,13 +3169,25 @@ function saveLead(id){
   var _virouOp=(!_isOportunidade(l)&&String(f.prop||'')==='SIM');
   f.histEventosJson=_histAppend(l,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
-    function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
+    function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)';
+      /* 31/08/2026 — Léo: "só se torna oportunidade quando tem proposta... deve ir automaticamente
+         para FUP e subir uma nova tarefa de FUP 1". _virouOp já detecta essa transição (usado acima
+         pro texto do histórico) — dispara o fluxo de FUP depois que os dados comerciais salvaram. */
+      if(_virouOp)_iniciarFup(l);
+      openDrawer(id); render(); },
     function(){}); }
   else { Object.assign(l,f); openDrawer(id); render(); }
 }
 function addTask(id){const tipo=el('t-tipo')?el('t-tipo').value:'Tarefa';
   const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:el('t-email').value,data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false};
-  if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);openDrawer(id);render();}
+  if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);
+  /* 31/08/2026 — Léo: "criei uma nova tarefa e não apareceu no histórico". addTask() nunca tocava
+     em histEventosJson (só persistTasks(), que grava tarefasJson separadamente) — corrigido. */
+  var _l=_allLeads().find(function(x){return x.id===id;});
+  if(_l){ var _h=_histAppend(_l,'Tarefa criada: '+(t.titulo||'')+' ('+(t.tipo||'Tarefa')+')'); _l.histEventosJson=_h;
+    var _raw=(STORE.leads||[]).find(function(x){return x.__id===_l.spid;}); if(_raw)_raw.histEventosJson=_h;
+    if(window.persistLeadFields)window.persistLeadFields(_l.spid,{histEventosJson:_h},function(){},function(){}); }
+  openDrawer(id);render();}
 function _startEnd(t){const dur=t.tipo==='Reunião'?(t.dur||30):30;const base=(t.data||new Date().toISOString().slice(0,10))+'T'+(t.hora||'09:00')+':00';const dt=new Date(base);const e=new Date(dt.getTime()+dur*60000);const f=x=>{const p=n=>(''+n).padStart(2,'0');return x.getFullYear()+p(x.getMonth()+1)+p(x.getDate())+'T'+p(x.getHours())+p(x.getMinutes())+'00';};return[f(dt),f(e),dur];}
 function scheduleTask(id,i,silent){const l=_allLeads().find(x=>x.id===id),t=(tasks[id]||[])[i];if(!t)return;
   if(t.tipo==='WhatsApp'&&!silent)waOpen(id,i);
@@ -3116,7 +3213,19 @@ function dlEventICS(l,t,start,end){const uid='eleva-'+Date.now()+'@elevalife';co
   L.push('BEGIN:VALARM','TRIGGER:-PT15M','ACTION:DISPLAY','DESCRIPTION:Lembrete ElevaLife','END:VALARM','END:VEVENT','END:VCALENDAR');
   const b=new Blob([L.join('\r\n')],{type:'text/calendar'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=(t.tipo||'evento')+'_elevalife.ics';a.click();}
 function waOpen(id,i){const l=_allLeads().find(x=>x.id===id),t=(tasks[id]||[])[i]||{};const msg=encodeURIComponent('Follow-up ElevaLife — '+(l.cliente||'')+' ('+(l.serv||'')+'). '+(t.titulo||''));window.open('https://web.whatsapp.com/send?phone='+WA_NUMBER+'&text='+msg,'_blank');}
-function toggleTask(id,i){tasks[id][i].feito=!tasks[id][i].feito;persistTasks(id);openDrawer(id);render();}
+function toggleTask(id,i){
+  var t=tasks[id][i]; var _wasDone=t.feito;
+  t.feito=!t.feito;persistTasks(id);
+  /* 31/08/2026 — mesma correção do addTask(): concluir/reabrir uma tarefa também vira evento no
+     histórico. Além disso, concluir uma tarefa "FUP N" (fluxo automático de pós-proposta) abre o
+     prompt de decisão (Léo: venda / revisar / perdida — ver fupDecidir). */
+  var l=_allLeads().find(function(x){return x.id===id;});
+  if(l){ var h=_histAppend(l,(t.feito?'Tarefa concluída: ':'Tarefa reaberta: ')+(t.titulo||'(sem título)')); l.histEventosJson=h;
+    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.histEventosJson=h;
+    if(window.persistLeadFields)window.persistLeadFields(l.spid,{histEventosJson:h},function(){},function(){}); }
+  openDrawer(id);render();
+  if(t.feito&&!_wasDone&&/^FUP\s*\d+/i.test(t.titulo||''))_fupAbrirModal(id);
+}
 function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
 /* 25/08/2026 — Léo: "existe a possibilidade de alterar o status, mas manter inativa?" Sim — este
    select do drawer nunca mexeu em `inativo` (só drag-and-drop reativa/inativa, ver drop()/
@@ -3151,7 +3260,7 @@ function _mapLead(Lx,i){return {
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
-    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson };}
+    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por
@@ -3293,6 +3402,7 @@ async function opSalvar(ev){
   btn.disabled=false; return false;
 }
 window.opNovaOportunidade=opNovaOportunidade;window.opFechar=opFechar;window.opEmpChange=opEmpChange;window.opNovaEmpresa=opNovaEmpresa;window.opSalvar=opSalvar;
+window.fupDecidir=fupDecidir;window._fupFecharModal=_fupFecharModal;
 
 })();
 </script>

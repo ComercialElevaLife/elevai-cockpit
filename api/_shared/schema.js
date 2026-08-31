@@ -89,6 +89,11 @@ const LISTS = {
       // nasce multi-linha desde a criação (nunca existiu como linha única). `historicoJson` foi
       // REMOVIDO da whitelist — fica órfão no SharePoint (só os testes do Léo, sem dado real).
       { name: 'histEventosJson', type: 'text', long: true },
+      // 31/08/2026 — fluxo automático de FUP pós-proposta (Léo, playbook comercial): ao marcar
+      // "Proposta? SIM", o lead vai pra EM NEGOCIAÇÃO + sub-etapa FUP e ganha a 1ª tarefa de FUP
+      // automaticamente. fupSeq guarda o número do FUP atual (1, 2, 3...) — incrementado toda vez
+      // que o usuário escolhe "Revisar" no prompt que aparece ao concluir uma tarefa de FUP.
+      { name: 'fupSeq', type: 'number' },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
