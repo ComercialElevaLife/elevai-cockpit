@@ -155,7 +155,14 @@ td .up{color:var(--ok);font-weight:700}
 #view-crm .substeps{display:flex;flex-wrap:wrap;gap:4px;margin:0 0 12px;padding-bottom:10px;border-bottom:1px solid #F0E4E5}
 #view-crm .substep{font-family:'Montserrat',sans-serif;font-size:10.5px;font-weight:700;padding:6px 9px;border:1px solid #E7D8D9;border-radius:7px;background:#FBF6F2;color:#8A7A78;cursor:pointer}
 #view-crm .substep.on{background:var(--wine);border-color:var(--wine);color:#fff}
-#view-crm .card .subtag{font-size:10.5px;font-weight:700;color:#7A2F42;background:#F5E6E8;display:inline-block;padding:1px 6px;border-radius:5px;margin:2px 0 4px}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
+#view-crm .card .subtag{font-size:10.5px;font-weight:700;color:#7A2F42;background:#F5E6E8;display:inline-block;padding:1px 6px;border-radius:5px;margin:2px 0 4px}
+/* 31/08/2026 — Léo: "enquanto não teve proposta é apenas o lead. Só se torna oportunidade quando
+   tem proposta." .dkind = rótulo no header do drawer (sempre mostra Lead/Oportunidade). .kindtag
+   no card só aparece pra quem AINDA é lead (proposta não enviada) — quem já virou oportunidade
+   não precisa de selo extra (é o estado "normal"/esperado do funil), pra não poluir o board de
+   novo (Rafael já reclamou de poluição visual antes). */
+#view-crm .dkind{display:inline-block;font-size:9.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:rgba(255,255,255,.18);color:#fff;padding:2px 7px;border-radius:5px;margin-bottom:3px}
+#view-crm .card .kindtag{font-size:9.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:#8A7A78;background:#F0E9E6;display:inline-block;padding:1px 6px;border-radius:5px;margin:0 0 3px}#view-crm .drawer .dh{background:var(--deep);color:#fff;padding:14px 18px;display:flex;justify-content:space-between;align-items:flex-start}#view-crm .drawer .dh h3{font-family:'Montserrat Alternates',sans-serif;font-size:16px}#view-crm .drawer .db{padding:16px 18px;overflow-y:auto;flex:1}#view-crm .drawer .fld{font-size:12px;margin-bottom:8px}#view-crm .drawer .fld b{color:var(--deep)}#view-crm .drawer h4{font-size:12px;text-transform:uppercase;letter-spacing:.5px;color:var(--wine);margin:14px 0 8px;border-bottom:1px solid #E7D8D9;padding-bottom:4px}#view-crm .task{background:#FBF6F2;border-radius:8px;padding:8px 10px;margin-bottom:7px;font-size:12px}#view-crm .task .t1{font-weight:700;color:var(--deep)}#view-crm .task .t2{color:var(--txt2);font-size:11px}#view-crm .tform input, #view-crm .tform textarea, #view-crm .tform select{width:100%;font-family:'Montserrat',sans-serif;font-size:12px;padding:6px 8px;border:1px solid var(--soft);border-radius:6px;margin-bottom:6px}#view-crm .x{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}#view-crm .stpick{width:100%;font-family:'Montserrat',sans-serif;font-weight:700;padding:6px;border:1px solid var(--wine);border-radius:6px;color:var(--deep)}
 
 #view-crm .db .lead-edit label{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt2);font-weight:700;display:flex;flex-direction:column;gap:3px}
 #view-crm .db .lead-edit input,#view-crm .db .lead-edit select{width:100%;padding:5px 7px;border:1px solid #C99AA0;border-radius:6px;font-family:'Montserrat',sans-serif;font-size:12px;color:#3D2E30;background:#fff;text-transform:none;letter-spacing:0;font-weight:500}
@@ -468,7 +475,7 @@ td .up{color:var(--ok);font-weight:700}
 </div>
 <div class="note" id="crm-note">Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).</div>
 <div class="board" id="board"></div>
-<div class="drawer" id="drawer"><div class="dh"><div><h3 id="d-emp"></h3><div id="d-uni" style="font-size:12px;color:#EBD9DB"></div></div><button class="x" onclick="closeDrawer()">×</button></div><div class="db" id="d-body"></div></div>
+<div class="drawer" id="drawer"><div class="dh"><div><span id="d-kind" class="dkind"></span><h3 id="d-emp"></h3><div id="d-uni" style="font-size:12px;color:#EBD9DB"></div></div><button class="x" onclick="closeDrawer()">×</button></div><div class="db" id="d-body"></div></div>
 <div id="op-ov" onclick="if(event.target===this)opFechar()" style="position:fixed;inset:0;background:rgba(94,42,48,.45);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:4vh 3vw;backdrop-filter:blur(2px)">
   <div style="background:#fff;border-radius:14px;width:640px;max-width:96vw;max-height:92vh;overflow:auto;box-shadow:0 18px 50px rgba(94,42,48,.35)">
     <div style="background:#5E2A30;color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center">
@@ -1883,8 +1890,10 @@ async function elevaiCad(ev){
   const editId=window._cadEditId||null;
   if(editId) rec.__id=editId;
   /* 31/08/2026 — histórico começa aqui: só na criação (edição de cadastro existente não mexe no
-     historicoJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead). */
-  if(!editId) rec.historicoJson=JSON.stringify([{ts:new Date().toISOString(),texto:'Oportunidade criada',por:'(você)'}]);
+     historicoJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead).
+     Texto usa a mesma regra de "Lead vs Oportunidade" (campo prop=Proposta?) — quase sempre nasce
+     como Lead, mas se alguém já cadastrar com Proposta=SIM, o histórico já reflete isso certo. */
+  if(!editId) rec.historicoJson=JSON.stringify([{ts:new Date().toISOString(),texto:(rec.prop==='SIM'?'Oportunidade criada':'Lead criado'),por:'(você)'}]);
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -2742,6 +2751,7 @@ function render(){
     const ti=_tipoInfo(l);
     const nxHtml=nx?`<span class="nxt${_isLate(nx)?' late':''}" title="${esc(nx.titulo||nx.tipo||'')}${nt>1?' · +'+(nt-1)+' outra(s)':''}">${(_TKICON[nx.tipo]||'📌')} ${_taskWhen(nx)}</span>`:(nt?`<span class="tk">✓ ${nt} tarefa(s)</span>`:'');
     return `<div class="card${l.inativo==='SIM'?' inativo':''}" draggable="true" ondragstart="dstart(event,${l.id})" onclick="openDrawer(${l.id})" style="border-left-color:${ti.cor}">
+        ${!_isOportunidade(l)?`<div class="kindtag" title="Ainda é lead — só vira oportunidade quando a proposta for enviada (campo Proposta?)">LEAD</div>`:''}
         <div class="emp">${l.cliente||'—'}${isTarget(l)?'<span class="tgt" title="Empresa TARGET">🎯</span>':''}${l.origem==='SÓCIOS'?'<span class="soc" title="Empresa sócia">★</span>':''}${l.inativo==='SIM'?'<span class="ina" title="Inativada — backlog, fora dos indicadores">🗄</span>':''}</div><div class="uni">${l.unidade||''}</div>
         ${(l.status==='EM NEGOCIAÇÃO'&&l.subEtapa)?`<div class="subtag" title="Sub-etapa da negociação">🔹 ${esc(l.subEtapa)}</div>`:''}
         <div class="row"><span class="tag ${ti.cls}" title="${ti.tit}"><b>${ti.lbl}</b> · ${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
@@ -2801,6 +2811,12 @@ function dover(e,col){e.preventDefault();col.classList.add('over');}
 function _faltaFase2(l){
   return !(l.cons&&l.serv&&l.tipo&&l.tipo!=='N/A'&&(+l.valor||0)>0);
 }
+/* 31/08/2026 — Léo: "enquanto não teve proposta é apenas o lead. Só se torna oportunidade quando
+   tem proposta." O campo `prop` (Proposta? SIM/NÃO, ficha "Dados comerciais") já é literalmente
+   essa marcação — não criei campo novo. Usado só pra rótulo visual (drawer + card quando ainda é
+   lead); não muda nenhuma regra de negócio existente (status/COLS/filtros continuam intactos). */
+function _isOportunidade(l){ return String(l.prop||'')==='SIM'; }
+function _kindLabel(l){ return _isOportunidade(l)?'Oportunidade':'Lead'; }
 /* 31/08/2026 — Histórico de eventos (Léo: "essa questão do histórico já temos algo similar, não
    podemos aproveitar o que temos e dar um upgrade quando oportuno?"). O que já existia era só um
    carimbo único (alteradoEm/alteradoPor, sempre sobrescrito a cada PATCH) — não dava pra ver uma
@@ -2942,6 +2958,7 @@ function openDrawer(id){curId=id;
   const l=_allLeads().find(x=>x.id===id);
   if(!l)return;
   el('d-emp').textContent=l.cliente||'—';el('d-uni').textContent=l.unidade||'';
+  el('d-kind').textContent=_kindLabel(l);
   const ts=tasks[id]||[];
   el('d-body').innerHTML=`
    ${_subEtapaTabsHtml(l)}
@@ -3062,7 +3079,10 @@ function saveLead(id){
      editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
      "quando foi mexido" (o backend sempre sobrescreve com "agora" de qualquer forma). */
   var _dv=g('le-datavenda'); if(_dv!=='')f.dataVenda=_dv;
-  f.historicoJson=_histAppend(l,_diffLabel(l,f));
+  /* 31/08/2026 — "só vira oportunidade quando tem proposta" (Léo): registra essa virada
+     explicitamente no histórico, em vez do texto genérico de "dados atualizados". */
+  var _virouOp=(!_isOportunidade(l)&&String(f.prop||'')==='SIM');
+  f.historicoJson=_histAppend(l,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
     function(){}); }
