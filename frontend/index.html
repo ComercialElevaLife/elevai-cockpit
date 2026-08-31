@@ -2599,11 +2599,18 @@ const COLS=[["NÃO ENVIADA","st-n"],["EM NEGOCIAÇÃO","st-m"],["VENDIDA","st-v"
    detalhado (drawer) — os 5 status do COLS acima continuam intactos, sem risco pro resto do
    sistema (nada que depende do texto 'EM NEGOCIAÇÃO' precisa mudar). */
 const SUBETAPAS=['Apresentação Técnica','Escopo Técnico','Proposta','FUP','Negociação','Repescagem'];
-/* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: playbook comercial). FUP_DIAS = quantos
-   dias à frente cada tarefa de FUP é agendada (Léo pediu 2 dias pro FUP 1; usado também pros FUPs
-   seguintes gerados pelo botão "Revisar", na falta de uma cadência diferente informada por ele —
-   fácil de ajustar aqui se ele quiser prazos diferentes por FUP no futuro). */
+/* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: playbook comercial). Cadência exata
+   confirmada pelo Léo: "FUP 1 = 48 horas após, FUP 2 = 72h após o FUP 1, FUP 3 = 72h após o FUP 2
+   e o FUP Final após 72h do FUP 3" — 48h e 72h caem exatos em 2 e 3 dias corridos, então dá pra
+   usar setDate() normalmente (sem precisar de aritmética de hora). FUP_DIAS = prazo do FUP 1 (a
+   partir do gatilho — proposta enviada ou entrada em EM NEGOCIAÇÃO); FUP_DIAS_SEGUINTES = prazo
+   entre um FUP e o próximo dali em diante (FUP 2, FUP 3, FUP Final). A partir do 4º FUP, o rótulo
+   fica fixo em "FUP Final" (não numerado) — o playbook do Léo só definiu 4 estágios; se "Novo FUP"
+   for escolhido de novo depois do Final, o ciclo continua repetindo "FUP Final" a cada 72h (não
+   confirmado com ele, é a hipótese mais segura — ver _fupTitulo). */
 const FUP_DIAS=2;
+const FUP_DIAS_SEGUINTES=3;
+function _fupTitulo(seq){ return seq>=4?'FUP Final':('FUP '+seq); }
 let LEADS=[];
 let manual={}, tasks={}, curId=null;
 /* 25/08/2026 — card compacto (Rafael: poluição visual) e visão de inativas (Léo: backlog que
@@ -2899,8 +2906,8 @@ window.setSubEtapa=setSubEtapa;
    automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
    (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
    (_iniciarFup) quanto a cada "Revisar" (_avancarFup). */
-function _addAutoTask(l,id,titulo,motivo){
-  var dt=new Date(); dt.setDate(dt.getDate()+FUP_DIAS);
+function _addAutoTask(l,id,titulo,motivo,dias){
+  var dt=new Date(); dt.setDate(dt.getDate()+(dias||FUP_DIAS));
   var iso=dt.toISOString().slice(0,10);
   var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:'',data:iso,hora:'09:00',dur:30,part:'',conteudo:(motivo?('Motivo do FUP anterior: '+motivo+'. '):'')+'Follow-up automático (playbook comercial).',feito:false};
   (tasks[id]=tasks[id]||[]).push(t);
@@ -2944,13 +2951,14 @@ function _iniciarFup(l,origem){
 function _avancarFup(l,motivo){
   var id=l.id, eraSeq=l.fupSeq||1, eraHist=l.histEventosJson, novoSeq=eraSeq+1;
   var motivoTxt=motivo?(' — motivo: '+motivo):'';
-  var hist=_histAppend(l,'FUP '+eraSeq+' concluído'+motivoTxt+' — FUP '+novoSeq+' agendado automaticamente');
+  var tituloAtual=_fupTitulo(eraSeq), tituloNovo=_fupTitulo(novoSeq);
+  var hist=_histAppend(l,tituloAtual+' concluído'+motivoTxt+' — '+tituloNovo+' agendado automaticamente ('+FUP_DIAS_SEGUINTES+' dias)');
   l.fupSeq=novoSeq; l.histEventosJson=hist;
   if(window.persistLeadFields){
     window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist},function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
       if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; }
-      _addAutoTask(l,id,'FUP '+novoSeq,motivo);
+      _addAutoTask(l,id,tituloNovo,motivo,FUP_DIAS_SEGUINTES);
       render(); if(curId===id)openDrawer(id);
     }, function(){ l.fupSeq=eraSeq; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
   }
@@ -3267,7 +3275,7 @@ function toggleTask(id,i){
     var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.histEventosJson=h;
     if(window.persistLeadFields)window.persistLeadFields(l.spid,{histEventosJson:h},function(){},function(){}); }
   openDrawer(id);render();
-  if(t.feito&&!_wasDone&&/^FUP\s*\d+/i.test(t.titulo||''))_fupAbrirModal(id);
+  if(t.feito&&!_wasDone&&/^FUP(\s|$)/i.test(t.titulo||''))_fupAbrirModal(id);
 }
 function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
 /* 25/08/2026 — Léo: "existe a possibilidade de alterar o status, mas manter inativa?" Sim — este
