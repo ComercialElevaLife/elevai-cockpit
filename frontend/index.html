@@ -1890,10 +1890,10 @@ async function elevaiCad(ev){
   const editId=window._cadEditId||null;
   if(editId) rec.__id=editId;
   /* 31/08/2026 — histórico começa aqui: só na criação (edição de cadastro existente não mexe no
-     historicoJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead).
+     histEventosJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead).
      Texto usa a mesma regra de "Lead vs Oportunidade" (campo prop=Proposta?) — quase sempre nasce
      como Lead, mas se alguém já cadastrar com Proposta=SIM, o histórico já reflete isso certo. */
-  if(!editId) rec.historicoJson=JSON.stringify([{ts:new Date().toISOString(),texto:(rec.prop==='SIM'?'Oportunidade criada':'Lead criado'),por:'(você)'}]);
+  if(!editId) rec.histEventosJson=JSON.stringify([{ts:new Date().toISOString(),texto:(rec.prop==='SIM'?'Oportunidade criada':'Lead criado'),por:'(você)'}]);
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -2820,11 +2820,11 @@ function _kindLabel(l){ return _isOportunidade(l)?'Oportunidade':'Lead'; }
 /* 31/08/2026 — Histórico de eventos (Léo: "essa questão do histórico já temos algo similar, não
    podemos aproveitar o que temos e dar um upgrade quando oportuno?"). O que já existia era só um
    carimbo único (alteradoEm/alteradoPor, sempre sobrescrito a cada PATCH) — não dava pra ver uma
-   linha do tempo. historicoJson guarda um array (mais recente primeiro, limitado a 50 entradas)
+   linha do tempo. histEventosJson guarda um array (mais recente primeiro, limitado a 50 entradas)
    alimentado DAQUI PRA FRENTE em: criação (elevaiCad), mudança de status (drop/setStatus), mudança
    de sub-etapa (setSubEtapa) e edição de dados comerciais (saveLead). Não é retroativo — leads
    antigos começam com o histórico vazio, mostrado no drawer com uma nota explicando isso. */
-function _historico(l){ try{ var a=JSON.parse(l.historicoJson||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function _historico(l){ try{ var a=JSON.parse(l.histEventosJson||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
 function _histAppend(l,texto){
   var arr=_historico(l);
   arr.unshift({ts:new Date().toISOString(),texto:texto,por:'(você)'});
@@ -2833,9 +2833,9 @@ function _histAppend(l,texto){
 }
 function _logStatus(l,era,novo){
   var novoHist=_histAppend(l,'Status: '+(era||'—')+' → '+novo);
-  l.historicoJson=novoHist;
-  var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.historicoJson=novoHist;
-  if(window.persistLeadFields)window.persistLeadFields(l.spid,{historicoJson:novoHist},function(){},function(){});
+  l.histEventosJson=novoHist;
+  var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.histEventosJson=novoHist;
+  if(window.persistLeadFields)window.persistLeadFields(l.spid,{histEventosJson:novoHist},function(){},function(){});
 }
 function _diffLabel(l,f){
   var map=[['cons','Consultor'],['serv','Serviço'],['valor','Valor'],['prop','Proposta'],['tc','Cliente'],['valorFechamento','Valor de fechamento']];
@@ -2848,13 +2848,13 @@ function _diffLabel(l,f){
 function setSubEtapa(id,etapa){
   var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
   if(l.subEtapa===etapa)return;
-  var era=l.subEtapa, eraHist=l.historicoJson;
+  var era=l.subEtapa, eraHist=l.histEventosJson;
   var novoHist=_histAppend(l,'Sub-etapa: '+(era||'—')+' → '+etapa);
-  l.subEtapa=etapa; l.historicoJson=novoHist;
+  l.subEtapa=etapa; l.histEventosJson=novoHist;
   if(window.persistLeadFields){
-    window.persistLeadFields(l.spid,{subEtapa:etapa,historicoJson:novoHist},
-      function(){ var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw){raw.subEtapa=etapa;raw.historicoJson=novoHist;} render(); if(curId===id)openDrawer(id); },
-      function(){ l.subEtapa=era; l.historicoJson=eraHist; render(); if(curId===id)openDrawer(id); });
+    window.persistLeadFields(l.spid,{subEtapa:etapa,histEventosJson:novoHist},
+      function(){ var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw){raw.subEtapa=etapa;raw.histEventosJson=novoHist;} render(); if(curId===id)openDrawer(id); },
+      function(){ l.subEtapa=era; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
   } else { render(); if(curId===id)openDrawer(id); }
 }
 window.setSubEtapa=setSubEtapa;
@@ -3082,7 +3082,7 @@ function saveLead(id){
   /* 31/08/2026 — "só vira oportunidade quando tem proposta" (Léo): registra essa virada
      explicitamente no histórico, em vez do texto genérico de "dados atualizados". */
   var _virouOp=(!_isOportunidade(l)&&String(f.prop||'')==='SIM');
-  f.historicoJson=_histAppend(l,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
+  f.histEventosJson=_histAppend(l,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; openDrawer(id); render(); },
     function(){}); }
@@ -3151,7 +3151,7 @@ function _mapLead(Lx,i){return {
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
-    subEtapa:Lx.subEtapa, historicoJson:Lx.historicoJson };}
+    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por

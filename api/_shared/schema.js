@@ -79,7 +79,16 @@ const LISTS = {
       // limitado a 50 entradas). Registrado a partir de agora (criação, mudança de status, mudança
       // de sub-etapa, edição de dados comerciais) — não é retroativo, eventos anteriores a esta
       // data não existem na base. Mesmo padrão de tarefasJson (texto livre com JSON serializado).
-      { name: 'historicoJson', type: 'text', long: true },
+      //
+      // 31/08/2026 (correção) — a coluna nasceu `historicoJson` (linha única, limite de 255
+      // chars), e a tentativa de MIGRAR essa coluna existente pra multi-linha via PATCH
+      // (ensureColumns, ver graph.js) não resolveu — Léo testou de novo e bateu no mesmo erro.
+      // O Graph/SharePoint não converte de forma confiável "Text" (linha única) em "Note"
+      // (multi-linha) num campo já existente — são tipos internos diferentes, apesar de os dois
+      // caírem sob o mesmo facet `text` na API. Solução: campo NOVO (`histEventosJson`), que já
+      // nasce multi-linha desde a criação (nunca existiu como linha única). `historicoJson` foi
+      // REMOVIDO da whitelist — fica órfão no SharePoint (só os testes do Léo, sem dado real).
+      { name: 'histEventosJson', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],

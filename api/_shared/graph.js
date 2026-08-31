@@ -74,17 +74,30 @@ async function findList(displayName) {
 
 // 31/08/2026 — colunas de texto do SharePoint nascem "linha única" por padrão (limite de 255
 // caracteres) quando criadas com `{ text: {} }`. Campos que guardam JSON e crescem a cada evento
-// (tarefasJson/historicoJson/servicosJson — ver `long:true` no schema.js) precisam ser "múltiplas
-// linhas" (sem esse limite), senão um PATCH que passa de 255 chars é rejeitado pelo Graph e a
-// gravação inteira é revertida no Cockpit ("Falha ao salvar — revertido" — foi exatamente isso
-// que aconteceu com historicoJson: passava de 255 chars já na 2ª ou 3ª entrada do histórico).
+// (tarefasJson/servicosJson/histEventosJson — ver `long:true` no schema.js) precisam ser
+// "múltiplas linhas" (sem esse limite), senão um PATCH que passa de 255 chars é rejeitado pelo
+// Graph e a gravação inteira é revertida no Cockpit ("Falha ao salvar — revertido").
+//
+// 31/08/2026 (correção) — a migração abaixo (PATCH numa coluna já existente) foi a 1ª tentativa
+// de consertar isso pro campo de histórico (que nasceu como `historicoJson`, linha única) — não
+// funcionou: Léo testou de novo e bateu no mesmo erro. Na prática, o Graph/SharePoint NÃO
+// converte de forma confiável "Text" (linha única) em "Note" (multi-linha) num campo que já
+// existe, mesmo os dois caindo sob o mesmo facet `text` da API — são tipos internos diferentes no
+// SharePoint. A correção real foi trocar de coluna (`histEventosJson`, nova, nasce multi-linha
+// desde a criação) em vez de depender dessa migração. Ainda assim deixei o código de migração
+// abaixo — não atrapalha (falha silenciosa, só loga) e cobre o caso raro de um campo `long`
+// futuro que ainda não tenha sido usado o suficiente pra estourar 255 chars: criar do zero com
+// `long:true` sempre funciona: é só migrar um campo JÁ existente como linha única que é frágil.
+// **Se aparecer de novo esse erro num campo marcado `long`, o caminho é trocar de nome de coluna
+// (como foi feito aqui), não confiar nessa migração.**
 function _colBody(c) {
   if (c.type === 'number') return { name: c.name, number: {} };
   return { name: c.name, text: c.long ? { allowMultipleLines: true } : {} };
 }
 
-// Garante que TODAS as colunas do schema existam na lista (adiciona as que faltam) e migra pra
-// multi-linha qualquer coluna `long:true` que já exista como linha única (schema antigo).
+// Garante que TODAS as colunas do schema existam na lista (adiciona as que faltam) e TENTA migrar
+// pra multi-linha qualquer coluna `long:true` que já exista como linha única — ver aviso acima
+// sobre a confiabilidade dessa migração.
 async function ensureColumns(listId, columns) {
   const siteId = await getSiteId();
   const j = await graph('GET', `/sites/${siteId}/lists/${listId}/columns?$select=id,name,text`);
@@ -97,8 +110,8 @@ async function ensureColumns(listId, columns) {
       continue;
     }
     if (c.long && existing.text && existing.text.allowMultipleLines === false) {
-      // migração idempotente: não falha o request se a mudança de facet não for aceita por algum
-      // motivo (ex.: permissão) — só loga; a coluna continua utilizável do jeito que estava.
+      // best-effort: não falha o request se a mudança de facet não for aceita — só loga; a
+      // coluna continua utilizável do jeito que estava (ver aviso acima: não confiar nisso).
       try { await graph('PATCH', `/sites/${siteId}/lists/${listId}/columns/${existing.id}`, { text: { allowMultipleLines: true } }); }
       catch (e) { console.error('Falha ao migrar coluna pra multi-linha:', c.name, e.message || e); }
     }
