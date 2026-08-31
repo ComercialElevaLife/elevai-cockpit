@@ -525,11 +525,26 @@ td .up{color:var(--ok);font-weight:700}
       <h3 style="font-family:'Montserrat Alternates',sans-serif;font-size:16px;margin:0">🔄 FUP concluído — e agora?</h3>
       <button onclick="_fupFecharModal()" style="background:none;border:none;color:#fff;font-size:22px;cursor:pointer">×</button>
     </div>
-    <div style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
+    <div id="fup-step1" style="padding:18px 20px;display:flex;flex-direction:column;gap:10px">
       <p style="margin:0 0 4px;color:#8A7A78;font-size:12.5px">O que aconteceu com essa negociação?</p>
-      <button class="btn" style="background:#3E7B7E" onclick="fupDecidir('venda')">✅ Venda concluída</button>
-      <button class="btn ghost" onclick="fupDecidir('revisar')">🔁 Revisar (agenda o próximo FUP)</button>
+      <button class="btn" style="background:#3E7B7E" onclick="fupDecidir('venda')">✅ Vendido</button>
+      <button class="btn ghost" onclick="_fupMostrarMotivos()">🔁 Novo FUP</button>
       <button class="btn ghost" style="color:#B0463F;border-color:#B0463F" onclick="fupDecidir('perdida')">❌ Perdida</button>
+      <button class="btn ghost" onclick="fupDecidir('pausada')">⏸ Pausada</button>
+    </div>
+    <!-- 31/08/2026 — Léo: "os novos FUPs não serão necessariamente oriundos de revisões... falta
+         de retorno, não conseguir contatar o lead, revisão de proposta". 2º passo: categoria do
+         motivo do novo FUP (vira parte do histórico e do conteúdo da próxima tarefa). -->
+    <div id="fup-step2" style="padding:18px 20px;display:none;flex-direction:column;gap:10px">
+      <p style="margin:0 0 4px;color:#8A7A78;font-size:12.5px">Motivo do novo FUP:</p>
+      <button class="btn ghost" onclick="fupDecidir('revisar','Sem retorno do lead')">📭 Sem retorno do lead</button>
+      <button class="btn ghost" onclick="fupDecidir('revisar','Não conseguiu contato')">📵 Não conseguiu contato</button>
+      <button class="btn ghost" onclick="fupDecidir('revisar','Revisão de proposta')">📝 Revisão de proposta</button>
+      <div style="display:flex;gap:6px">
+        <input id="fup-motivo-outro" placeholder="Outro motivo..." style="flex:1;padding:8px;border:1px solid #C99AA0;border-radius:8px">
+        <button class="btn" onclick="_fupOutroMotivo()">OK</button>
+      </div>
+      <a href="#" onclick="_fupVoltarStep1();return false" style="font-size:12px;color:#8B3A42;font-weight:600">‹ voltar</a>
     </div>
   </div>
 </div>
@@ -2884,10 +2899,10 @@ window.setSubEtapa=setSubEtapa;
    automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
    (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
    (_iniciarFup) quanto a cada "Revisar" (_avancarFup). */
-function _addAutoTask(l,id,titulo){
+function _addAutoTask(l,id,titulo,motivo){
   var dt=new Date(); dt.setDate(dt.getDate()+FUP_DIAS);
   var iso=dt.toISOString().slice(0,10);
-  var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:'',data:iso,hora:'09:00',dur:30,part:'',conteudo:'Follow-up automático (playbook comercial).',feito:false};
+  var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:'',data:iso,hora:'09:00',dur:30,part:'',conteudo:(motivo?('Motivo do FUP anterior: '+motivo+'. '):'')+'Follow-up automático (playbook comercial).',feito:false};
   (tasks[id]=tasks[id]||[]).push(t);
   scheduleTask(id,tasks[id].length-1,true);
   persistTasks(id);
@@ -2896,10 +2911,18 @@ function _addAutoTask(l,id,titulo){
 /* Disparado do saveLead() quando `prop` vira SIM (proposta enviada) numa oportunidade que ainda
    não tinha proposta. Léo confirmou (AskUserQuestion): mover automaticamente pra EM NEGOCIAÇÃO
    quando ainda estiver em NÃO ENVIADA, e agendar o FUP 1 pra 2 dias à frente. */
-function _iniciarFup(l){
+function _iniciarFup(l,origem){
+  /* 31/08/2026 — Léo: "precisamos ter a opção de marcando como proposta enviada E arrastando o
+     card" (ver drop()/setStatus(), que também chamam esta função ao entrar em EM NEGOCIAÇÃO, com
+     origem='status'). Guarda contra re-disparo: se o lead já tem um FUP em andamento (fupSeq
+     definido), não reinicia o ciclo — evita recriar a tarefa "FUP 1" toda vez que o card volta a
+     passar por EM NEGOCIAÇÃO (ex.: reaberto depois de PAUSADA). */
+  if(l.fupSeq)return;
   var id=l.id, era=l.status, eraSub=l.subEtapa, eraFup=l.fupSeq, eraHist=l.histEventosJson;
   var moveuStatus=(era!=='EM NEGOCIAÇÃO');
-  var hist=_histAppend(l,'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'+(moveuStatus?' (movido para EM NEGOCIAÇÃO)':''));
+  var hist=_histAppend(l, origem==='status'
+    ? 'Entrou em EM NEGOCIAÇÃO — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'
+    : 'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'+(moveuStatus?' (movido para EM NEGOCIAÇÃO)':''));
   var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist};
   if(moveuStatus)fields.status='EM NEGOCIAÇÃO';
   l.subEtapa='FUP'; l.fupSeq=1; l.histEventosJson=hist; if(moveuStatus){ l.status='EM NEGOCIAÇÃO'; manual[id]='EM NEGOCIAÇÃO'; }
@@ -2912,26 +2935,33 @@ function _iniciarFup(l){
     }, function(){ l.subEtapa=eraSub; l.status=era; l.fupSeq=eraFup; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
   }
 }
-/* Disparado pelo botão "🔁 Revisar" do prompt de decisão (ver fupDecidir, perto de toggleTask):
-   fecha o FUP atual e agenda o próximo (FUP N+1) — repete até o usuário escolher Venda ou Perdida. */
-function _avancarFup(l){
+/* Disparado pelo botão "🔁 Novo FUP" do prompt de decisão (ver fupDecidir, perto de toggleTask):
+   fecha o FUP atual e agenda o próximo (FUP N+1) — repete até o usuário escolher Vendido/Perdida/
+   Pausada. `motivo` (31/08/2026, Léo: "os novos FUPs não serão necessariamente oriundos de
+   revisões... falta de retorno, não conseguir contatar o lead, revisão de proposta") vem da
+   categoria escolhida no 2º passo do modal — vira parte do texto do histórico e do conteúdo da
+   próxima tarefa, pra dar contexto de por que aquele FUP está sendo repetido. */
+function _avancarFup(l,motivo){
   var id=l.id, eraSeq=l.fupSeq||1, eraHist=l.histEventosJson, novoSeq=eraSeq+1;
-  var hist=_histAppend(l,'FUP '+eraSeq+' concluído — revisão solicitada, FUP '+novoSeq+' agendado automaticamente');
+  var motivoTxt=motivo?(' — motivo: '+motivo):'';
+  var hist=_histAppend(l,'FUP '+eraSeq+' concluído'+motivoTxt+' — FUP '+novoSeq+' agendado automaticamente');
   l.fupSeq=novoSeq; l.histEventosJson=hist;
   if(window.persistLeadFields){
     window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist},function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
       if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; }
-      _addAutoTask(l,id,'FUP '+novoSeq);
+      _addAutoTask(l,id,'FUP '+novoSeq,motivo);
       render(); if(curId===id)openDrawer(id);
     }, function(){ l.fupSeq=eraSeq; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
   }
 }
-/* Prompt de decisão ao concluir uma tarefa "FUP N" (ver toggleTask): Venda → VENDIDA (fluxo normal
-   de setStatus, com notificação Teams/dataVenda automáticos); Perdida → PERDIDA; Revisar → novo
-   FUP. _fupCtx guarda {id} enquanto o modal está aberto. */
+/* Prompt de decisão ao concluir uma tarefa "FUP N" (ver toggleTask): Vendido → VENDIDA (fluxo
+   normal de setStatus, com notificação Teams/dataVenda automáticos); Perdida → PERDIDA; Pausada →
+   PAUSADA (fluxo normal de setStatus, com aviso de nutrição automático); Novo FUP → abre o 2º
+   passo do modal (escolha do motivo) e depois chama _avancarFup. _fupCtx guarda {id} enquanto o
+   modal está aberto. */
 let _fupCtx=null;
-function fupDecidir(opc){
+function fupDecidir(opc,motivo){
   if(!_fupCtx)return;
   var id=_fupCtx.id;
   var l=_allLeads().find(function(x){return x.id===id;});
@@ -2939,10 +2969,19 @@ function fupDecidir(opc){
   if(!l)return;
   if(opc==='venda')setStatus(id,'VENDIDA');
   else if(opc==='perdida')setStatus(id,'PERDIDA');
-  else if(opc==='revisar')_avancarFup(l);
+  else if(opc==='pausada')setStatus(id,'PAUSADA');
+  else if(opc==='revisar')_avancarFup(l,motivo);
 }
 function _fupFecharModal(){ _fupCtx=null; var m=el('fup-modal'); if(m)m.style.display='none'; }
-function _fupAbrirModal(id){ _fupCtx={id:id}; var m=el('fup-modal'); if(m)m.style.display='flex'; }
+function _fupAbrirModal(id){
+  _fupCtx={id:id};
+  var m=el('fup-modal'); if(m)m.style.display='flex';
+  _fupVoltarStep1();
+}
+/* 31/08/2026 — 2º passo do modal: categoria do motivo do novo FUP. */
+function _fupMostrarMotivos(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='none'; if(s2)s2.style.display='flex'; }
+function _fupVoltarStep1(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='flex'; if(s2)s2.style.display='none'; var mi=el('fup-motivo-outro'); if(mi)mi.value=''; }
+function _fupOutroMotivo(){ var mi=el('fup-motivo-outro'); var v=(mi&&mi.value||'').trim(); if(!v){alert('Descreva o motivo.');return;} fupDecidir('revisar',v); }
 function _autoDataVenda(l,era,novoStatus){
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
     const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
@@ -2993,6 +3032,10 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
         function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); _logStatus(l,era,status);
+          /* 31/08/2026 — Léo: "precisamos ter a opção de marcando como proposta enviada e
+             arrastando o card" — arrastar pra EM NEGOCIAÇÃO também dispara o fluxo automático de
+             FUP (sub-etapa FUP + tarefa "FUP 1"), não só marcar Proposta=SIM no saveLead(). */
+          if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO')_iniciarFup(l,'status');
           if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)){
             if(typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
             openDrawer(l.id);
@@ -3240,6 +3283,9 @@ function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=
       function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); _logStatus(l,era,v);
         var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
         if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
+        /* 31/08/2026 — mesmo gatilho do drop(): trocar o status pelo seletor do drawer também
+           conta como "entrou em EM NEGOCIAÇÃO" pro fluxo automático de FUP. */
+        if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO')_iniciarFup(l,'status');
         if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)&&typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
         if(curId===id)openDrawer(id); render(); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
