@@ -2902,6 +2902,16 @@ function setSubEtapa(id,etapa){
   } else { render(); if(curId===id)openDrawer(id); }
 }
 window.setSubEtapa=setSubEtapa;
+/* 31/08/2026 — Léo: "precisa sim criar a tarefa no e-mail dos envolvidos e ainda notificar através
+   do calendário, eu não recebi". Causa raiz: /api/agenda exige um e-mail de organizador (senão
+   devolve 400 "sem e-mail do responsável/organizador", de propósito, sem nem tentar no Graph) —
+   tarefas criadas manualmente no drawer têm um campo "E-mail do responsável" pra preencher, mas
+   as tarefas AUTOMÁTICAS (FUP 1/2/3/Final) só conheciam o campo `Consultor` (iniciais, ex. "JB"),
+   nunca um e-mail. Mapa de iniciais → e-mail, fornecido pelo Léo — se um consultor novo entrar e
+   não estiver aqui, o e-mail fica vazio de novo e o /api/agenda volta a rejeitar (400) até
+   alguém adicionar a entrada correspondente. */
+var CONSULTOR_EMAILS={JB:'joao@elevalife.com.br',LS:'leonardo@elevalife.com.br',RP:'rafael@elevalife.com.br',MKT:'clara@elevalife.com.br',COM:'contato@elevalife.com.br'};
+function _consultorEmail(cons){ return CONSULTOR_EMAILS[String(cons||'').trim().toUpperCase()]||''; }
 /* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: "quando envia a proposta... deve ir
    automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
    (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
@@ -2909,7 +2919,7 @@ window.setSubEtapa=setSubEtapa;
 function _addAutoTask(l,id,titulo,motivo,dias){
   var dt=new Date(); dt.setDate(dt.getDate()+(dias||FUP_DIAS));
   var iso=dt.toISOString().slice(0,10);
-  var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:'',data:iso,hora:'09:00',dur:30,part:'',conteudo:(motivo?('Motivo do FUP anterior: '+motivo+'. '):'')+'Follow-up automático (playbook comercial).',feito:false};
+  var t={tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:_consultorEmail(l.cons),data:iso,hora:'09:00',dur:30,part:'',conteudo:(motivo?('Motivo do FUP anterior: '+motivo+'. '):'')+'Follow-up automático (playbook comercial).',feito:false};
   (tasks[id]=tasks[id]||[]).push(t);
   scheduleTask(id,tasks[id].length-1,true);
   persistTasks(id);
@@ -3245,7 +3255,13 @@ function saveLead(id){
   else { Object.assign(l,f); openDrawer(id); render(); }
 }
 function addTask(id){const tipo=el('t-tipo')?el('t-tipo').value:'Tarefa';
-  const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:el('t-email').value,data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false};
+  /* 31/08/2026 — Léo: "precisa sim criar a tarefa no e-mail dos envolvidos". Se o campo
+     "E-mail do responsável" ficar em branco, tenta preencher sozinho a partir do Consultor
+     do lead (mesmo mapa CONSULTOR_EMAILS usado pelas tarefas automáticas de FUP) — sem isso,
+     /api/agenda rejeita (400) e a tarefa não gera convite/lembrete de calendário. */
+  var _lPre=_allLeads().find(function(x){return x.id===id;});
+  var _emailCampo=el('t-email').value;
+  const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:_emailCampo||(_lPre?_consultorEmail(_lPre.cons):''),data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false};
   if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);
   /* 31/08/2026 — Léo: "criei uma nova tarefa e não apareceu no histórico". addTask() nunca tocava
      em histEventosJson (só persistTasks(), que grava tarefasJson separadamente) — corrigido. */
