@@ -594,13 +594,13 @@ td .up{color:var(--ok);font-weight:700}
     <div id="cadpanel-contato" class="cadpanel" hidden>
       <div style="background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:22px 24px;box-shadow:0 2px 10px rgba(122,47,66,.06)">
         <h3 style="margin:0 0 4px;color:#7A2F42">👤 Cadastro de Contato</h3>
-        <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Pessoa de contato vinculada a uma empresa já cadastrada. Comece a digitar o nome da empresa para buscar.</p>
+        <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Pessoa de contato vinculada a uma empresa já cadastrada. Selecione a empresa na lista — só aparecem empresas já cadastradas em 🏢 Empresa.</p>
         <form id="conForm" onsubmit="return elevaiCon(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
           <label style="display:flex;flex-direction:column;gap:4px">Nome <span style="color:#B23A48">*</span><input id="con-nome" type="text" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Sobrenome<input id="con-sobrenome" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Telefone (WhatsApp)<input id="con-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">E-mail corporativo<input id="con-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-          <label style="display:flex;flex-direction:column;gap:4px">Empresa <span style="color:#B23A48">*</span><input id="con-empresa" type="text" list="dl-empresas" placeholder="Buscar empresa cadastrada" required onfocus="window.fillEmpresaDatalist&&fillEmpresaDatalist()" oninput="window.elevaiConEmpMatch&&elevaiConEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="con-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Empresa <span style="color:#B23A48">*</span><select id="con-empresa" required onfocus="window.fillEmpresaSelect&&fillEmpresaSelect('con-empresa')" onchange="window.elevaiConEmpMatch&&elevaiConEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">— selecione a empresa —</option></select><span id="con-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
           <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="con-tipo" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Técnico</option><option>Comercial</option></select></label>
           <label style="display:flex;flex-direction:column;gap:4px">Cargo<input id="con-cargo" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="con-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -633,10 +633,10 @@ td .up{color:var(--ok);font-weight:700}
       <p style="margin:0 0 18px;color:#8A7A78;font-size:13px">Cadastra direto na base viva (SharePoint). Aparece no Painel e no CRM automaticamente.</p>
       <form id="cadForm" onsubmit="return elevaiCad(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
         <label style="display:flex;flex-direction:column;gap:4px">Data<input id="cad-dt" type="date" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<input id="cad-nome" type="text" list="dl-contatos" placeholder="Ex.: Priscila (busque um contato já cadastrado)" onfocus="window.fillContatoDatalistCad&&fillContatoDatalistCad()" oninput="window.elevaiCadConMatch&&elevaiCadConMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Contato — nome<select id="cad-nome" onfocus="window.fillContatoSelectCad&&fillContatoSelectCad(q('cad-cliente')&&q('cad-cliente').value)" onchange="window.elevaiCadConMatch&&elevaiCadConMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">selecione a empresa primeiro, ou escolha o contato pra travar a empresa</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — telefone<input id="cad-telefone" type="text" placeholder="(11) 90000-0000" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px">Contato — e-mail<input id="cad-email" type="email" placeholder="contato@empresa.com" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Cliente<input id="cad-cliente" type="text" list="dl-empresas" placeholder="Empresa (busque a cadastrada)" required onfocus="window.fillEmpresaDatalist&&fillEmpresaDatalist()" oninput="window.elevaiCadEmpMatch&&elevaiCadEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="cad-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Cliente<select id="cad-cliente" required onfocus="window.fillEmpresaSelect&&fillEmpresaSelect('cad-cliente')" onchange="window.elevaiCadEmpMatch&&elevaiCadEmpMatch()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">— selecione a empresa —</option></select><span id="cad-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
         <label style="display:flex;flex-direction:column;gap:4px">Unidade<input id="cad-unidade" type="text" placeholder="Cidade/planta" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <!-- 27/08/2026 — Rafael achou o cadastro complexo demais; Léo pediu 2 fases: Fase 1 (acima)
              é só o essencial pra abrir o registro (contato + empresa/unidade), Fase 2 (aqui dentro)
@@ -1536,14 +1536,16 @@ function _empresasList(){ return (STORE.empresas||[]); }
 async function cadRefreshData(){
   try{ const er=await fetch('/api/empresas',{cache:'no-store'}); if(er&&er.ok){ const ej=await er.json(); if(ej&&ej.items)STORE.empresas=ej.items; } }catch(e){}
   try{ const kr=await fetch('/api/contatos',{cache:'no-store'}); if(kr&&kr.ok){ const kj=await kr.json(); if(kj&&kj.items)STORE.contatos=kj.items; } }catch(e){}
-  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); renderEmpRecentes(); renderConRecentes(); }catch(e){}
+  /* 31/08/2026 — mantém fillEmpresaDatalist/fillContatoDatalistCad (datalists antigos, hoje órfãos
+     mas inofensivos) e adiciona a atualização dos <select> novos (empresa/contato em cascata). */
+  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); fillEmpresaSelect('con-empresa'); fillEmpresaSelect('cad-cliente'); fillContatoSelectCad(q('cad-cliente')&&q('cad-cliente').value); renderEmpRecentes(); renderConRecentes(); }catch(e){}
 }
 window.cadRefreshData=cadRefreshData;
 function cadSub(name){
   ['empresa','contato','lead'].forEach(x=>{const p=q('cadpanel-'+x); if(p)p.hidden=(x!==name);});
   document.querySelectorAll('#cad-subnav .cadsub').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
   document.querySelectorAll('#subnav-cadastro .subitem').forEach(b=>b.classList.toggle('on',b.dataset.sub===name));
-  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
+  try{ fillEmpresaDatalist(); fillContatoDatalistCad(); fillEmpresaSelect('con-empresa'); fillEmpresaSelect('cad-cliente'); fillContatoSelectCad(q('cad-cliente')&&q('cad-cliente').value); renderEmpRecentes(); renderConRecentes(); cadRefreshData(); }catch(e){}
 }
 window.cadSub=cadSub;
 function cadSubNav(name){
@@ -1563,6 +1565,20 @@ function fillEmpresaDatalist(){
   const dl=q('dl-empresas'); if(!dl)return;
   dl.innerHTML=_empresasList().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
 }
+/* 31/08/2026 — Léo/Rafael: cadastro em ordem estrita Empresa > Contato > Lead, com listas
+   suspensas em vez de texto livre + autocomplete. fillEmpresaSelect() popula um <select> de
+   empresa (reusado por con-empresa e cad-cliente), preservando a seleção atual quando ainda é
+   válida após um refresh de STORE.empresas. */
+function fillEmpresaSelect(selId){
+  const sel=q(selId); if(!sel)return;
+  const cur=sel.value;
+  const list=_empresasList();
+  sel.innerHTML='<option value="">— selecione a empresa —</option>'+list.map(e=>{
+    const nm=e.cliente||e.razaoSocial||''; return '<option value="'+esc(nm)+'">'+esc(nm)+'</option>';
+  }).join('');
+  if(cur && list.some(e=>(e.cliente||e.razaoSocial||'')===cur)) sel.value=cur;
+}
+window.fillEmpresaSelect=fillEmpresaSelect;
 function elevaiConEmpMatch(){
   const val=((q('con-empresa')&&q('con-empresa').value)||'').trim().toLowerCase();
   const msg=q('con-emp-msg'); if(!msg)return;
@@ -1572,41 +1588,82 @@ function elevaiConEmpMatch(){
   else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
 }
 window.elevaiConEmpMatch=elevaiConEmpMatch;
-function elevaiCadEmpMatch(){
-  const val=((q('cad-cliente')&&q('cad-cliente').value)||'').trim().toLowerCase();
-  const msg=q('cad-emp-msg'); if(!msg)return;
-  if(!val){msg.textContent='';return;}
+/* 31/08/2026 — autopreenchimento (CNPJ/endereço/etc.) por NOME de empresa, extraído da antiga
+   elevaiCadEmpMatch pra poder ser chamado tanto pela troca do <select> de empresa quanto pelo
+   caminho reverso (selecionar um contato já trava a empresa dele — ver elevaiCadConMatch). */
+function _cadPreencheEmpresa(nome){
+  const msg=q('cad-emp-msg');
+  const val=(nome||'').trim().toLowerCase();
+  if(!val){ if(msg)msg.textContent=''; return null; }
   const hit=_empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===val);
   if(hit){
-    msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada — dados preenchidos automaticamente';
+    if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ dados preenchidos automaticamente';}
     const set=(fid,v)=>{const el=q(fid); if(el&&v)el.value=v;};
     set('cad-cnpj',hit.cnpj); set('cad-razao',hit.razaoSocial); set('cad-cnae',hit.cnae);
     set('cad-grau',hit.grauRisco); set('cad-unidade',hit.municipio);
     const end=[hit.logradouro,hit.numero].filter(Boolean).join(', ')+(hit.bairro?' - '+hit.bairro:'')+(hit.municipio?', '+hit.municipio:'')+(hit.uf?'/'+hit.uf:'')+(hit.cep?' · CEP '+hit.cep:'');
     if(end.replace(/[,\/·\-\s]/g,''))set('cad-endereco',end);
-    try{ elevaiCadConMatch(); }catch(e){}
-  }
-  else{msg.style.color='#B0463F';msg.textContent='empresa não encontrada — cadastre em 🏢 Empresa';}
+  } else if(msg){ msg.textContent=''; }
+  return hit;
+}
+/* dispara ao trocar o <select> de Empresa no cadForm: preenche CNPJ/endereço e refiltra o
+   <select> de Contato pra só mostrar contatos vinculados a essa empresa. */
+function elevaiCadEmpMatch(){
+  const sel=q('cad-cliente'); const nome=sel?sel.value:'';
+  _cadPreencheEmpresa(nome);
+  fillContatoSelectCad(nome);
 }
 window.elevaiCadEmpMatch=elevaiCadEmpMatch;
-/* datalist + autopreenchimento de Contato no form de Oportunidade (mesmo padrao da Empresa) */
+/* datalist antigo — mantido apenas por compatibilidade (hoje órfão, nenhum campo mais usa
+   list="dl-contatos"), superado por fillContatoSelectCad() abaixo. */
 function fillContatoDatalistCad(){
   const dl=q('dl-contatos'); if(!dl)return;
   dl.innerHTML=(STORE.contatos||[]).map(c=>'<option value="'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim())+'"></option>').join('');
 }
 window.fillContatoDatalistCad=fillContatoDatalistCad;
+/* 31/08/2026 — popula o <select> de Contato do cadForm, filtrado pela empresa já selecionada
+   (Léo: "ao selecionar a empresa precisa aparecer apenas os contatos vinculados"). Sem empresa
+   selecionada ainda, mostra todos (pra permitir o caminho reverso: escolher o contato primeiro).
+   `keepVal` (opcional) força qual contato deve ficar selecionado após repopular — usado por
+   editLead() ao reabrir uma oportunidade existente para edição. */
+function fillContatoSelectCad(empresaNome, keepVal){
+  const sel=q('cad-nome'); if(!sel)return;
+  const nEmp=(empresaNome||'').trim().toLowerCase();
+  const list=(STORE.contatos||[]).filter(c=>!nEmp||(c.empresaNome||'').trim().toLowerCase()===nEmp);
+  const cur=(keepVal!=null)?keepVal:sel.value;
+  if(nEmp && !list.length){
+    sel.innerHTML='<option value="">(nenhum contato cadastrado nesta empresa — cadastre em 👤 Contato)</option>';
+    return;
+  }
+  sel.innerHTML='<option value="">'+(nEmp?'— selecione o contato —':'selecione a empresa primeiro, ou escolha o contato pra travar a empresa')+'</option>'
+    +list.map(c=>{
+      const nm=(c.nome||'').trim();
+      const full=((c.nome||'')+' '+(c.sobrenome||'')).trim()||'(sem nome)';
+      return '<option value="'+esc(nm)+'">'+esc(full)+(c.email?' · '+esc(c.email):'')+(!nEmp&&c.empresaNome?' — '+esc(c.empresaNome):'')+'</option>';
+    }).join('');
+  if(cur && list.some(c=>(c.nome||'').trim()===cur)) sel.value=cur;
+}
+window.fillContatoSelectCad=fillContatoSelectCad;
+/* dispara ao trocar o <select> de Contato no cadForm: preenche sobrenome/telefone/e-mail/tipo e,
+   se o contato já tiver empresa vinculada, trava/sincroniza o <select> de Empresa com ela (Léo:
+   "quando selecionamos um determinado contato, só pode aparecer a empresa que ele está
+   vinculado") — sem disparar de volta o onchange da Empresa (setar .value não dispara evento). */
 function elevaiCadConMatch(){
-  const val=((q('cad-nome')&&q('cad-nome').value)||'').trim().toLowerCase();
+  const sel=q('cad-nome'); const val=(sel?sel.value:'').trim();
   if(!val)return;
-  const empVal=((q('cad-cliente')&&q('cad-cliente').value)||'').trim().toLowerCase();
+  const empSel=q('cad-cliente'); const empVal=(empSel&&empSel.value||'').trim().toLowerCase();
   const all=(STORE.contatos||[]);
-  const fullName=c=>((c.nome||'')+' '+(c.sobrenome||'')).trim().toLowerCase();
-  let hit=all.find(c=>fullName(c)===val && empVal && (c.empresaNome||'').trim().toLowerCase()===empVal);
-  if(!hit) hit=all.find(c=>fullName(c)===val);
+  let hit=all.find(c=>(c.nome||'').trim()===val && empVal && (c.empresaNome||'').trim().toLowerCase()===empVal);
+  if(!hit) hit=all.find(c=>(c.nome||'').trim()===val);
   if(!hit) return;
   const set=(fid,v)=>{const el=q(fid); if(el&&v)el.value=v;};
   set('cad-sobrenome',hit.sobrenome); set('cad-telefone',hit.telefone);
   set('cad-email',hit.email); set('cad-contatotipo',hit.tipo);
+  if(hit.empresaNome && empSel && empSel.value!==hit.empresaNome){
+    empSel.value=hit.empresaNome;
+    _cadPreencheEmpresa(hit.empresaNome);
+  }
+  fillContatoSelectCad(hit.empresaNome||(empSel&&empSel.value)||'', val);
 }
 window.elevaiCadConMatch=elevaiCadConMatch;
 /* CNPJ (BrasilAPI) → preenche os campos estruturados da Empresa */
@@ -1742,6 +1799,8 @@ function editContato(id){
   const it=(STORE.contatos||[]).find(c=>String(c.__id)===String(id)); if(!it)return;
   const set=(fid,v)=>{const el=q(fid); if(el)el.value=v||'';};
   set('con-nome',it.nome); set('con-sobrenome',it.sobrenome); set('con-telefone',it.telefone); set('con-email',it.email);
+  /* 31/08/2026 — con-empresa agora é <select>: popula as opções antes de selecionar. */
+  try{ fillEmpresaSelect('con-empresa'); }catch(e){}
   set('con-empresa',it.empresaNome); set('con-tipo',it.tipo||''); set('con-cargo',it.cargo); set('con-obs',it.obs);
   window._conEditId=String(id);
   const btn=q('con-btn'); if(btn)btn.textContent='Salvar alterações';
@@ -1829,7 +1888,13 @@ window.elevaiCad=elevaiCad;
 function editLead(id){
   const it=(STORE.leads||[]).find(l=>String(l.__id)===String(id)); if(!it)return;
   const set=(fid,v)=>{const el2=q(fid); if(el2)el2.value=(v==null?'':v);};
-  set('cad-dt',it.dt); set('cad-nome',it.nome); set('cad-cliente',it.cliente);
+  /* 31/08/2026 — cad-cliente e cad-nome agora são <select> filtrados em cascata: precisa
+     popular as opções ANTES de tentar selecionar it.cliente/it.nome, senão a opção nem existe
+     ainda e o .value= é ignorado silenciosamente. */
+  try{ fillEmpresaSelect('cad-cliente'); }catch(e){}
+  set('cad-dt',it.dt); set('cad-cliente',it.cliente);
+  try{ _cadPreencheEmpresa(it.cliente); }catch(e){}
+  fillContatoSelectCad(it.cliente, it.nome);
   set('cad-unidade',it.unidade); set('cad-fonte',it.fonte); set('cad-campanha',it.campanha);
   set('cad-icp',it.icp); set('cad-cons',it.cons); set('cad-serv',it.serv);
   set('cad-prop',it.prop);
