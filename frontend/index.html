@@ -2925,6 +2925,18 @@ function _addAutoTask(l,id,titulo,motivo,dias){
   persistTasks(id);
   if(typeof toast==='function')toast('📌 '+titulo+' agendado para '+iso.split('-').reverse().join('/'));
 }
+/* 02/09/2026 — variante que só MONTA o objeto da tarefa (sem persistir/agendar sozinha). Existe
+   porque _iniciarFup/_avancarFup precisavam de duas gravações separadas (PATCH de
+   fupSeq+histEventosJson, depois PATCH de tarefasJson via _addAutoTask) — não atômico: se algo
+   interromper o fluxo entre as duas chamadas (aba fechada, F5, timeout de rede), o histórico e o
+   fupSeq avançam mas a tarefa correspondente nunca é salva (achado testando o ciclo de FUP no
+   card Clarios em 02/09/2026 — ver _iniciarFup/_avancarFup abaixo, que agora gravam tudo num único
+   PATCH). */
+function _buildAutoTask(l,titulo,motivo,dias){
+  var dt=new Date(); dt.setDate(dt.getDate()+(dias||FUP_DIAS));
+  var iso=dt.toISOString().slice(0,10);
+  return {tipo:'Tarefa',titulo:titulo,resp:l.cons||'',email:_consultorEmail(l.cons),data:iso,hora:'09:00',dur:30,part:'',conteudo:(motivo?('Motivo do FUP anterior: '+motivo+'. '):'')+'Follow-up automático (playbook comercial).',feito:false};
+}
 /* Disparado do saveLead() quando `prop` vira SIM (proposta enviada) numa oportunidade que ainda
    não tinha proposta. Léo confirmou (AskUserQuestion): mover automaticamente pra EM NEGOCIAÇÃO
    quando ainda estiver em NÃO ENVIADA, e agendar o FUP 1 pra 2 dias à frente. */
@@ -2935,21 +2947,26 @@ function _iniciarFup(l,origem){
      definido), não reinicia o ciclo — evita recriar a tarefa "FUP 1" toda vez que o card volta a
      passar por EM NEGOCIAÇÃO (ex.: reaberto depois de PAUSADA). */
   if(l.fupSeq){ if(typeof toast==='function')toast('FUP já em andamento (FUP '+l.fupSeq+') — ciclo não reiniciado nesta oportunidade.'); return; }
-  var id=l.id, era=l.status, eraSub=l.subEtapa, eraFup=l.fupSeq, eraHist=l.histEventosJson;
+  var id=l.id, era=l.status, eraSub=l.subEtapa, eraFup=l.fupSeq, eraHist=l.histEventosJson, eraTasksJson=l.tarefasJson;
   var moveuStatus=(era!=='EM NEGOCIAÇÃO');
   var hist=_histAppend(l, origem==='status'
     ? 'Entrou em EM NEGOCIAÇÃO — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'
     : 'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente'+(moveuStatus?' (movido para EM NEGOCIAÇÃO)':''));
-  var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist};
+  var novaTarefa=_buildAutoTask(l,'FUP 1');
+  var novasTarefas=_parseTasks(l).concat([novaTarefa]);
+  var tarefasStr=JSON.stringify(novasTarefas);
+  var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist,tarefasJson:tarefasStr};
   if(moveuStatus)fields.status='EM NEGOCIAÇÃO';
-  l.subEtapa='FUP'; l.fupSeq=1; l.histEventosJson=hist; if(moveuStatus){ l.status='EM NEGOCIAÇÃO'; manual[id]='EM NEGOCIAÇÃO'; }
+  l.subEtapa='FUP'; l.fupSeq=1; l.histEventosJson=hist; l.tarefasJson=tarefasStr; if(moveuStatus){ l.status='EM NEGOCIAÇÃO'; manual[id]='EM NEGOCIAÇÃO'; }
   if(window.persistLeadFields){
     window.persistLeadFields(l.spid,fields,function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-      if(raw){ raw.subEtapa='FUP'; raw.fupSeq=1; raw.histEventosJson=hist; if(moveuStatus)raw.status='EM NEGOCIAÇÃO'; }
-      _addAutoTask(l,id,'FUP 1');
+      if(raw){ raw.subEtapa='FUP'; raw.fupSeq=1; raw.histEventosJson=hist; raw.tarefasJson=tarefasStr; if(moveuStatus)raw.status='EM NEGOCIAÇÃO'; }
+      tasks[id]=novasTarefas;
+      scheduleTask(id,novasTarefas.length-1,true);
+      if(typeof toast==='function')toast('📌 FUP 1 agendado para '+novaTarefa.data.split('-').reverse().join('/'));
       render(); if(curId===id)openDrawer(id);
-    }, function(){ l.subEtapa=eraSub; l.status=era; l.fupSeq=eraFup; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
+    }, function(){ l.subEtapa=eraSub; l.status=era; l.fupSeq=eraFup; l.histEventosJson=eraHist; l.tarefasJson=eraTasksJson; render(); if(curId===id)openDrawer(id); });
   }
 }
 /* Disparado pelo botão "🔁 Novo FUP" do prompt de decisão (ver fupDecidir, perto de toggleTask):
@@ -2959,18 +2976,23 @@ function _iniciarFup(l,origem){
    categoria escolhida no 2º passo do modal — vira parte do texto do histórico e do conteúdo da
    próxima tarefa, pra dar contexto de por que aquele FUP está sendo repetido. */
 function _avancarFup(l,motivo){
-  var id=l.id, eraSeq=l.fupSeq||1, eraHist=l.histEventosJson, novoSeq=eraSeq+1;
+  var id=l.id, eraSeq=l.fupSeq||1, eraHist=l.histEventosJson, eraTasksJson=l.tarefasJson, novoSeq=eraSeq+1;
   var motivoTxt=motivo?(' — motivo: '+motivo):'';
   var tituloAtual=_fupTitulo(eraSeq), tituloNovo=_fupTitulo(novoSeq);
   var hist=_histAppend(l,tituloAtual+' concluído'+motivoTxt+' — '+tituloNovo+' agendado automaticamente ('+FUP_DIAS_SEGUINTES+' dias)');
-  l.fupSeq=novoSeq; l.histEventosJson=hist;
+  var novaTarefa=_buildAutoTask(l,tituloNovo,motivo,FUP_DIAS_SEGUINTES);
+  var novasTarefas=_parseTasks(l).concat([novaTarefa]);
+  var tarefasStr=JSON.stringify(novasTarefas);
+  l.fupSeq=novoSeq; l.histEventosJson=hist; l.tarefasJson=tarefasStr;
   if(window.persistLeadFields){
-    window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist},function(){
+    window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist,tarefasJson:tarefasStr},function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-      if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; }
-      _addAutoTask(l,id,tituloNovo,motivo,FUP_DIAS_SEGUINTES);
+      if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; raw.tarefasJson=tarefasStr; }
+      tasks[id]=novasTarefas;
+      scheduleTask(id,novasTarefas.length-1,true);
+      if(typeof toast==='function')toast('📌 '+tituloNovo+' agendado para '+novaTarefa.data.split('-').reverse().join('/'));
       render(); if(curId===id)openDrawer(id);
-    }, function(){ l.fupSeq=eraSeq; l.histEventosJson=eraHist; render(); if(curId===id)openDrawer(id); });
+    }, function(){ l.fupSeq=eraSeq; l.histEventosJson=eraHist; l.tarefasJson=eraTasksJson; render(); if(curId===id)openDrawer(id); });
   }
 }
 /* Prompt de decisão ao concluir uma tarefa "FUP N" (ver toggleTask): Vendido → VENDIDA (fluxo
