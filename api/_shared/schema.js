@@ -35,6 +35,16 @@ const LISTS = {
       // (silenciosamente revertido no Cockpit). tarefasJson/servicosJson têm o mesmo risco
       // estrutural (também guardam JSON que cresce), marcados aqui por precaução.
       { name: 'tarefasJson', type: 'text', long: true },   // tarefas do lead (JSON) — persistencia da aba Tarefas/CRM
+      // 02/09/2026 — mesmo problema do histEventosJson (ver comentário dele mais abaixo) apareceu
+      // em `tarefasJson`: mesmo marcado `long:true` aqui no schema, a coluna já existia no
+      // SharePoint ANTES dessa marcação (criada como texto linha única, limite de 255 chars) e a
+      // migração best-effort do graph.js nunca confirmou ter migrado ela de fato — só voltou a
+      // dar "Falha ao salvar — revertido" quando o fix do PATCH atômico do FUP (ver _iniciarFup/
+      // _avancarFup no frontend) passou a gravar 2 tarefas no mesmo tarefasJson de uma vez
+      // (>255 chars). Solução igual à de histEventosJson: coluna NOVA, nasce multi-linha desde a
+      // criação. `tarefasJson` (a antiga) fica órfã só como fallback de LEITURA pra não perder
+      // tarefas já gravadas nela antes de 02/09/2026 — todo PATCH novo grava em `tarefasJson2`.
+      { name: 'tarefasJson2', type: 'text', long: true },
       // --- Reforma do cadastro (05/08/2026): fases do lead + condições comerciais ---
       { name: 'cnpj', type: 'text' },            // Fase 1 — CNPJ (dispara auto-preenchimento)
       { name: 'razaoSocial', type: 'text' },     // Fase 1 — razão social (auto via BrasilAPI)

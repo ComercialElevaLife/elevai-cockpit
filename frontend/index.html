@@ -1488,9 +1488,9 @@ function tkOpen(spid){ const l=_leadBySpid(spid); if(!l){alert('Lead não encont
 async function persistLeadTasks(spid,tasksArr,onOk,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
   try{
-    const r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:spid,fields:{tarefasJson:JSON.stringify(tasksArr||[])}})});
+    const r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:spid,fields:{tarefasJson2:JSON.stringify(tasksArr||[])}})});
     let j=null; try{ j=await r.json(); }catch(e){}
-    if(r.ok&&j&&j.ok){ const it=_leadBySpid(spid); if(it)it.tarefasJson=JSON.stringify(tasksArr||[]); DATA_VER++; if(onOk)onOk(); toast('Tarefa salva ✓'); }
+    if(r.ok&&j&&j.ok){ const it=_leadBySpid(spid); if(it){it.tarefasJson2=JSON.stringify(tasksArr||[]); it.tarefasJson=it.tarefasJson2;} DATA_VER++; if(onOk)onOk(); toast('Tarefa salva ✓'); }
     else { toast('Falha ao salvar tarefa — revertido'); if(onFail)onFail(); }
   }catch(e){ toast('Falha ao salvar tarefa — revertido'); if(onFail)onFail(); }
 }
@@ -2955,13 +2955,13 @@ function _iniciarFup(l,origem){
   var novaTarefa=_buildAutoTask(l,'FUP 1');
   var novasTarefas=_parseTasks(l).concat([novaTarefa]);
   var tarefasStr=JSON.stringify(novasTarefas);
-  var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist,tarefasJson:tarefasStr};
+  var fields={subEtapa:'FUP',fupSeq:1,histEventosJson:hist,tarefasJson2:tarefasStr};
   if(moveuStatus)fields.status='EM NEGOCIAÇÃO';
   l.subEtapa='FUP'; l.fupSeq=1; l.histEventosJson=hist; l.tarefasJson=tarefasStr; if(moveuStatus){ l.status='EM NEGOCIAÇÃO'; manual[id]='EM NEGOCIAÇÃO'; }
   if(window.persistLeadFields){
     window.persistLeadFields(l.spid,fields,function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-      if(raw){ raw.subEtapa='FUP'; raw.fupSeq=1; raw.histEventosJson=hist; raw.tarefasJson=tarefasStr; if(moveuStatus)raw.status='EM NEGOCIAÇÃO'; }
+      if(raw){ raw.subEtapa='FUP'; raw.fupSeq=1; raw.histEventosJson=hist; raw.tarefasJson2=tarefasStr; raw.tarefasJson=tarefasStr; if(moveuStatus)raw.status='EM NEGOCIAÇÃO'; }
       tasks[id]=novasTarefas;
       scheduleTask(id,novasTarefas.length-1,true);
       if(typeof toast==='function')toast('📌 FUP 1 agendado para '+novaTarefa.data.split('-').reverse().join('/'));
@@ -2985,9 +2985,9 @@ function _avancarFup(l,motivo){
   var tarefasStr=JSON.stringify(novasTarefas);
   l.fupSeq=novoSeq; l.histEventosJson=hist; l.tarefasJson=tarefasStr;
   if(window.persistLeadFields){
-    window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist,tarefasJson:tarefasStr},function(){
+    window.persistLeadFields(l.spid,{fupSeq:novoSeq,histEventosJson:hist,tarefasJson2:tarefasStr},function(){
       var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-      if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; raw.tarefasJson=tarefasStr; }
+      if(raw){ raw.fupSeq=novoSeq; raw.histEventosJson=hist; raw.tarefasJson2=tarefasStr; raw.tarefasJson=tarefasStr; }
       tasks[id]=novasTarefas;
       scheduleTask(id,novasTarefas.length-1,true);
       if(typeof toast==='function')toast('📌 '+tituloNovo+' agendado para '+novaTarefa.data.split('-').reverse().join('/'));
@@ -3364,7 +3364,7 @@ function closeDrawer(){el('drawer').classList.remove('on');curId=null;}
 function _mapLead(Lx,i){return {
     id:(Lx._sid!=null?Lx._sid:i), spid:Lx.__id, cliente:Lx.cliente, unidade:Lx.unidade, serv:Lx.serv,
     valor:Lx.valor, cons:Lx.cons, icp:Lx.icp, status:Lx.status, prop:Lx.prop,
-    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:Lx.tarefasJson, nome:Lx.nome, tc:Lx.tc,
+    dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:(Lx.tarefasJson2||Lx.tarefasJson), nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
     subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq };}
