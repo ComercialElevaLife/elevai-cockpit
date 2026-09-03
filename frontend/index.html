@@ -463,6 +463,7 @@ td .up{color:var(--ok);font-weight:700}
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
     <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
     <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
+    <button class="btn ghost" id="crm-empresas-btn" onclick="toggleEmpBucket()" title="Mostra as empresas já cadastradas como cartões — arraste um cartão direto para uma coluna do funil abaixo pra criar a oportunidade já naquele status, sem passar pelo formulário.">🏢 Empresas</button>
     <button class="btn ghost" id="crm-inativas-btn" onclick="toggleInativas()" title="Mostra/esconde a coluna de backlog: oportunidades inativadas dentro do período filtrado, fora do Kanban ativo e dos indicadores do Painel — arraste de volta pra qualquer status pra reativar. Vem visível por padrão; clique pra ocultar.">🗄 Reativação</button>
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
   </div>
@@ -474,6 +475,14 @@ td .up{color:var(--ok);font-weight:700}
   <span id="cnt" class="meta"></span>
 </div>
 <div class="note" id="crm-note">Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).</div>
+<div id="emp-bucket" style="display:none;margin:0 0 14px">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+    <input id="emp-bucket-q" placeholder="Buscar empresa cadastrada..." oninput="renderEmpBucket()" style="flex:1;max-width:280px;padding:7px 10px;border:1px solid #EADDE0;border-radius:8px;font-size:12px">
+    <span class="meta" id="emp-bucket-cnt"></span>
+    <span class="meta" style="margin-left:auto">Arraste um cartão de empresa para uma coluna do funil abaixo →</span>
+  </div>
+  <div id="emp-bucket-list" style="display:flex;flex-wrap:wrap;gap:8px;max-height:190px;overflow-y:auto;padding:10px;background:#FBF6F5;border:1px dashed #EADDE0;border-radius:10px"></div>
+</div>
 <div class="board" id="board"></div>
 <div class="drawer" id="drawer"><div class="dh"><div><span id="d-kind" class="dkind"></span><h3 id="d-emp"></h3><div id="d-uni" style="font-size:12px;color:#EBD9DB"></div></div><button class="x" onclick="closeDrawer()">×</button></div><div class="db" id="d-body"></div></div>
 <div id="op-ov" onclick="if(event.target===this)opFechar()" style="position:fixed;inset:0;background:rgba(94,42,48,.45);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:4vh 3vw;backdrop-filter:blur(2px)">
@@ -2903,7 +2912,13 @@ function render(){
   el('cnt').textContent=data.length+(showInativas?' + '+totalInativas+' em reativação':'')+' leads';
 }
 let dragId=null;
-function dstart(e,id){dragId=id;e.dataTransfer.effectAllowed='move';}
+/* 03/09/2026 — bucket "🏢 Empresas" (Léo: arrastar o card da empresa cadastrada direto pra uma
+   coluna do funil já cria a oportunidade naquele status, sem passar pelo modal "Nova Oportunidade").
+   dragEmpresaId é uma variável irmã de dragId (nunca as duas setadas ao mesmo tempo) pra não colidir
+   com o id numérico dos leads — drop() checa dragEmpresaId primeiro. */
+let dragEmpresaId=null;
+function dstart(e,id){dragId=id;dragEmpresaId=null;e.dataTransfer.effectAllowed='move';}
+function dstartEmp(e,id){dragEmpresaId=id;dragId=null;e.dataTransfer.effectAllowed='copy';}
 function dover(e,col){e.preventDefault();col.classList.add('over');}
 /* 20/08/2026 — ao entrar em VENDIDA, grava a data OFICIAL da venda (dataVenda) automaticamente,
    igual à data da movimentação. Fica separada de alteradoEm (que o backend sempre carimba com
@@ -3124,6 +3139,7 @@ function _dadosReativacao(l){
    pra onde quer que ela vá). Se soltar na MESMA coluna do status congelado, só reativa mesmo (não
    dispara persistStatus à toa). */
 function drop(e,status,col){e.preventDefault();col.classList.remove('over');
+  if(dragEmpresaId){ const eid=dragEmpresaId; dragEmpresaId=null; _criarOportunidadeDeEmpresa(eid,status); return; }
   const l=_allLeads().find(x=>x.id===dragId);
   if(!l)return;
   const era=l.status, eraMan=manual[l.id];
@@ -3177,6 +3193,76 @@ function dropInativar(e,col){e.preventDefault();col.classList.remove('over');
     render(); if(curId===l.id)openDrawer(l.id);
   },function(){});
 }
+/* 03/09/2026 — bucket "🏢 Empresas" (Léo: "otimizar a opção, só pegar o card da empresa e arrastar
+   pra categoria e já facilitar o avanço pra uma oportunidade"). Reaproveita o mesmo payload/endpoint
+   do modal "➕ Nova Oportunidade" (opSalvar, ver Fase C) — só muda o status inicial pro status da
+   coluna onde o card foi solto (em vez de sempre cair em "NÃO ENVIADA") e assume 1 serviço (NA),
+   que pode ser detalhado depois no drawer, igual qualquer lead recém-criado. */
+function _criarOportunidadeDeEmpresa(empresaId,status){
+  var hit=(window.STORE&&STORE.empresas||[]).find(function(e){return String(e.__id)===String(empresaId);});
+  if(!hit){ if(typeof toast==='function')toast('Empresa não encontrada — atualize a página.'); else alert('Empresa não encontrada — atualize a página.'); return; }
+  var dt=new Date().toISOString().slice(0,10), d=new Date(dt+'T00:00:00');
+  var ehOportunidade=(status!=='NÃO ENVIADA');
+  var rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,cliente:(hit.cliente||hit.razaoSocial||''),empresaId:String(hit.__id||''),
+    unidade:'',origem:'NÃO SÓCIOS',cons:'',fonte:'NA',campanha:'NA',icp:'',prop:(ehOportunidade?'SIM':'NÃO'),
+    status:status,tipo:'N/A',valor:0,tc:'NOVO',serv:'NA',cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),
+    histEventosJson:JSON.stringify([{ts:new Date().toISOString(),texto:(ehOportunidade?'Oportunidade criada':'Lead criado')+' a partir do Cadastro (arrastar no Kanban) — status inicial: '+status,por:'(você)'}])};
+  (async function(){
+    try{
+      var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
+      var j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok){
+        if(typeof toast==='function')toast((ehOportunidade?'Oportunidade':'Lead')+' criado para '+rec.cliente+' em "'+status+'".');
+        if(window.reloadData)await reloadData();
+        try{ renderEmpBucket(); }catch(e){}
+        /* se caiu direto numa coluna que já implica proposta enviada, abre o drawer pra completar
+           os dados comerciais — mesmo nudge que já existe quando um lead existente entra em
+           EM NEGOCIAÇÃO (ver _faltaFase2 no drop() normal). */
+        if(ehOportunidade&&j.item&&j.item.__id){
+          var novo=_allLeads().find(function(x){return String(x.spid)===String(j.item.__id);});
+          if(novo)openDrawer(novo.id);
+        }
+      } else {
+        alert('Erro ao criar '+(ehOportunidade?'oportunidade':'lead')+': '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.');
+      }
+    }catch(e){ alert('Falha de rede ao criar a partir da empresa: '+e.message); }
+  })();
+}
+window._criarOportunidadeDeEmpresa=_criarOportunidadeDeEmpresa;
+function renderEmpBucket(){
+  var box=el('emp-bucket-list'); if(!box)return;
+  var qEl=el('emp-bucket-q'), q=(qEl&&qEl.value||'').trim().toLowerCase();
+  var ativos={};
+  _allLeads().forEach(function(l){
+    if(l.inativo==='SIM'||!l.empresaId)return;
+    if(l.status==='VENDIDA'||l.status==='PERDIDA')return;
+    ativos[String(l.empresaId)]=true;
+  });
+  var all=((window.STORE&&STORE.empresas)||[]).slice().sort(function(a,b){
+    return String(a.cliente||a.razaoSocial||'').localeCompare(String(b.cliente||b.razaoSocial||''),'pt-BR',{sensitivity:'base'});
+  });
+  var arr=q?all.filter(function(e){return String(e.cliente||e.razaoSocial||'').toLowerCase().indexOf(q)>-1;}):all;
+  var cnt=el('emp-bucket-cnt'); if(cnt)cnt.textContent=arr.length+' de '+all.length+' empresa(s)';
+  if(!arr.length){ box.innerHTML='<div class="meta" style="padding:6px 2px">Nenhuma empresa encontrada.</div>'; return; }
+  box.innerHTML=arr.map(function(e){
+    var emAndamento=!!ativos[String(e.__id)];
+    return '<div draggable="true" ondragstart="dstartEmp(event,\''+esc(e.__id)+'\')" title="Arraste para uma coluna do funil para criar uma oportunidade nesse status"'
+      +' style="cursor:grab;padding:6px 10px;border-radius:8px;border:1px solid '+(emAndamento?'#EADDE0':'#C99AA0')+';background:'+(emAndamento?'#F7F2F1':'#fff')+';font-size:12px;max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'
+      +'<b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'
+      +(e.target==='TARGET'?' <span title="Empresa TARGET">🎯</span>':'')
+      +(emAndamento?' <span class="meta" title="Já tem oportunidade ativa no funil" style="font-size:10.5px">· em andamento</span>':'')
+      +'</div>';
+  }).join('');
+}
+window.renderEmpBucket=renderEmpBucket;
+function toggleEmpBucket(){
+  var box=el('emp-bucket'); if(!box)return;
+  var show=(box.style.display==='none'||!box.style.display);
+  box.style.display=show?'block':'none';
+  var btn=el('crm-empresas-btn'); if(btn)btn.classList.toggle('on',show);
+  if(show)renderEmpBucket();
+}
+window.toggleEmpBucket=toggleEmpBucket;
 /* 31/08/2026 — layout do drawer inspirado no print do RD Station que o Léo mandou (Rafael pediu
    mais clareza de fase). Abas de sub-etapa só aparecem com status EM NEGOCIAÇÃO — fora disso não
    fazem sentido (ver comentário do SUBETAPAS, lá em cima). */
@@ -3488,10 +3574,11 @@ function toggleInativoLead(id){
   },function(){});
 }
 Object.assign(window,{render:render,testTeams:testTeams,closeDrawer:closeDrawer,
-  dover:dover,drop:drop,dropInativar:dropInativar,dstart:dstart,openDrawer:openDrawer,setStatus:setStatus,delLead:delLead,
+  dover:dover,drop:drop,dropInativar:dropInativar,dstart:dstart,dstartEmp:dstartEmp,openDrawer:openDrawer,setStatus:setStatus,delLead:delLead,
   addTask:addTask,onTipo:onTipo,toggleTask:toggleTask,delTask:delTask,
   scheduleTask:scheduleTask,waOpen:waOpen,saveLead:saveLead,
-  toggleCompact:toggleCompact,toggleInativas:toggleInativas,toggleInativoLead:toggleInativoLead});
+  toggleCompact:toggleCompact,toggleInativas:toggleInativas,toggleInativoLead:toggleInativoLead,
+  toggleEmpBucket:toggleEmpBucket,renderEmpBucket:renderEmpBucket,_criarOportunidadeDeEmpresa:_criarOportunidadeDeEmpresa});
 window.CRM={render:crmRender};
 /* ===== Fase C — Nova Oportunidade (ligada à Empresa cadastrada) ===== */
 function _opEmpresas(){ return (window.STORE&&STORE.empresas)||[]; }
