@@ -3260,7 +3260,15 @@ function toggleEmpBucket(){
   var show=(box.style.display==='none'||!box.style.display);
   box.style.display=show?'block':'none';
   var btn=el('crm-empresas-btn'); if(btn)btn.classList.toggle('on',show);
-  if(show)renderEmpBucket();
+  if(show){
+    renderEmpBucket();
+    /* STORE.empresas só é carregado ao abrir a aba Cadastro (cadRefreshData, fetch fresco sem
+       depender do timing do loadStore geral) — se o Kanban for aberto direto, sem passar por lá,
+       o bucket ficaria vazio. Recarrega em segundo plano e re-renderiza quando chegar. */
+    if(typeof cadRefreshData==='function'){
+      cadRefreshData().then(function(){ try{ renderEmpBucket(); }catch(e){} }).catch(function(){});
+    }
+  }
 }
 window.toggleEmpBucket=toggleEmpBucket;
 /* 31/08/2026 — layout do drawer inspirado no print do RD Station que o Léo mandou (Rafael pediu
