@@ -3199,7 +3199,7 @@ function dropInativar(e,col){e.preventDefault();col.classList.remove('over');
    coluna onde o card foi solto (em vez de sempre cair em "NÃO ENVIADA") e assume 1 serviço (NA),
    que pode ser detalhado depois no drawer, igual qualquer lead recém-criado. */
 function _criarOportunidadeDeEmpresa(empresaId,status){
-  var hit=(window.STORE&&STORE.empresas||[]).find(function(e){return String(e.__id)===String(empresaId);});
+  var hit=(STORE.empresas||[]).find(function(e){return String(e.__id)===String(empresaId);});
   if(!hit){ if(typeof toast==='function')toast('Empresa não encontrada — atualize a página.'); else alert('Empresa não encontrada — atualize a página.'); return; }
   var dt=new Date().toISOString().slice(0,10), d=new Date(dt+'T00:00:00');
   var ehOportunidade=(status!=='NÃO ENVIADA');
@@ -3238,7 +3238,7 @@ function renderEmpBucket(){
     if(l.status==='VENDIDA'||l.status==='PERDIDA')return;
     ativos[String(l.empresaId)]=true;
   });
-  var all=((window.STORE&&STORE.empresas)||[]).slice().sort(function(a,b){
+  var all=(STORE.empresas||[]).slice().sort(function(a,b){
     return String(a.cliente||a.razaoSocial||'').localeCompare(String(b.cliente||b.razaoSocial||''),'pt-BR',{sensitivity:'base'});
   });
   var arr=q?all.filter(function(e){return String(e.cliente||e.razaoSocial||'').toLowerCase().indexOf(q)>-1;}):all;
