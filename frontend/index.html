@@ -1885,19 +1885,80 @@ async function deleteContato(id){
   }catch(e){ alert('Falha de rede ao excluir: '+e.message); }
 }
 window.deleteContato=deleteContato;
+/* 03/09/2026 — paginação + classificação nas listas de Cadastro (Empresa e Contato). Estado
+   persiste em window.* entre re-renders (troca de aba, salvar, excluir) mas reseta ao recarregar a página. */
+window._empListState = window._empListState || {sort:'nome', dir:'asc', page:1, pageSize:20};
+window._conListState = window._conListState || {sort:'nome', dir:'asc', page:1, pageSize:20};
+function empListSort(field){
+  const st=window._empListState;
+  if(st.sort===field){ st.dir=(st.dir==='asc'?'desc':'asc'); } else { st.sort=field; st.dir='asc'; }
+  st.page=1; renderEmpRecentes();
+}
+window.empListSort=empListSort;
+function empListPage(delta){
+  window._empListState.page=Math.max(1, window._empListState.page+delta); renderEmpRecentes();
+}
+window.empListPage=empListPage;
+function _pagerHtml(st, onPage, totalPages){
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:8px;border-top:1px solid #F3EAEA;font-size:12px">'
+    +'<a href="#" onclick="'+onPage+'(-1);return false" style="'+(st.page<=1?'pointer-events:none;opacity:.35;':'')+'color:#7A2F42;text-decoration:none;font-weight:600">‹ Anterior</a>'
+    +'<span class="m">Página '+st.page+' de '+totalPages+'</span>'
+    +'<a href="#" onclick="'+onPage+'(1);return false" style="'+(st.page>=totalPages?'pointer-events:none;opacity:.35;':'')+'color:#7A2F42;text-decoration:none;font-weight:600">Próxima ›</a>'
+    +'</div>';
+}
+function _sortLinkHtml(st, field, label, fn){
+  const on=st.sort===field;
+  const arrow=on?(st.dir==='asc'?' ▲':' ▼'):'';
+  return '<a href="#" onclick="'+fn+'(\''+field+'\');return false" style="font-weight:'+(on?'700':'400')+';color:#7A2F42;text-decoration:none">'+label+arrow+'</a>';
+}
 function renderEmpRecentes(){
   const box=q('emp-recentes'); if(!box)return;
   const all=_empresasList();
-  const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
-  if(!arr.length){box.innerHTML='<h4>Empresas cadastradas</h4><div class="m" style="font-size:12px">Nenhuma empresa ainda.</div>';return;}
-  box.innerHTML='<h4>Empresas cadastradas ('+all.length+')</h4>'+arr.map(e=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'+(e.target==='TARGET'?' <span style="color:#B23A48;font-weight:700">◆ TARGET</span>':'')+' <span class="m">'+esc(e.cnpj||'')+(e.municipio?' · '+esc(e.municipio)+'/'+esc(e.uf||''):'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editEmpresa(\''+esc(e.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteEmpresa(\''+esc(e.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('');
+  if(!all.length){box.innerHTML='<h4>Empresas cadastradas</h4><div class="m" style="font-size:12px">Nenhuma empresa ainda.</div>';return;}
+  const st=window._empListState;
+  const key=e=>st.sort==='segmento'?String(e.segmento||''):String(e.cliente||e.razaoSocial||'');
+  const arr=all.slice().sort((a,b)=>{const c=key(a).localeCompare(key(b),'pt-BR',{sensitivity:'base'});return st.dir==='asc'?c:-c;});
+  const totalPages=Math.max(1, Math.ceil(arr.length/st.pageSize));
+  if(st.page>totalPages)st.page=totalPages;
+  const pageArr=arr.slice((st.page-1)*st.pageSize, st.page*st.pageSize);
+  box.innerHTML='<h4>Empresas cadastradas ('+all.length+')</h4>'
+    +'<div style="display:flex;gap:16px;margin-bottom:8px;font-size:12px">Ordenar por: '+_sortLinkHtml(st,'nome','Nome','empListSort')+_sortLinkHtml(st,'segmento','Segmento','empListSort')+'</div>'
+    +pageArr.map(e=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(e.cliente||e.razaoSocial||'—')+'</b>'+(e.target==='TARGET'?' <span style="color:#B23A48;font-weight:700">◆ TARGET</span>':'')+' <span class="m">'+(e.segmento?esc(e.segmento)+' · ':'')+esc(e.cnpj||'')+(e.municipio?' · '+esc(e.municipio)+'/'+esc(e.uf||''):'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editEmpresa(\''+esc(e.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteEmpresa(\''+esc(e.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('')
+    +_pagerHtml(st,'empListPage',totalPages);
+}
+function conListSort(field){
+  const st=window._conListState;
+  if(st.sort===field){ st.dir=(st.dir==='asc'?'desc':'asc'); } else { st.sort=field; st.dir='asc'; }
+  st.page=1; renderConRecentes();
+}
+window.conListSort=conListSort;
+function conListPage(delta){
+  window._conListState.page=Math.max(1, window._conListState.page+delta); renderConRecentes();
+}
+window.conListPage=conListPage;
+function _conSegmento(c){
+  const emp=_empresasList().find(e=>String(e.__id)===String(c.empresaId))
+    || _empresasList().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===String(c.empresaNome||'').trim().toLowerCase());
+  return emp?(emp.segmento||''):'';
 }
 function renderConRecentes(){
   const box=q('con-recentes'); if(!box)return;
   const all=(STORE.contatos||[]);
-  const arr=all.slice().sort((a,b)=>String(b.alteradoEm||'').localeCompare(String(a.alteradoEm||''))).slice(0,10);
-  if(!arr.length){box.innerHTML='<h4>Contatos cadastrados</h4><div class="m" style="font-size:12px">Nenhum contato ainda.</div>';return;}
-  box.innerHTML='<h4>Contatos cadastrados ('+all.length+')</h4>'+arr.map(c=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'—')+'</b> · '+esc(c.empresaNome||'')+' <span class="m">'+esc(c.email||c.telefone||'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editContato(\''+esc(c.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteContato(\''+esc(c.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('');
+  if(!all.length){box.innerHTML='<h4>Contatos cadastrados</h4><div class="m" style="font-size:12px">Nenhum contato ainda.</div>';return;}
+  const st=window._conListState;
+  const key=c=>{
+    if(st.sort==='empresa')return String(c.empresaNome||'');
+    if(st.sort==='segmento')return _conSegmento(c);
+    return ((c.nome||'')+' '+(c.sobrenome||'')).trim();
+  };
+  const arr=all.slice().sort((a,b)=>{const cmp=key(a).localeCompare(key(b),'pt-BR',{sensitivity:'base'});return st.dir==='asc'?cmp:-cmp;});
+  const totalPages=Math.max(1, Math.ceil(arr.length/st.pageSize));
+  if(st.page>totalPages)st.page=totalPages;
+  const pageArr=arr.slice((st.page-1)*st.pageSize, st.page*st.pageSize);
+  box.innerHTML='<h4>Contatos cadastrados ('+all.length+')</h4>'
+    +'<div style="display:flex;gap:16px;margin-bottom:8px;font-size:12px">Ordenar por: '+_sortLinkHtml(st,'nome','Nome','conListSort')+_sortLinkHtml(st,'empresa','Empresa','conListSort')+_sortLinkHtml(st,'segmento','Segmento','conListSort')+'</div>'
+    +pageArr.map(c=>'<div class="r" style="display:flex;align-items:center;justify-content:space-between;gap:8px"><span><b>'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'—')+'</b> · '+esc(c.empresaNome||'')+(_conSegmento(c)?' <span class="m">('+esc(_conSegmento(c))+')</span>':'')+' <span class="m">'+esc(c.email||c.telefone||'')+'</span></span><span style="white-space:nowrap"><a href="#" onclick="editContato(\''+esc(c.__id)+'\');return false" title="Editar" style="margin-right:10px;font-size:13px;text-decoration:none">✏️</a><a href="#" onclick="deleteContato(\''+esc(c.__id)+'\');return false" title="Excluir" style="font-size:13px;text-decoration:none">🗑️</a></span></div>').join('')
+    +_pagerHtml(st,'conListPage',totalPages);
 }
 async function elevaiCad(ev){
   ev.preventDefault();
