@@ -3079,6 +3079,29 @@ function _dadosReativacao(l){
   var nota='[Reativado em '+hoje+(dtAnterior?' — data de entrada anterior: '+dtAnterior:'')+']';
   return {dt:hoje,y:Number(hoje.slice(0,4)),m:Number(hoje.slice(5,7)),obs:(l.obs?l.obs+' | ':'')+nota};
 }
+/* 08/09/2026 -- Léo (caso Caldic): resetar a data de entrada não podia ficar só amarrado à marca
+   "Inativo"/coluna 🗄 REATIVAÇÃO -- vale pra qualquer oportunidade que SAI de PERDIDA ou PAUSADA
+   pra qualquer outro status, seja arrastando no Kanban (drop()) ou trocando pelo seletor do
+   drawer (setStatus() nem tinha essa lógica antes, só o drop() tinha). Critério único, usado
+   pelos dois pontos de troca de status. */
+function _precisaReativarData(l,era,novoStatus){
+  return l.inativo==='SIM' || ((era==='PERDIDA'||era==='PAUSADA') && novoStatus!==era);
+}
+/* Aplica o reset de data (se precisar) e só depois chama depoisCb -- depoisCb sempre roda, precise
+   ou não reativar, pra quem chama não duplicar o render()/openDrawer() dos dois caminhos. */
+function _reativarSeNecessario(l,precisa,depoisCb){
+  if(!precisa){ depoisCb(); return; }
+  var _rd=_dadosReativacao(l);
+  persistLeadFields(l.spid,{inativo:'',dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs},function(){
+    l.inativo=''; l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs;
+    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+    if(raw){ raw.inativo=''; raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; }
+    if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
+    if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+' — data de entrada atualizada para hoje.');
+    DATA_VER++;
+    depoisCb();
+  },function(){ depoisCb(); });
+}
 /* 25/08/2026 — arrastar PRA FORA da coluna 🗄 REATIVAÇÃO cai aqui igual qualquer outro drop entre
    colunas normais: além de mudar o status (comportamento de sempre), também limpa `inativo` se a
    origem era uma inativada — reativa E já manda pro status de destino escolhido no arrasto, em vez
@@ -3090,19 +3113,9 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   const l=_allLeads().find(x=>x.id===dragId);
   if(!l)return;
   const era=l.status, eraMan=manual[l.id];
-  const wasInativa=l.inativo==='SIM';
   const statusChanged=(era!==status);
   const reactivateIfNeeded=function(){
-    if(!wasInativa){ render(); if(curId===l.id)openDrawer(l.id); return; }
-    const _rd=_dadosReativacao(l);
-    persistLeadFields(l.spid,{inativo:'',dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs},function(){
-      l.inativo=''; l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs;
-      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw){ raw.inativo=''; raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; }
-      if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
-      if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+' — data de entrada atualizada para hoje.');
-      DATA_VER++;
-      render(); if(curId===l.id)openDrawer(l.id);
-    },function(){ render(); if(curId===l.id)openDrawer(l.id); });
+    _reativarSeNecessario(l,_precisaReativarData(l,era,status),function(){ render(); if(curId===l.id)openDrawer(l.id); });
   };
   if(statusChanged){
     l.status=status; manual[l.id]=status;
@@ -3480,7 +3493,10 @@ function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=
            conta como "entrou em EM NEGOCIAÇÃO" pro fluxo automático de FUP. */
         if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO')_iniciarFup(l,'status');
         if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)&&typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
-        if(curId===id)openDrawer(id); render(); },
+        /* 08/09/2026 — Léo: trocar o status pelo seletor do drawer também precisa reativar a data
+           quando sai de PERDIDA/PAUSADA (mesma regra do drop(), ver _precisaReativarData) -- antes
+           esse caminho não tinha reativação nenhuma. */
+        _reativarSeNecessario(l,_precisaReativarData(l,era,v),function(){ if(curId===id)openDrawer(id); render(); }); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
 function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
