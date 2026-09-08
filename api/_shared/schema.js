@@ -99,6 +99,15 @@ const LISTS = {
       // nasce multi-linha desde a criação (nunca existiu como linha única). `historicoJson` foi
       // REMOVIDO da whitelist — fica órfão no SharePoint (só os testes do Léo, sem dado real).
       { name: 'histEventosJson', type: 'text', long: true },
+      // 08/09/2026 — snapshot pra permitir reverter a ÚLTIMA mudança de status (Léo: "somos
+      // humanos, humanos podem errar" — ex. clicar "Vendida" sem querer — precisa dar pra desfazer,
+      // com histórico). Guarda {ts, statusAnterior, statusNovo, antes:{...valores de ANTES de cada
+      // campo que essa transição mudou}, tarefaCriada:{...tarefa de FUP 1 criada, se houve}} —
+      // grava no MESMO PATCH atômico de _efeitosStatus() (frontend), sem gravação extra, mesmo
+      // racional do resto do fix de 08/09 (evitar corrida entre PATCHes). Limpo ('') depois de um
+      // revert aplicado — revert é sempre de 1 nível, nunca desfaz-o-desfeito. `long:true` pelo
+      // mesmo motivo de histEventosJson/tarefasJson2: o JSON pode passar de 255 chars.
+      { name: 'desfazerStatus', type: 'text', long: true },
       // 31/08/2026 — fluxo automático de FUP pós-proposta (Léo, playbook comercial): ao marcar
       // "Proposta? SIM", o lead vai pra EM NEGOCIAÇÃO + sub-etapa FUP e ganha a 1ª tarefa de FUP
       // automaticamente. fupSeq guarda o número do FUP atual (1, 2, 3...) — incrementado toda vez

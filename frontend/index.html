@@ -3126,6 +3126,10 @@ function _precisaReativarData(l,era,novoStatus){
 function _efeitosStatus(l,era,novoStatus){
   var fields={}, aviso=null, novaTarefa=null, iniciouFup=false, mudou=false;
   var histAtual=l.histEventosJson;
+  /* 08/09/2026 -- "antes" guarda o valor ORIGINAL de cada campo que esta transição está prestes a
+     mudar -- é o material bruto do botão "Reverter" (ver _desfazerInfo/_desfazerGrupos/
+     confirmarReverterStatus). Só entram aqui os campos que de fato mudaram nesta chamada. */
+  var antes={};
   function hist(txt){
     mudou=true;
     var arr; try{ arr=JSON.parse(histAtual||'[]'); }catch(e){ arr=[]; }
@@ -3136,10 +3140,12 @@ function _efeitosStatus(l,era,novoStatus){
   }
   if(era!==novoStatus)hist('Status: '+(era||'—')+' → '+novoStatus);
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
+    antes.dataVenda=l.dataVenda||'';
     fields.dataVenda=(l.alteradoEm||new Date().toISOString()).slice(0,10); mudou=true;
   }
   if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&l.prop!=='SIM'){
     var _hoje=new Date().toISOString().slice(0,10);
+    antes.prop=l.prop||'NÃO'; antes.envio=l.envio||'';
     fields.prop='SIM'; fields.envio=l.envio||_hoje; mudou=true;
   }
   if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'){
@@ -3149,6 +3155,7 @@ function _efeitosStatus(l,era,novoStatus){
       iniciouFup=true;
       hist('Entrou em EM NEGOCIAÇÃO — sub-etapa FUP iniciada, FUP 1 agendado automaticamente');
       novaTarefa=_buildAutoTask(l,'FUP 1');
+      antes.subEtapa=l.subEtapa||''; antes.fupSeq=l.fupSeq||0;
       fields.subEtapa='FUP'; fields.fupSeq=1;
       fields.tarefasJson2=JSON.stringify(_parseTasks(l).concat([novaTarefa]));
     }
@@ -3157,9 +3164,16 @@ function _efeitosStatus(l,era,novoStatus){
   if(precisaReativar){
     var _rd=_dadosReativacao(l);
     hist('Reativado — data de entrada atualizada para '+_rd.dt+(l.dt?' (data de entrada anterior: '+l.dt+')':''));
+    antes.inativo=l.inativo||''; antes.dt=l.dt||''; antes.y=l.y||''; antes.m=l.m||''; antes.obs=l.obs||'';
     fields.inativo=''; fields.dt=_rd.dt; fields.y=_rd.y; fields.m=_rd.m; fields.obs=_rd.obs;
   }
-  if(mudou)fields.histEventosJson=histAtual;
+  if(mudou){
+    fields.histEventosJson=histAtual;
+    /* 08/09/2026 -- Léo: capacidade de reverter a última mudança de status, com confirmação antes
+       de aplicar ("perguntar na hora" -- ver _revertStatusHtml/confirmarReverterStatus). Grava o
+       snapshot no MESMO PATCH atômico (sem gravação extra, mesmo racional do fix de corrida). */
+    fields.desfazerStatus=JSON.stringify({ts:new Date().toISOString(),statusAnterior:era,statusNovo:novoStatus,antes:antes,tarefaCriada:novaTarefa||null});
+  }
   return {fields:fields,aviso:aviso,novaTarefa:novaTarefa,iniciouFup:iniciouFup,precisaReativar:precisaReativar,mudou:mudou};
 }
 /* Manda _efeitosStatus() num único PATCH e só depois chama afterCb (render/openDrawer) — precise
@@ -3195,6 +3209,97 @@ function _aplicarEfeitosStatus(l,era,novoStatus,afterCb){
   },function(){
     if(typeof toast==='function')toast('Falha ao salvar alterações automáticas (proposta/histórico/FUP/reativação) — tente novamente.');
     afterCb();
+  });
+}
+/* 08/09/2026 -- Léo: "eu preciso ter uma opção de reverter, e ficar esse histórico". As 3 funções
+   abaixo implementam a reversão da ÚLTIMA mudança de status de uma oportunidade, com confirmação
+   explícita (o usuário escolhe o que reverter) antes de aplicar -- ver desfazerStatus em
+   _efeitosStatus() acima, que grava o snapshot necessário no mesmo PATCH da mudança original. */
+// Lê e valida o snapshot de reversão do lead: só é válido se ainda não mudou nada desde então
+// (o status atual tem que bater com o que aquele snapshot registrou como "statusNovo").
+function _desfazerInfo(l){
+  if(!l||!l.desfazerStatus)return null;
+  var d; try{ d=JSON.parse(l.desfazerStatus); }catch(e){ return null; }
+  if(!d||!d.antes)return null;
+  if(d.statusNovo!==l.status)return null;
+  return d;
+}
+// Monta os grupos de checkbox exibidos no painel de reversão, a partir do que de fato mudou
+// naquela transição (só aparece o que está em "antes").
+function _desfazerGrupos(d){
+  var a=d.antes||{}, grupos=[];
+  if(d.statusAnterior!==d.statusNovo)grupos.push({key:'status',label:'Status volta de '+d.statusNovo+' para '+(d.statusAnterior||'—')});
+  if('prop' in a || 'envio' in a){
+    var partes=[];
+    if('prop' in a)partes.push('Proposta? volta para '+(a.prop||'NÃO'));
+    if('envio' in a)partes.push('Envio volta para '+(a.envio?dBR(a.envio):'(vazio)'));
+    grupos.push({key:'proposta',label:partes.join(' · ')});
+  }
+  if('dataVenda' in a)grupos.push({key:'venda',label:'Data da venda volta para '+(a.dataVenda?dBR(a.dataVenda):'(vazia)')});
+  if('inativo' in a || 'dt' in a){
+    var partes2=['Data de entrada volta para '+(a.dt?dBR(a.dt):'(vazia)')];
+    if(a.inativo==='SIM')partes2.push('oportunidade volta pro backlog (Inativa)');
+    grupos.push({key:'reativacao',label:partes2.join(' · ')});
+  }
+  if(d.tarefaCriada)grupos.push({key:'fup',label:'Sub-etapa FUP e a tarefa "FUP 1" criada automaticamente são removidas'});
+  return grupos;
+}
+// Monta o bloco HTML do drawer: ou o botão "↩ Reverter última mudança de status" (fechado), ou o
+// painel de confirmação com os checkboxes (aberto, quando l._revertOpen===true).
+function _revertStatusHtml(l,id){
+  var d=_desfazerInfo(l); if(!d)return '';
+  if(!l._revertOpen){
+    return '<div class="fld"><button class="btn ghost" style="font-size:11px" onclick="abrirReverterStatus('+id+')" title="Desfaz a última mudança de status desta oportunidade -- você escolhe o que também reverter (Proposta, Envio, Data da venda, FUP). Fica registrado no Histórico.">↩ Reverter última mudança de status</button></div>';
+  }
+  var grupos=_desfazerGrupos(d);
+  var itens=grupos.map(function(g){return '<label style="display:block;font-size:12px;margin-top:4px"><input type="checkbox" id="rev-'+g.key+'" checked> '+esc(g.label)+'</label>';}).join('');
+  return '<div class="fld" style="background:#FFF6E9;border:1px solid #E8C68A;border-radius:8px;padding:8px 10px;margin-top:4px">'
+    +'<b style="color:#8A5A2B">↩ Reverter '+(d.statusAnterior!==d.statusNovo?('para '+esc(d.statusAnterior||'—')):'esta mudança')+'?</b>'
+    +itens
+    +'<div style="margin-top:8px;display:flex;gap:6px">'
+    +'<button class="btn" onclick="confirmarReverterStatus('+id+')">Confirmar reversão</button>'
+    +'<button class="btn ghost" onclick="cancelarReverterStatus('+id+')">Cancelar</button>'
+    +'</div></div>';
+}
+function abrirReverterStatus(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(l)l._revertOpen=true; if(curId===id)openDrawer(id); }
+function cancelarReverterStatus(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(l)l._revertOpen=false; if(curId===id)openDrawer(id); }
+function confirmarReverterStatus(id){
+  var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
+  var d=_desfazerInfo(l);
+  if(!d){ if(typeof toast==='function')toast('Nada para reverter -- o status já mudou de novo desde então.'); l._revertOpen=false; if(curId===id)openDrawer(id); return; }
+  var grupos=_desfazerGrupos(d);
+  var fields={}, partes=[];
+  grupos.forEach(function(g){
+    var cb=document.getElementById('rev-'+g.key);
+    if(!cb||!cb.checked)return;
+    partes.push(g.key);
+    if(g.key==='status')fields.status=d.statusAnterior;
+    if(g.key==='proposta'){ fields.prop=('prop' in d.antes)?d.antes.prop:'NÃO'; fields.envio=('envio' in d.antes)?d.antes.envio:''; }
+    if(g.key==='venda'){ fields.dataVenda=('dataVenda' in d.antes)?d.antes.dataVenda:''; }
+    if(g.key==='reativacao'){ fields.inativo=('inativo' in d.antes)?d.antes.inativo:''; fields.dt=d.antes.dt||''; fields.y=d.antes.y||''; fields.m=d.antes.m||''; fields.obs=d.antes.obs||''; }
+    if(g.key==='fup'){
+      fields.subEtapa=('subEtapa' in d.antes)?d.antes.subEtapa:''; fields.fupSeq=('fupSeq' in d.antes)?d.antes.fupSeq:0;
+      var atuais=_parseTasks(l), nt=d.tarefaCriada, idx=-1;
+      if(nt){ for(var i=atuais.length-1;i>=0;i--){ var t=atuais[i]; if(t&&!t.feito&&t.titulo===nt.titulo&&t.data===nt.data&&t.hora===nt.hora&&t.conteudo===nt.conteudo){ idx=i; break; } } }
+      if(idx>=0){ atuais.splice(idx,1); fields.tarefasJson2=JSON.stringify(atuais); }
+    }
+  });
+  if(!partes.length){ if(typeof toast==='function')toast('Nenhum item selecionado -- nada foi revertido.'); return; }
+  var textoHist='Revertido: '+d.statusNovo+' → '+(fields.status||d.statusNovo)+' ('+partes.join(', ')+')';
+  fields.histEventosJson=_histAppend(l,textoHist);
+  fields.desfazerStatus='';
+  if(!window.persistLeadFields){ return; }
+  window.persistLeadFields(l.spid,fields,function(){
+    Object.assign(l,fields);
+    if(fields.status)manual[id]=fields.status;
+    if(fields.tarefasJson2){ l.tarefasJson=fields.tarefasJson2; tasks[id]=_parseTasks(l); }
+    var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
+    if(raw)Object.assign(raw,fields);
+    l._revertOpen=false;
+    if(typeof toast==='function')toast('Revertido ✓');
+    DATA_VER++; render(); if(curId===id)openDrawer(id);
+  },function(){
+    if(typeof toast==='function')toast('Falha ao reverter -- tente novamente.');
   });
 }
 /* 25/08/2026 — arrastar PRA FORA da coluna 🗄 REATIVAÇÃO cai aqui igual qualquer outro drop entre
@@ -3383,10 +3488,12 @@ function openDrawer(id){curId=id;
    <div class="d-grid">
    <div class="d-side">
    <div class="fld"><b>Status:</b> <select class="stpick" onchange="setStatus(${id},this.value)">${COLS.map(([n])=>`<option ${n===l.status?'selected':''}>${n}</option>`).join('')}</select> ${manual[id]?'<span class="tk">✎ manual</span>':''}</div>
+   ${_revertStatusHtml(l,id)}
    <h4>Negociação / Contato</h4>
    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">
      <label>Empresa<input id="le-cliente" value="${esc(l.cliente)}"></label>
      <label>Unidade<input id="le-unidade" value="${esc(l.unidade)}"></label>
+     <label>Entrada<input id="le-dt" type="date" value="${esc(l.dt)}" title="Data de entrada do lead. Preenchida automaticamente na criação (ou numa reativação); edite aqui só se a entrada foi retroativa e precisar refletir a data real."></label>
      <label>Contato<input id="le-nome" value="${esc(l.nome)}"></label>
      <label>Telefone<input id="le-telefone" value="${esc(l.telefone)}"></label>
      <label>E-mail<input id="le-email" value="${esc(l.email)}"></label>
@@ -3497,10 +3604,25 @@ function saveLead(id){
      editado (corrigindo histórico), manda no PATCH. alteradoEm continua sendo o carimbo de
      "quando foi mexido" (o backend sempre sobrescreve com "agora" de qualquer forma). */
   var _dv=g('le-datavenda'); if(_dv!=='')f.dataVenda=_dv;
+  /* 08/09/2026 -- Léo: "a data de entrada do lead também precisa ter um campo editável... pode
+     acontecer de um lead entrar numa data, mas ele ter sido retroativo". dt (Entrada) some da
+     leitura de campos "comuns" de propósito (ver f={cliente:...} acima) porque também precisa
+     recalcular y/m (usados pra filtro de período) -- não dá pra só trocar dt sem re-derivar y/m,
+     senão o card fica com Entrada numa data mas contando no mês errado nos indicadores. Só grava
+     se o campo foi de fato alterado (mesmo padrão de _dv acima); loga no Histórico separadamente
+     de _diffLabel/virouOp (encadeado via _tmp, já que _histAppend só sabe somar 1 evento por vez
+     a partir de l.histEventosJson -- sem isso, o 2º _histAppend "esqueceria" o 1º). */
+  var _tmp={histEventosJson:l.histEventosJson};
+  var _dtNovo=g('le-dt');
+  if(_dtNovo!==''&&_dtNovo!==l.dt){
+    _tmp.histEventosJson=_histAppend(_tmp,'Data de entrada corrigida manualmente: '+(l.dt?dBR(l.dt):'—')+' → '+dBR(_dtNovo));
+    f.dt=_dtNovo; f.y=Number(_dtNovo.slice(0,4)); f.m=Number(_dtNovo.slice(5,7));
+  }
   /* 31/08/2026 — "só vira oportunidade quando tem proposta" (Léo): registra essa virada
      explicitamente no histórico, em vez do texto genérico de "dados atualizados". */
   var _virouOp=(!_isOportunidade(l)&&String(f.prop||'')==='SIM');
-  f.histEventosJson=_histAppend(l,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
+  _tmp.histEventosJson=_histAppend(_tmp,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
+  f.histEventosJson=_tmp.histEventosJson;
   if(window.persistLeadFields){ window.persistLeadFields(l.spid,f,
     function(){ Object.assign(l,f); l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)';
       /* 31/08/2026 — Léo: "só se torna oportunidade quando tem proposta... deve ir automaticamente
@@ -3669,7 +3791,8 @@ Object.assign(window,{render:render,testTeams:testTeams,closeDrawer:closeDrawer,
   addTask:addTask,onTipo:onTipo,toggleTask:toggleTask,delTask:delTask,
   scheduleTask:scheduleTask,waOpen:waOpen,saveLead:saveLead,
   toggleCompact:toggleCompact,toggleInativas:toggleInativas,toggleInativoLead:toggleInativoLead,
-  toggleEmpBucket:toggleEmpBucket,renderEmpBucket:renderEmpBucket,_criarOportunidadeDeEmpresa:_criarOportunidadeDeEmpresa});
+  toggleEmpBucket:toggleEmpBucket,renderEmpBucket:renderEmpBucket,_criarOportunidadeDeEmpresa:_criarOportunidadeDeEmpresa,
+  abrirReverterStatus:abrirReverterStatus,cancelarReverterStatus:cancelarReverterStatus,confirmarReverterStatus:confirmarReverterStatus});
 window.CRM={render:crmRender};
 /* ===== Fase C — Nova Oportunidade (ligada à Empresa cadastrada) ===== */
 function _opEmpresas(){ return (window.STORE&&STORE.empresas)||[]; }
