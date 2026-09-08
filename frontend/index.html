@@ -888,7 +888,7 @@ function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'
 let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
 let SRC='local';
 let ACTIVE='painel';
-let filteredLeads=[], filteredVendas=[], filteredLeadsVendidos=[];
+let filteredLeads=[], filteredVendas=[], filteredLeadsVendidos=[], filteredLeadsPropostas=[];
 let F={preset:'',ano:String(new Date().getFullYear()),mes:'',semana:'',de:'',ate:'',tipo:'',cons:[],serv:[],icp:'',prop:'',tc:'',cliente:'',unidade:''};
 let QRANK=[];
 let DATA_VER=0;              /* incrementa quando o STORE muda (reload/cadastro/status) */
@@ -1162,13 +1162,31 @@ function compute(){
     const saleDt=(r.dataVenda?String(r.dataVenda).slice(0,10):(r.alteradoEm?String(r.alteradoEm).slice(0,10):r.dt))||r.dt;
     return inRange({dt:saleDt});
   });
+  /* 08/09/2026 -- Léo: os 3 indicadores que ele acompanha (ENTRADA LEAD / ENVIO PROPOSTA /
+     FECHAMENTO) precisam ser independentes -- cada um com sua própria data-base -- porque uma
+     vez que o lead avança no funil, o evento que trouxe ele pra dentro (inclusive uma
+     reativação, que reescreve `dt`) fica irrelevante pros indicadores seguintes. FECHAMENTO já
+     tinha esse tratamento (filteredLeadsVendidos, acima, base dataVenda/alteradoEm) desde
+     17/08/2026; ENVIO PROPOSTA nunca tinha ganhado o mesmo tratamento -- continuava contado
+     dentro de filteredLeads, ou seja, com base em `dt` (Entrada). Mesma classe de bug do caso ZF
+     (venda fechada num mês, criada em outro, sumia do filtro) -- aqui o sintoma é uma proposta
+     enviada num mês contar no mês de Entrada (que pode inclusive ter sido "hoje", por causa de
+     uma reativação). Fix: mesmo padrão de filteredLeadsVendidos, só que com base em `envio`
+     (fallback pra dt quando envio não estiver preenchido). */
+  filteredLeadsPropostas = STORE.leads.filter(r=>{
+    if(r.prop!=='SIM') return false;
+    if(r.inativo==='SIM') return false;
+    if(!passDims(r,true)) return false;
+    const envioDt=(r.envio?String(r.envio).slice(0,10):r.dt)||r.dt;
+    return inRange({dt:envioDt});
+  });
 }
 function renderActive(force){
   const _s=viewSig();
   if(!force && RENDERED[ACTIVE]===_s) return;   /* nada mudou p/ esta aba: nao recomputa/rebuilda graficos */
   RENDERED[ACTIVE]=_s;
   if(ACTIVE==='painel'){
-    try{ PAINEL.render({leads:filteredLeads,vendas:filteredVendas,vendidos:filteredLeadsVendidos,eventos:STORE.eventos,
+    try{ PAINEL.render({leads:filteredLeads,vendas:filteredVendas,vendidos:filteredLeadsVendidos,propostas:filteredLeadsPropostas,eventos:STORE.eventos,
       de:(F.de||'2024-01-01'),ate:(F.ate||'2026-12-31')}); }catch(e){console.error('painel',e);}
   }else if(ACTIVE==='crm'){
     try{ CRM.render(filteredLeads); }catch(e){console.error('crm',e);}
@@ -2195,6 +2213,19 @@ class App {
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
       return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id};
     });
+    /* 08/09/2026 — Léo: "ENVIO PROPOSTA" precisa ter Envio como base, não Entrada — mesmo
+       racional do fV acima (Fechamento com base em dataVenda/alteradoEm). RAW.propostas já vem
+       filtrado pelo shell usando envio (fallback dt) — ver filteredLeadsPropostas. Aqui só
+       recalcula y/m a partir dessa mesma data, pra bucket mensal (ch-mes/pdf) também bater com
+       Envio em vez de Entrada; os demais campos do lead (inclusive `dt` original e `envio`)
+       continuam intactos pra exibição nos modais/CSV (LEAD_COLS mostra os dois). Fallback (sem
+       RAW.propostas) reproduz o comportamento antigo, só pra compatibilidade. */
+    const propSrc=RAW.propostas||this.fL.filter(l=>l.prop==='SIM');
+    this.fP=propSrc.map(l=>{
+      const envioDt=(l.envio?String(l.envio).slice(0,10):l.dt)||l.dt;
+      const ey=envioDt?Number(envioDt.slice(0,4)):l.y, em=envioDt?Number(envioDt.slice(5,7)):l.m;
+      return Object.assign({},l,{y:ey,m:em});
+    });
     this.semSec = !cons&&!serv&&!icp&&!tc&&!prop;
     // meses do período (limitados aos dados)
     const mkey=s=>Number(s.slice(0,4))*100+Number(s.slice(5,7));
@@ -2281,7 +2312,7 @@ class App {
   // ---------- metas do mês (novas vendas: Propostas 1,75M/mês · Vendas 333k/mês = 200k não-sócios + 133k sócios) ----------
   metasMes(){
     const fL=this.fL||[], n=this.nMeses||1, frac=this.frac||1;
-    const props=fL.filter(l=>l.prop==='SIM');
+    const props=this.fP||[];
     const propVal=props.reduce((s,l)=>s+(+l.valor||0),0);
     /* 17/08/2026 — mesmo bug do this.fV (ver comentário em apply()): usava fL.filter(VENDIDA), que já
        tinha sido filtrado pela data de CRIAÇÃO da oportunidade — uma venda fechada em Agosto mas criada
@@ -2373,7 +2404,7 @@ class App {
   _uniqEmpresas(arr){ const s=new Set(); arr.forEach(l=>{ const k=l.empresaId?('E:'+l.empresaId):('N:'+normCli(l.cliente||'')); if(k!=='N:')s.add(k); }); return s.size; }
   funil(){
     const fL=this.fL, fV=this.fV;
-    const props=fL.filter(l=>l.prop==='SIM');
+    const props=this.fP;
     const nL=this._uniqEmpresas(fL),nP=props.length,nV=fV.length;
     el('k-leads').textContent=nL; el('k-props').textContent=nP;
     el('k-props-c').textContent=fmtBRLc(props.reduce((s,l)=>s+l.valor,0))+' propostos';
@@ -2431,7 +2462,7 @@ class App {
   }
   // ---------- propostas ----------
   propostas(){
-    const props=this.fL.filter(l=>l.prop==='SIM');
+    const props=this.fP;
     const vProp=props.reduce((s,l)=>s+l.valor,0);
     el('k-vprop').textContent=fmtBRLc(vProp);
     el('k-vprop-c').textContent=props.length+' propostas';
@@ -2487,7 +2518,7 @@ class App {
   }
   // ---------- relatório PDF ----------
   pdf(){
-    const fV=this.fV,fL=this.fL,props=fL.filter(l=>l.prop==='SIM');
+    const fV=this.fV,fL=this.fL,props=this.fP;
     const tot=fV.reduce((s,v)=>s+v.valor,0);
     const rec=fV.filter(v=>v.tipo==='R').reduce((s,v)=>s+v.valor,0);
     const pont=fV.filter(v=>v.tipo==='P').reduce((s,v)=>s+v.valor,0);
@@ -2598,7 +2629,7 @@ var _hojeBR=_pz(_hj.getDate())+'/'+_pz(_hj.getMonth()+1)+'/'+_hj.getFullYear();
 var CFG={metas:RAW.metas,dataRef:_hojeBR,dataISO:_hojeISO};
 function paRender(d){
   d=d||{};
-  RAW={leads:d.leads||[],vendas:d.vendas||[],vendidos:d.vendidos||null,eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO,de:d.de||'',ate:d.ate||''};
+  RAW={leads:d.leads||[],vendas:d.vendas||[],vendidos:d.vendidos||null,propostas:d.propostas||null,eventos:d.eventos||[],metas:CFG.metas,dataRef:CFG.dataRef,dataISO:CFG.dataISO,de:d.de||'',ate:d.ate||''};
   try{ if(!app){app=new App();} else {app.setup();} }catch(e){console.error('painel setup',e);}
   try{ el('f-de').value=d.de||'1900-01-01'; el('f-ate').value=d.ate||'2999-12-31'; }catch(e){}
   try{ app.apply(); }catch(e){console.error('painel apply',e);}
