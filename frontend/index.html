@@ -537,8 +537,13 @@ td .up{color:var(--ok);font-weight:700}
       <button class="btn ghost" onclick="fupDecidir('revisar','Sem retorno do lead')">📭 Sem retorno do lead</button>
       <button class="btn ghost" onclick="fupDecidir('revisar','Não conseguiu contato')">📵 Não conseguiu contato</button>
       <button class="btn ghost" onclick="fupDecidir('revisar','Revisão de proposta')">📝 Revisão de proposta</button>
+      <!-- 08/09/2026 -- Léo (relatório FUP, item 5.3): motivo digitado à mão não dava pra
+           agrupar/reportar. Continua texto livre (não trava o consultor), mas agora sempre nasce
+           prefixado com a categoria fixa "Outro:" (ver _fupOutroMotivo()) -- assim os 4 motivos
+           (Sem retorno do lead / Não conseguiu contato / Revisão de proposta / Outro) viram 4
+           buckets discretos e contáveis no histórico, sem precisar de coluna nova no SharePoint. -->
       <div style="display:flex;gap:6px">
-        <input id="fup-motivo-outro" placeholder="Outro motivo..." style="flex:1;padding:8px;border:1px solid #C99AA0;border-radius:8px">
+        <input id="fup-motivo-outro" placeholder="Outro — descreva..." style="flex:1;padding:8px;border:1px solid #C99AA0;border-radius:8px">
         <button class="btn" onclick="_fupOutroMotivo()">OK</button>
       </div>
       <a href="#" onclick="_fupVoltarStep1();return false" style="font-size:12px;color:#8B3A42;font-weight:600">‹ voltar</a>
@@ -3039,7 +3044,7 @@ function _fupAbrirModal(id){
 /* 31/08/2026 — 2º passo do modal: categoria do motivo do novo FUP. */
 function _fupMostrarMotivos(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='none'; if(s2)s2.style.display='flex'; }
 function _fupVoltarStep1(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='flex'; if(s2)s2.style.display='none'; var mi=el('fup-motivo-outro'); if(mi)mi.value=''; }
-function _fupOutroMotivo(){ var mi=el('fup-motivo-outro'); var v=(mi&&mi.value||'').trim(); if(!v){alert('Descreva o motivo.');return;} fupDecidir('revisar',v); }
+function _fupOutroMotivo(){ var mi=el('fup-motivo-outro'); var v=(mi&&mi.value||'').trim(); if(!v){alert('Descreva o motivo.');return;} fupDecidir('revisar','Outro: '+v); }
 function _autoDataVenda(l,era,novoStatus){
   if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
     const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
