@@ -66,9 +66,7 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 #fltbar .flt-g,#fltbar .msel{width:100%}
 #fltbar .flt-g select,#fltbar .flt-g input,#fltbar .msel-btn{min-width:0;width:100%}
 #fltbar #mm-clr{align-self:stretch;text-align:center;margin-top:4px}
-#flt-toggle{position:fixed;top:70px;right:0;z-index:39;white-space:nowrap;background:var(--wd);
-  color:#fff;border-radius:8px 0 0 8px;padding:9px 12px;box-shadow:-2px 2px 10px rgba(0,0,0,.16)}
-#flt-toggle:hover{background:var(--w)}
+#flt-toggle{white-space:nowrap}
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -303,8 +301,6 @@ td .up{color:var(--ok);font-weight:700}
     <h2 id="vtitle">Painel KPI</h2><span id="elevai-src" title="origem dos dados" style="font-size:11px;opacity:.6;margin-left:8px"></span>
     <span id="warnbar" class="warnbar" style="display:none"></span>
     <div class="sp"></div>
-    <!-- 18/08/2026 — botão para recolher/expandir a barra de filtros e ganhar espaço em tela -->
-    <button type="button" class="clr" id="flt-toggle" title="Mostrar/ocultar filtros" onclick="toggleFltBar()">▾ Filtros</button>
     <div class="flt" id="fltbar">
       <div class="flt-period">
         <span class="flt-lbl">Período</span>
@@ -332,7 +328,11 @@ td .up{color:var(--ok);font-weight:700}
     </div>
     <!-- 18/08/2026 — botões de ação agrupados (antes: PDF ficava sozinho lá embaixo no banner do
          Painel, e Atualizar/Automação aqui em cima, separados — pedido do Léo p/ ficarem próximos) -->
+    <!-- 08/09/2026 — Léo: botão de Filtros estava com position:fixed, sobrepondo outras faixas da
+         tela em certas larguras (o .top pode quebrar em 2 linhas e o fixed não sabia disso). Volta
+         a ficar no fluxo normal, agrupado com os outros botões de ação (pedido dele). -->
     <div class="actions">
+      <button type="button" class="clr" id="flt-toggle" title="Mostrar/ocultar filtros" onclick="toggleFltBar()">▾ Filtros</button>
       <button class="clr" id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
       <button class="clr" id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
       <button class="clr" id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
