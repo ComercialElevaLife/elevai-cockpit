@@ -262,31 +262,16 @@ td .up{color:var(--ok);font-weight:700}
             </div>
           </div>
         </div>
-        <div class="navgroup" id="navgroup-marketing">
-          <button type="button" class="subitem" onclick="toggleSubGroup('marketing')"><span class="ic">📣</span><span class="lbl">Marketing</span><span class="caret">▸</span></button>
-          <div class="subnav" id="subnav-marketing">
-            <button class="subitem" data-v="mkt-novas"><span class="ic">🆕</span><span class="lbl">Novas Campanhas</span></button>
-            <button class="subitem" data-v="mkt-ativas"><span class="ic">📢</span><span class="lbl">Campanhas Ativas</span></button>
-          </div>
-        </div>
       </div>
     </div>
-    <div class="navgroup toplvl" id="navgroup-operacoes">
-      <button type="button" class="navgroup-btn" onclick="toggleTopGroup('operacoes')"><span class="ic">🧩</span><span class="lbl">Operações</span><span class="caret">▸</span></button>
-      <div class="subnav" id="subnav-operacoes">
-        <!-- 20/08/2026 — Painel de Implantação de Serviços (sistema à parte, feito pelo Cristiano —
-             não portado pra cá). Antes era só um link em nova aba; agora, a pedido do Léo, embutido
-             via iframe igual o BI de Ginástica Laboral. Futuramente precisa existir uma conexão real:
-             quando uma oportunidade vira VENDIDA no CRM, isso deve abrir um novo processo de
-             implantação lá. Ver nota em elevai-backlog-melhorias.md. -->
-        <button class="subitem" data-v="op-implant"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></button>
-        <button class="subitem" data-v="op-ergo"><span class="ic">🧍</span><span class="lbl">Ergonomia</span></button>
-        <button class="subitem" data-v="op-fisio"><span class="ic">💆</span><span class="lbl">Fisioterapia</span></button>
-        <button class="subitem" data-v="op-gl"><span class="ic">🤸</span><span class="lbl">Ginástica Laboral</span></button>
-        <button class="subitem" data-v="op-enf"><span class="ic">💉</span><span class="lbl">Enfermagem do Trabalho</span></button>
-        <button class="subitem" data-v="op-med"><span class="ic">🩺</span><span class="lbl">Medicina do Trabalho</span></button>
-        <button class="subitem" data-v="op-masso"><span class="ic">💆‍♀️</span><span class="lbl">Massoterapia</span></button>
-      </div>
+    <div class="navgroup toplvl" id="navgroup-implant">
+      <!-- 08/09/2026 — Operações (Ergonomia/Fisioterapia/Ginástica Laboral/Enfermagem/Medicina/
+           Massoterapia) removido do Cockpit a pedido do Léo: fora do escopo de Novas Receitas,
+           eram placeholders/iframes sem lógica própria. Implantação de Serviços ficou como acesso
+           rápido (não é mais um grupo) porque toda venda nova devia virar uma implantação nova —
+           por ora é só o link/iframe pro sistema do Cristiano; integração nativa fica pra depois
+           (ver motor-novas-receitas.md). -->
+      <button type="button" class="navgroup-btn" data-v="op-implant"><span class="ic">🚀</span><span class="lbl">Implantação de Serviços</span></button>
     </div>
     <!-- 20/08/2026 — Ajuda ao Usuário: área própria, fora de Novas Receitas/Operações, pois o Manual
          é do sistema todo, não de uma área específica. -->
@@ -750,28 +735,13 @@ td .up{color:var(--ok);font-weight:700}
   </div>
   </section>
 
-  <!-- 20/08/2026 — placeholders de Marketing e Operações. Sem dados/CRUD ainda; entram por blocos,
-       conforme o Léo for definindo o que cada área precisa. -->
-  <section class="view" id="view-mkt-novas" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">🆕</span>
-      <h2>Novas Campanhas</h2>
-      <p>Em construção. Aqui você vai poder planejar e criar campanhas novas de marketing.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
-  <section class="view" id="view-mkt-ativas" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">📢</span>
-      <h2>Campanhas Ativas</h2>
-      <p>Em construção. Aqui você vai acompanhar as campanhas de marketing em andamento.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
   <section class="view" id="view-op-implant" hidden>
-    <!-- 20/08/2026 — Painel de Implantação de Serviços do Cristiano, embutido via iframe (mesmo
-         padrão do BI de Ginástica Laboral). Sistema à parte — não foi portado, só passou a
-         aparecer dentro do Cockpit. -->
+    <!-- 08/09/2026 — único item mantido de Operações: toda venda nova devia virar uma implantação
+         nova, então fica como acesso rápido pro sistema do Cristiano (iframe, não portado) até
+         existir integração nativa Cockpit→Implantação (ver motor-novas-receitas.md). Marketing e
+         o resto de Operações (Ergonomia/Fisioterapia/Ginástica Laboral/Enfermagem/Medicina/
+         Massoterapia) saíram do Cockpit a pedido do Léo — eram placeholders/iframes sem lógica
+         própria. -->
     <div class="wrap" style="max-width:none">
       <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
         <h2 style="margin:0;font-size:16px">🚀 Implantação de Serviços</h2>
@@ -782,62 +752,6 @@ td .up{color:var(--ok);font-weight:700}
       </div>
       <div style="font-size:11px;color:var(--mut);margin-top:8px">Se a tela não aparecer aqui (alguns sites bloqueiam exibição embutida), use "Abrir em nova aba" acima.</div>
     </div>
-  </section>
-  <section class="view" id="view-op-ergo" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">🧍</span>
-      <h2>Ergonomia</h2>
-      <p>Em construção. Área de Operações — Ergonomia.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
-  <section class="view" id="view-op-gl" hidden>
-    <!-- 20/08/2026 — BI de Ginástica Laboral embutido via iframe (sistema vivo, feito à parte,
-         com upload de planilha/SharePoint próprio). Não foi portado pra cá: continua rodando
-         no Netlify dele, só passou a aparecer dentro do Cockpit. Se o site bloquear exibição
-         embutida (X-Frame-Options), o aviso abaixo do quadro orienta abrir em nova aba. -->
-    <div class="wrap" style="max-width:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-        <h2 style="margin:0;font-size:16px">🤸 Ginástica Laboral · BI</h2>
-        <a href="https://elevalife-ginastica-laboral.netlify.app/" target="_blank" rel="noopener" class="clr" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Abrir em nova aba</a>
-      </div>
-      <div style="position:relative;width:100%;height:78vh;min-height:520px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff">
-        <iframe src="https://elevalife-ginastica-laboral.netlify.app/" title="BI Ginástica Laboral" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
-      </div>
-      <div style="font-size:11px;color:var(--mut);margin-top:8px">Se a tela não aparecer aqui (alguns sites bloqueiam exibição embutida), use "Abrir em nova aba" acima.</div>
-    </div>
-  </section>
-  <section class="view" id="view-op-fisio" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">💆</span>
-      <h2>Fisioterapia</h2>
-      <p>Em construção. Área de Operações — Fisioterapia.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
-  <section class="view" id="view-op-enf" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">💉</span>
-      <h2>Enfermagem do Trabalho</h2>
-      <p>Em construção. Área de Operações — Enfermagem do Trabalho.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
-  <section class="view" id="view-op-med" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">🩺</span>
-      <h2>Medicina do Trabalho</h2>
-      <p>Em construção. Área de Operações — Medicina do Trabalho.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
-  </section>
-  <section class="view" id="view-op-masso" hidden>
-    <div class="wrap"><div class="placeholder-view">
-      <span class="ic">💆‍♀️</span>
-      <h2>Massoterapia</h2>
-      <p>Em construção. Área de Operações — Massoterapia.</p>
-      <span class="tag">Em breve</span>
-    </div></div>
   </section>
 </div></div>
 
@@ -2084,19 +1998,18 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
   alert(ok?'Enviado. Confira o canal no Teams.':'Não foi possível enviar (verifique a URL).');}
 
 /* ---- navegacao + binds ---- */
-/* 20/08/2026 — ids das novas telas-placeholder de Marketing/Operações (ElevAI deixando de ser só
-   Comercial). Sem dados ainda: view+título só pra existir no menu; conteúdo entra depois, por bloco. */
-const NOVAS_VIEWS=['mkt-novas','mkt-ativas','op-implant','op-ergo','op-fisio','op-gl','op-enf','op-med','op-masso'];
-const NOVOS_TITULOS={'mkt-novas':'Novas Campanhas','mkt-ativas':'Campanhas Ativas','op-implant':'Implantação de Serviços','op-ergo':'Ergonomia','op-fisio':'Fisioterapia','op-gl':'Ginástica Laboral','op-enf':'Enfermagem do Trabalho','op-med':'Medicina do Trabalho','op-masso':'Massoterapia'};
+/* 08/09/2026 — Marketing e o resto de Operações saíram do Cockpit (fora do escopo de Novas
+   Receitas — ver motor-novas-receitas.md). Só Implantação de Serviços ficou, como acesso rápido. */
+const NOVAS_VIEWS=['op-implant'];
+const NOVOS_TITULOS={'op-implant':'Implantação de Serviços'};
 function toggleTopGroup(id){
-  ['receitas','operacoes','ajuda'].forEach(g=>{
+  ['receitas','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
     el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
   });
 }
 window.toggleTopGroup=toggleTopGroup;
-/* 20/08/2026 — Marketing virou sub-módulo de Novas Receitas (junto de um novo grupo Comercial),
-   conforme correção do Léo. Esses dois grupos aninhados abrem/fecham de forma independente. */
+/* Comercial é sub-módulo de Novas Receitas; abre/fecha independente do grupo pai. */
 function toggleSubGroup(id){
   const el=q('navgroup-'+id); if(el) el.classList.toggle('open');
 }
