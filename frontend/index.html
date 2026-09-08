@@ -947,6 +947,21 @@ function toast(msg){
 }
 window.toast=toast;
 
+/* 08/09/2026 -- Léo (relatório FUP, item 5.2): conflito HTTP 409 isolado observado em
+   testes automatizados (escrita concorrente na mesma linha do SharePoint/Graph). Helper único
+   de PATCH com retry curto -- só para 409 (conflito de concorrência); qualquer outro erro
+   (400/500/rede) segue voltando na 1a tentativa, sem mascarar problema real pro onFail de cada
+   chamador. */
+function _sleep(ms){ return new Promise(function(res){ setTimeout(res,ms); }); }
+async function _patchApiRetry(kind,body,maxTentativas){
+  var tentativas=maxTentativas||3, espera=400, r=null;
+  for(var i=0;i<tentativas;i++){
+    r=await fetch('/api/'+kind,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    if(r.status!==409 || i===tentativas-1) return r;
+    await _sleep(espera); espera*=2;
+  }
+  return r;
+}
 /* ---- persistencia de STATUS na base viva (SharePoint via /api) ----
    persistStatus(kind,spid,novoStatus,onOkLocal,onFail)
    - onOkLocal: callback apos gravar com sucesso (chamador ajusta a UI/copia local)
@@ -962,8 +977,7 @@ async function persistStatus(kind,spid,novoStatus,onOkLocal,onFail){
        data de fechamento (`alteradoEm`) — corrigido em compute()/App.apply()/App.metasMes()
        via o array `filteredLeadsVendidos`/RAW.vendidos. */
     const agora=new Date().toISOString();
-    const r=await fetch('/api/'+kind,{method:'PATCH',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({id:spid,fields:{status:novoStatus}})});
+    const r=await _patchApiRetry(kind,{id:spid,fields:{status:novoStatus}});
     let j=null; try{ j=await r.json(); }catch(e){}
     if(r.ok && j && j.ok){
       const it=(STORE.leads||[]).find(x=>x.__id===spid);
@@ -1414,7 +1428,7 @@ function tkOpen(spid){ const l=_leadBySpid(spid); if(!l){alert('Lead não encont
 async function persistLeadTasks(spid,tasksArr,onOk,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
   try{
-    const r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:spid,fields:{tarefasJson2:JSON.stringify(tasksArr||[])}})});
+    const r=await _patchApiRetry('leads',{id:spid,fields:{tarefasJson2:JSON.stringify(tasksArr||[])}});
     let j=null; try{ j=await r.json(); }catch(e){}
     if(r.ok&&j&&j.ok){ const it=_leadBySpid(spid); if(it){it.tarefasJson2=JSON.stringify(tasksArr||[]); it.tarefasJson=it.tarefasJson2;} DATA_VER++; if(onOk)onOk(); toast('Tarefa salva ✓'); }
     else { toast('Falha ao salvar tarefa — revertido'); if(onFail)onFail(); }
@@ -1424,7 +1438,7 @@ window.persistLeadTasks=persistLeadTasks;
 async function persistLeadFields(spid,fields,onOk,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
   try{
-    const r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:spid,fields:fields})});
+    const r=await _patchApiRetry('leads',{id:spid,fields:fields});
     let j=null; try{ j=await r.json(); }catch(e){}
     if(r.ok&&j&&j.ok){ const it=_leadBySpid(spid); if(it)Object.assign(it,fields); DATA_VER++; if(onOk)onOk(); toast('Dados salvos ✓'); }
     else { toast('Falha ao salvar — revertido'); if(onFail)onFail(); }
@@ -1923,6 +1937,18 @@ async function elevaiCad(ev){
       q('cadForm').reset(); elevaiPropTgl();
       cancelCadEdit();
       await reloadData();
+      /* 08/09/2026 -- Léo (relatório FUP, item 5.1): oportunidade cadastrada já nascendo com
+         Proposta=SIM ou status EM NEGOCIAÇÃO não disparava o ciclo de FUP automático (só
+         disparava em edições posteriores, via saveLead()/drop()/setStatus()). Dispara aqui também,
+         montando o card mapeado direto de STORE.leads (já atualizado pelo reloadData() acima,
+         com _sid carimbado) -- não depende de LEADS/_allLeads(), que só são reconstruídos quando
+         a aba CRM está ativa. _iniciarFup já tem guarda própria contra redisparo. */
+      if(!editId && j.item && j.item.__id && (rec.prop==='SIM' || rec.status==='EM NEGOCIAÇÃO')){
+        try{
+          const _raw=(STORE.leads||[]).find(function(x){return x.__id===j.item.__id;});
+          if(_raw){ _iniciarFup(_mapLead(_raw,_raw._sid),'cadastro'); }
+        }catch(e){}
+      }
     }else{
       msg.style.color='#B23A48'; msg.textContent='Erro: '+(j.error||('HTTP '+r.status))+'. Verifique se a base já foi publicada.';
     }
