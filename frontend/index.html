@@ -2898,12 +2898,9 @@ function _histAppend(l,texto){
   if(arr.length>50)arr=arr.slice(0,50);
   return JSON.stringify(arr);
 }
-function _logStatus(l,era,novo){
-  var novoHist=_histAppend(l,'Status: '+(era||'—')+' → '+novo);
-  l.histEventosJson=novoHist;
-  var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;}); if(raw)raw.histEventosJson=novoHist;
-  if(window.persistLeadFields)window.persistLeadFields(l.spid,{histEventosJson:novoHist},function(){},function(){});
-}
+/* 08/09/2026 — _logStatus() foi removida daqui: ver _efeitosStatus()/_aplicarEfeitosStatus(),
+   perto de _reativarSeNecessario (linha ~3090), pra entender por quê (PATCHes concorrentes
+   independentes na mesma linha do SharePoint causavam 409 silenciosos). */
 function _diffLabel(l,f){
   var map=[['cons','Consultor'],['serv','Serviço'],['valor','Valor'],['prop','Proposta'],['tc','Cliente'],['valorFechamento','Valor de fechamento']];
   var ch=[];
@@ -3045,28 +3042,14 @@ function _fupAbrirModal(id){
 function _fupMostrarMotivos(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='none'; if(s2)s2.style.display='flex'; }
 function _fupVoltarStep1(){ var s1=el('fup-step1'),s2=el('fup-step2'); if(s1)s1.style.display='flex'; if(s2)s2.style.display='none'; var mi=el('fup-motivo-outro'); if(mi)mi.value=''; }
 function _fupOutroMotivo(){ var mi=el('fup-motivo-outro'); var v=(mi&&mi.value||'').trim(); if(!v){alert('Descreva o motivo.');return;} fupDecidir('revisar','Outro: '+v); }
-function _autoDataVenda(l,era,novoStatus){
-  if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
-    const _dv=(l.alteradoEm||new Date().toISOString()).slice(0,10);
-    l.dataVenda=_dv;
-    if(window.persistLeadFields)window.persistLeadFields(l.spid,{dataVenda:_dv},function(){},function(){});
-  }
-}
-/* 31/08/2026 — Léo: "se eu coloquei para em negociação o status, proposta enviada precisa
-   automaticamente ir para o sim, e o campo envio precisa ir para a data de hoje." Entrar em EM
-   NEGOCIAÇÃO (arrasto ou seletor) implica que a proposta já foi enviada — mesmo raciocínio do
-   fluxo automático de FUP (ver _iniciarFup), só que aqui cobre TODA entrada em EM NEGOCIAÇÃO,
-   inclusive quando o lead já tem um FUP em andamento (_iniciarFup teria bloqueado por causa do
-   guard de fupSeq, mas Proposta/Envio precisam ser corrigidos de qualquer forma). Só mexe se
-   `prop` ainda não era SIM — não sobrescreve um envio já registrado antes. Best-effort, igual
-   _autoDataVenda: não bloqueia nem reverte o resto do fluxo se falhar. */
-function _autoProposta(l,era,novoStatus){
-  if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&l.prop!=='SIM'){
-    const _hoje=new Date().toISOString().slice(0,10);
-    l.prop='SIM'; l.envio=l.envio||_hoje;
-    if(window.persistLeadFields)window.persistLeadFields(l.spid,{prop:'SIM',envio:l.envio},function(){},function(){});
-  }
-}
+/* 08/09/2026 — _autoDataVenda()/_autoProposta() foram removidas daqui: cada uma disparava seu
+   próprio PATCH independente (best-effort, onFail vazio) em paralelo com _logStatus()/_iniciarFup()/
+   _reativarSeNecessario() na MESMA linha do SharePoint — o Graph não faz merge de PATCHes
+   concorrentes no mesmo item (mesmo em campos diferentes), então uma dessas gravações quase
+   sempre perdia a corrida (409) e falhava em silêncio (ex.: Proposta? continuava NÃO depois de
+   arrastar pra EM NEGOCIAÇÃO). A lógica de ambas foi incorporada em _efeitosStatus(), que calcula
+   tudo isso (dataVenda/prop/envio) junto com histórico/FUP/reativação num ÚNICO PATCH — ver
+   _efeitosStatus()/_aplicarEfeitosStatus() logo abaixo, perto de _reativarSeNecessario. */
 /* 27/08/2026 — Léo identificou que reativar um lead precisa "resetar o relógio": a data de
    entrada (dt) tem que virar HOJE, senão o lead reativado continua contando com uma data de
    entrada antiga (às vezes anos atrás) nos filtros de período — não reflete que ele voltou a
@@ -3087,20 +3070,95 @@ function _dadosReativacao(l){
 function _precisaReativarData(l,era,novoStatus){
   return l.inativo==='SIM' || ((era==='PERDIDA'||era==='PAUSADA') && novoStatus!==era);
 }
-/* Aplica o reset de data (se precisar) e só depois chama depoisCb -- depoisCb sempre roda, precise
-   ou não reativar, pra quem chama não duplicar o render()/openDrawer() dos dois caminhos. */
-function _reativarSeNecessario(l,precisa,depoisCb){
-  if(!precisa){ depoisCb(); return; }
-  var _rd=_dadosReativacao(l);
-  persistLeadFields(l.spid,{inativo:'',dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs},function(){
-    l.inativo=''; l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs;
+/* 08/09/2026 — Léo revisou o teste da Caldic (reativar e voltar pra EM NEGOCIAÇÃO) e reportou 3
+   falhas ao mesmo tempo: Proposta? continuava NÃO, Histórico ficou em branco mesmo com
+   Observações preenchida, e o FUP 1 não "subiu". Causa raiz: drop()/setStatus() disparavam
+   VÁRIOS PATCHes independentes e concorrentes pro MESMO item do SharePoint a partir do mesmo
+   evento (a antiga _autoDataVenda + _autoProposta + _logStatus + _iniciarFup +
+   _reativarSeNecessario — cada uma com seu próprio fetch, sem esperar uma a outra). O
+   Graph/SharePoint não faz merge de PATCHes concorrentes na mesma linha (mesmo em campos
+   diferentes): quem perde a corrida volta 409, e várias dessas chamadas tinham onFail vazio
+   (function(){}) — a falha era engolida em silêncio, o campo nunca era salvo no servidor, mesmo
+   o card já mostrando a mudança na tela (só otimista, na memória, até o próximo F5).
+   _efeitosStatus() calcula TODOS os efeitos derivados de uma troca de status num só objeto (sem
+   gravar nada) e _aplicarEfeitosStatus() manda tudo isso num ÚNICO PATCH — sem corrida entre
+   chamadas nossas, e com um onFail de verdade (avisa e não deixa nada "meio aplicado" na tela:
+   só mexe em `l`/STORE.leads DEPOIS do PATCH confirmar). Também aproveitei pra registrar a
+   reativação no Histórico, que não acontecia (por isso "Observações preenchida, Histórico em
+   branco" no caso da Caldic). */
+function _efeitosStatus(l,era,novoStatus){
+  var fields={}, aviso=null, novaTarefa=null, iniciouFup=false, mudou=false;
+  var histAtual=l.histEventosJson;
+  function hist(txt){
+    mudou=true;
+    var arr; try{ arr=JSON.parse(histAtual||'[]'); }catch(e){ arr=[]; }
+    if(!Array.isArray(arr))arr=[];
+    arr.unshift({ts:new Date().toISOString(),texto:txt,por:'(você)'});
+    if(arr.length>50)arr=arr.slice(0,50);
+    histAtual=JSON.stringify(arr);
+  }
+  if(era!==novoStatus)hist('Status: '+(era||'—')+' → '+novoStatus);
+  if(novoStatus==='VENDIDA'&&era!=='VENDIDA'&&!l.dataVenda){
+    fields.dataVenda=(l.alteradoEm||new Date().toISOString()).slice(0,10); mudou=true;
+  }
+  if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&l.prop!=='SIM'){
+    var _hoje=new Date().toISOString().slice(0,10);
+    fields.prop='SIM'; fields.envio=l.envio||_hoje; mudou=true;
+  }
+  if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'){
+    if(l.fupSeq){
+      aviso='FUP já em andamento (FUP '+l.fupSeq+') — ciclo não reiniciado nesta oportunidade.';
+    } else {
+      iniciouFup=true;
+      hist('Entrou em EM NEGOCIAÇÃO — sub-etapa FUP iniciada, FUP 1 agendado automaticamente');
+      novaTarefa=_buildAutoTask(l,'FUP 1');
+      fields.subEtapa='FUP'; fields.fupSeq=1;
+      fields.tarefasJson2=JSON.stringify(_parseTasks(l).concat([novaTarefa]));
+    }
+  }
+  var precisaReativar=_precisaReativarData(l,era,novoStatus);
+  if(precisaReativar){
+    var _rd=_dadosReativacao(l);
+    hist('Reativado — data de entrada atualizada para '+_rd.dt+(l.dt?' (data de entrada anterior: '+l.dt+')':''));
+    fields.inativo=''; fields.dt=_rd.dt; fields.y=_rd.y; fields.m=_rd.m; fields.obs=_rd.obs;
+  }
+  if(mudou)fields.histEventosJson=histAtual;
+  return {fields:fields,aviso:aviso,novaTarefa:novaTarefa,iniciouFup:iniciouFup,precisaReativar:precisaReativar,mudou:mudou};
+}
+/* Manda _efeitosStatus() num único PATCH e só depois chama afterCb (render/openDrawer) — precise
+   ou não mudar algo além do status em si, afterCb sempre roda (mesmo contrato do antigo
+   _reativarSeNecessario, pra quem chama não duplicar o render()/openDrawer() dos dois caminhos). */
+function _aplicarEfeitosStatus(l,era,novoStatus,afterCb){
+  var efeito=_efeitosStatus(l,era,novoStatus), fields=efeito.fields, id=l.id;
+  if(!efeito.mudou){ afterCb(); return; }
+  persistLeadFields(l.spid,fields,function(){
+    Object.assign(l,fields);
+    if(efeito.iniciouFup)l.tarefasJson=fields.tarefasJson2;
     var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-    if(raw){ raw.inativo=''; raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; }
-    if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
-    if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+' — data de entrada atualizada para hoje.');
+    if(raw){
+      Object.assign(raw,fields);
+      if(efeito.iniciouFup){ raw.tarefasJson2=fields.tarefasJson2; raw.tarefasJson=fields.tarefasJson2; }
+    }
+    if(efeito.iniciouFup){
+      tasks[id]=_parseTasks(l);
+      scheduleTask(id,tasks[id].length-1,true);
+      if(typeof toast==='function')toast('📌 FUP 1 agendado para '+efeito.novaTarefa.data.split('-').reverse().join('/'));
+    }
+    if(efeito.precisaReativar){
+      if(!LEADS.some(function(x){return x.id===l.id;}))LEADS.push(l);
+      if(typeof toast==='function')toast('Oportunidade reativada em '+l.status+' — data de entrada atualizada para hoje.');
+    }
+    if(efeito.aviso&&typeof toast==='function')toast(efeito.aviso);
+    if(novoStatus==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)){
+      if(typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
+      openDrawer(id);
+    }
     DATA_VER++;
-    depoisCb();
-  },function(){ depoisCb(); });
+    afterCb();
+  },function(){
+    if(typeof toast==='function')toast('Falha ao salvar alterações automáticas (proposta/histórico/FUP/reativação) — tente novamente.');
+    afterCb();
+  });
 }
 /* 25/08/2026 — arrastar PRA FORA da coluna 🗄 REATIVAÇÃO cai aqui igual qualquer outro drop entre
    colunas normais: além de mudar o status (comportamento de sempre), também limpa `inativo` se a
@@ -3114,8 +3172,8 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   if(!l)return;
   const era=l.status, eraMan=manual[l.id];
   const statusChanged=(era!==status);
-  const reactivateIfNeeded=function(){
-    _reativarSeNecessario(l,_precisaReativarData(l,era,status),function(){ render(); if(curId===l.id)openDrawer(l.id); });
+  const aplicarEfeitos=function(){
+    _aplicarEfeitosStatus(l,era,status,function(){ render(); if(curId===l.id)openDrawer(l.id); });
   };
   if(statusChanged){
     l.status=status; manual[l.id]=status;
@@ -3123,20 +3181,15 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
-        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,status); _autoProposta(l,era,status); _logStatus(l,era,status);
-          /* 31/08/2026 — Léo: "precisamos ter a opção de marcando como proposta enviada e
-             arrastando o card" — arrastar pra EM NEGOCIAÇÃO também dispara o fluxo automático de
-             FUP (sub-etapa FUP + tarefa "FUP 1"), não só marcar Proposta=SIM no saveLead(). */
-          if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO')_iniciarFup(l,'status');
-          if(status==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)){
-            if(typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
-            openDrawer(l.id);
-          }
-          reactivateIfNeeded(); },
+        /* 08/09/2026 — os efeitos automáticos (Proposta/Envio, Histórico, FUP 1, reativação de
+           data) agora vão TODOS num único PATCH via _aplicarEfeitosStatus() — ver comentário ali
+           perto de _reativarSeNecessario (evita PATCHes concorrentes na mesma linha do
+           SharePoint, que causavam 409 silenciosos). */
+        function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; aplicarEfeitos(); },
         function(){ l.status=era; if(eraMan===undefined)delete manual[l.id]; else manual[l.id]=eraMan; render(); if(curId===l.id)openDrawer(l.id); });
-    } else { reactivateIfNeeded(); }
+    } else { aplicarEfeitos(); }
   } else {
-    reactivateIfNeeded();
+    aplicarEfeitos();
   }
 }
 /* 25/08/2026 — arrastar PRA DENTRO da coluna 🗄 REATIVAÇÃO: inativa e congela o status de origem,
@@ -3486,17 +3539,14 @@ function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);ren
    pra `inativo`, agora `status`/`alteradoEm`/`alteradoPor` também sincronizam pro STORE.leads cru. */
 function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
-      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)'; _autoDataVenda(l,era,v); _autoProposta(l,era,v); _logStatus(l,era,v);
+      /* 08/09/2026 — mesma correção do drop(): todos os efeitos automáticos (Proposta/Envio,
+         Histórico, FUP 1, reativação de data) vão num único PATCH via _aplicarEfeitosStatus() —
+         ver comentário perto de _reativarSeNecessario. Trocar o status pelo seletor do drawer
+         passa a ter exatamente o mesmo comportamento do arrasto no Kanban. */
+      function(){ l.alteradoEm=new Date().toISOString(); l.alteradoPor='(você)';
         var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-        if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; if(l.dataVenda)raw.dataVenda=l.dataVenda; }
-        /* 31/08/2026 — mesmo gatilho do drop(): trocar o status pelo seletor do drawer também
-           conta como "entrou em EM NEGOCIAÇÃO" pro fluxo automático de FUP. */
-        if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO')_iniciarFup(l,'status');
-        if(v==='EM NEGOCIAÇÃO'&&era!=='EM NEGOCIAÇÃO'&&_faltaFase2(l)&&typeof toast==='function')toast('Oportunidade em negociação — complete os dados comerciais no card.');
-        /* 08/09/2026 — Léo: trocar o status pelo seletor do drawer também precisa reativar a data
-           quando sai de PERDIDA/PAUSADA (mesma regra do drop(), ver _precisaReativarData) -- antes
-           esse caminho não tinha reativação nenhuma. */
-        _reativarSeNecessario(l,_precisaReativarData(l,era,v),function(){ if(curId===id)openDrawer(id); render(); }); },
+        if(raw){ raw.status=l.status; raw.alteradoEm=l.alteradoEm; raw.alteradoPor=l.alteradoPor; }
+        _aplicarEfeitosStatus(l,era,v,function(){ if(curId===id)openDrawer(id); render(); }); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
 function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
@@ -3552,14 +3602,17 @@ function toggleInativoLead(id){
   if(!l)return;
   var novo=(l.inativo==='SIM')?'':'SIM';
   /* 27/08/2026 — mesma regra do drop() (ver _dadosReativacao acima): reativar pelo botão do
-     drawer também tem que atualizar a data de entrada (dt) para hoje, guardando a anterior em obs. */
+     drawer também tem que atualizar a data de entrada (dt) para hoje, guardando a anterior em obs.
+     08/09/2026 — Léo (revisão do caso Caldic): faltava registrar isso no Histórico também (ficava
+     só em Observações) — mesma correção aplicada em _efeitosStatus() pro drop()/setStatus(). */
   var _rd=(novo==='')?_dadosReativacao(l):null;
-  var fields=_rd?{inativo:novo,dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs}:{inativo:novo};
+  var _hist=_rd?_histAppend(l,'Reativado — data de entrada atualizada para '+_rd.dt+(l.dt?' (data de entrada anterior: '+l.dt+')':'')):null;
+  var fields=_rd?{inativo:novo,dt:_rd.dt,y:_rd.y,m:_rd.m,obs:_rd.obs,histEventosJson:_hist}:{inativo:novo};
   persistLeadFields(l.spid,fields,function(){
     l.inativo=novo;
-    if(_rd){ l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs; }
+    if(_rd){ l.dt=_rd.dt; l.y=_rd.y; l.m=_rd.m; l.obs=_rd.obs; l.histEventosJson=_hist; }
     var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});
-    if(raw){ raw.inativo=novo; if(_rd){ raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; } }
+    if(raw){ raw.inativo=novo; if(_rd){ raw.dt=_rd.dt; raw.y=_rd.y; raw.m=_rd.m; raw.obs=_rd.obs; raw.histEventosJson=_hist; } }
     /* 25/08/2026 — mesmo ajuste de LEADS que drop()/dropInativar() fazem: o botão do drawer também
        precisa entrar/sair de LEADS na hora, senão o card só reflete a mudança na coluna 🗄
        REATIVAÇÃO (que sempre recalcula do zero) e fica desatualizado nas 5 colunas de status
