@@ -2471,15 +2471,21 @@ class App {
     el('k-tvenda').textContent=fmtBRLc(this.fV.length?vT/this.fV.length:0);
     const dias=props.map(l=>l.dias).filter(d=>d!==null&&d>=0).sort((a,b)=>a-b);
     el('k-dias').textContent=dias.length?dias[Math.floor(dias.length/2)]+' dias':'—';
-    const g={};props.forEach(l=>{const k=l.dt+'|'+(l.cliente||'').toLowerCase()+'|'+(l.serv||'')+'|'+(l.nome||'').toLowerCase();(g[k]=g[k]||[]).push(l);});
+    /* 08/09/2026 -- Leo: o agrupamento de "propostas multiplas no mesmo dia" usava a Data de
+       Entrada (dt) do lead como o "dia" de referencia -- mesmo tipo de base errada que o indicador
+       geral de Envio Proposta (ja corrigido acima, via this.fP). Passa a usar a Data de Envio
+       (fallback Entrada só quando Envio nao estiver preenchido), pra bater com o "dia que a
+       proposta foi de fato enviada", nao o dia que o lead entrou. */
+    const _envioOf=l=>l.envio||l.dt;
+    const g={};props.forEach(l=>{const k=_envioOf(l)+'|'+(l.cliente||'').toLowerCase()+'|'+(l.serv||'')+'|'+(l.nome||'').toLowerCase();(g[k]=g[k]||[]).push(l);});
     const multi=Object.values(g).filter(a=>a.length>1);
     this.multi=multi;
     let h='';
     if(multi.length){
-      h='<table class="dt"><thead><tr><th>Data</th><th>Empresa</th><th>Contato</th><th>Serviço</th><th class="r">Propostas</th><th class="r">Valor total</th><th>Tipos</th></tr></thead><tbody>';
+      h='<table class="dt"><thead><tr><th>Envio</th><th>Empresa</th><th>Contato</th><th>Serviço</th><th class="r">Propostas</th><th class="r">Valor total</th><th>Tipos</th></tr></thead><tbody>';
       multi.sort((a,b)=>b.reduce((s,l)=>s+l.valor,0)-a.reduce((s,l)=>s+l.valor,0)).forEach((a,i)=>{
         const tipos=[...new Set(a.map(l=>l.tipo))].map(t=>`<span class="tag ${t==='P e R'?'PR':t}">${t}</span>`).join(' ');
-        h+=`<tr style="cursor:pointer" onclick="app.showMulti(${i})"><td>${dBR(a[0].dt)}</td><td>${a[0].cliente}</td><td>${a[0].nome||''}</td><td>${a[0].serv}</td><td class="r">${a.length}</td><td class="r">${fmtBRL(a.reduce((s,l)=>s+l.valor,0))}</td><td>${tipos}</td></tr>`;
+        h+=`<tr style="cursor:pointer" onclick="app.showMulti(${i})"><td>${dBR(_envioOf(a[0]))}</td><td>${a[0].cliente}</td><td>${a[0].nome||''}</td><td>${a[0].serv}</td><td class="r">${a.length}</td><td class="r">${fmtBRL(a.reduce((s,l)=>s+l.valor,0))}</td><td>${tipos}</td></tr>`;
       });
       h+='</tbody></table>';
     } else h='<div class="empty">Nenhuma conta com propostas múltiplas no período/filtros selecionados.</div>';
@@ -2489,7 +2495,7 @@ class App {
     top.forEach(l=>{h2+=`<tr><td>${dBR(l.envio)}</td><td>${l.cliente}</td><td>${l.serv}</td><td>${l.cons}</td><td><span class="tag ${l.tipo==='P e R'?'PR':l.tipo}">${l.tipo}</span></td><td class="r">${fmtBRL(l.valor)}</td></tr>`;});
     el('tb-top').innerHTML=h2+'</tbody></table>';
   }
-  showMulti(i){const a=this.multi[i];this.showModal('Propostas múltiplas — '+a[0].cliente,dBR(a[0].dt)+' · contato '+(a[0].nome||'—'),a,LEAD_COLS);}
+  showMulti(i){const a=this.multi[i];this.showModal('Propostas múltiplas — '+a[0].cliente,dBR(a[0].envio||a[0].dt)+' · contato '+(a[0].nome||'—'),a,LEAD_COLS);}
   // ---------- eventos ----------
   eventos(){
     const evKey=s=>{const m=/^(\d{1,2})\/(\d{4})$/.exec((s||'').trim());return m?Number(m[2])*100+Number(m[1]):null;};
@@ -2534,7 +2540,7 @@ class App {
       linhasMes+=`<tr><td>${this.labels[i]}</td><td class="r">${lm}</td><td class="r">${pm}</td><td class="r">${fmtBRL(vm)}</td><td class="r">${this.semSec?fmtBRL(meta):'—'}</td><td class="r">${this.semSec?fmtPct(vm/meta):'—'}</td></tr>`;
     });
     let multiRows='';
-    (this.multi||[]).forEach(a=>{multiRows+=`<tr><td>${dBR(a[0].dt)}</td><td>${a[0].cliente}</td><td>${a[0].serv}</td><td class="r">${a.length}</td><td class="r">${fmtBRL(a.reduce((s,l)=>s+l.valor,0))}</td></tr>`;});
+    (this.multi||[]).forEach(a=>{multiRows+=`<tr><td>${dBR(a[0].envio||a[0].dt)}</td><td>${a[0].cliente}</td><td>${a[0].serv}</td><td class="r">${a.length}</td><td class="r">${fmtBRL(a.reduce((s,l)=>s+l.valor,0))}</td></tr>`;});
     let topRows='';
     props.filter(l=>l.valor>0).sort((a,b)=>b.valor-a.valor).slice(0,10).forEach(l=>{topRows+=`<tr><td>${dBR(l.envio)}</td><td>${l.cliente}</td><td>${l.serv}</td><td>${l.cons}</td><td class="r">${fmtBRL(l.valor)}</td></tr>`;});
     const w=window.open('','_blank');
@@ -2584,7 +2590,7 @@ td.r,th.r{text-align:right}
 <div class="two"><div>${img('ch-funil')}</div><div>${img('ch-cons')}</div></div>
 <div class="two"><div>${img('ch-fonte')}</div><div>${img('ch-icp')}</div></div>
 <h2>Contas com propostas múltiplas no mesmo dia</h2>
-${multiRows?`<table><thead><tr><th>Data</th><th>Empresa</th><th>Serviço</th><th class="r">Propostas</th><th class="r">Valor total</th></tr></thead><tbody>${multiRows}</tbody></table>`:'<div>Nenhuma no período.</div>'}
+${multiRows?`<table><thead><tr><th>Envio</th><th>Empresa</th><th>Serviço</th><th class="r">Propostas</th><th class="r">Valor total</th></tr></thead><tbody>${multiRows}</tbody></table>`:'<div>Nenhuma no período.</div>'}
 <h2>Top 10 propostas</h2>
 <table><thead><tr><th>Envio</th><th>Empresa</th><th>Serviço</th><th>Consultor</th><th class="r">Valor</th></tr></thead><tbody>${topRows}</tbody></table>
 <h2>Eventos</h2>
