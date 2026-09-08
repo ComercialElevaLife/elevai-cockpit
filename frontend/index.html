@@ -57,7 +57,12 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .msel-btn:hover{border-color:var(--w)}
 /* 18/08/2026 — barra de filtros retrátil: recolhe pra virar um botão só, ganhando espaço em tela
    (pedido do Léo: filtros estáticos ocupando espaço demais + faixa sobrepondo visualmente) */
-.top .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+/* 08/09/2026 -- Léo: mesmo com .top acima de #fltbar (fix anterior), os botões de ação ainda
+   ficavam embaixo do painel nos pixels em que ele cobre -- porque #fltbar é FILHO de .top, não
+   externo a ele: sendo positioned (fixed), ele pinta por cima de qualquer filho não-positioned
+   do MESMO .top, tipo .actions, não importa o z-index de .top. Fix: .actions também vira
+   positioned com z-index maior que o do #fltbar (38), pra vencer essa disputa local. */
+.top .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;position:relative;z-index:39}
 /* 08/09/2026 -- Léo: barra de filtros vira painel lateral direito recolhível (mesmo padrão do
    .drawer de detalhes do lead: position fixed, desliza da direita via transform), em vez de ocupar
    uma faixa horizontal que quebrava em 2 linhas e empurrava o board pra baixo -- objetivo é ganhar
