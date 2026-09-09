@@ -25,20 +25,19 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .brand{padding:22px 20px 14px}
 .brand h1{font-family:'Montserrat Alternates';font-size:26px;margin:0;letter-spacing:.5px}
 .brand small{opacity:.85;font-size:11px;letter-spacing:2px;text-transform:uppercase}
-.nav{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.nav{padding:10px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
 .nav button{all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85;transition:.15s}
 .nav button:hover{background:rgba(255,255,255,.12);opacity:1}
 .nav button.on{background:#fff;color:var(--w);opacity:1;box-shadow:0 4px 14px rgba(0,0,0,.15)}
 .nav .ic{width:20px;text-align:center}
 .side .foot{margin-top:auto;padding:16px 20px;font-size:10.5px;opacity:.8;line-height:1.5;border-top:1px solid rgba(255,255,255,.15)}
 /* content */
-.main{flex:1;min-width:0;display:flex;flex-direction:column}
-/* 08/09/2026 -- Léo: com o painel de filtros (#fltbar) virando overlay fixo cobrindo a tela
-   inteira (top:0..100vh), quando aberto ele cobria os próprios botões de ação (PDF/Excel/
-   Atualizar/Automação/Filtros) que vivem em .top -- ninguém conseguia fechar o painel de volta.
-   Fix: .top passa a ter z-index MAIOR que #fltbar, então a faixa do topo (com os botões) sempre
-   pinta por cima do painel -- o painel fica visualmente "começando" logo abaixo do topo, sem
-   cobrir nada nele. .drawer/.mask (z-index 50) continuam acima de tudo, sem mudança. */
+.main{flex:1;min-width:0;display:flex;flex-direction:column;position:relative}
+/* 09/09/2026 -- Léo: filtros e os botões de relatório (PDF/Excel/Atualizar/Automação) saíram
+   do topo -- viviam como faixa/overlay e cobriam o dashboard quando abertos, três rodadas de
+   ajuste de z-index não resolviam porque o problema era o padrão em si, não um bug de stacking.
+   Tudo isso agora mora no menu lateral esquerdo como mais um grupo expansível (#navgroup-filtros,
+   ver CSS/HTML mais abaixo). .top fica só com o título da view. */
 .top{background:#fff;border-bottom:1px solid var(--ln);padding:14px 22px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:45}
 .top h2{margin:0;font-size:18px;font-weight:700;color:var(--wd)}
 .top .sp{flex:1}
@@ -63,29 +62,24 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .msel{position:relative}
 .msel-btn{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;min-width:120px;text-align:left;display:flex;justify-content:space-between;gap:6px}
 .msel-btn:hover{border-color:var(--w)}
-/* 18/08/2026 — barra de filtros retrátil: recolhe pra virar um botão só, ganhando espaço em tela
-   (pedido do Léo: filtros estáticos ocupando espaço demais + faixa sobrepondo visualmente) */
-/* 08/09/2026 -- Léo: mesmo com .top acima de #fltbar (fix anterior), os botões de ação ainda
-   ficavam embaixo do painel nos pixels em que ele cobre -- porque #fltbar é FILHO de .top, não
-   externo a ele: sendo positioned (fixed), ele pinta por cima de qualquer filho não-positioned
-   do MESMO .top, tipo .actions, não importa o z-index de .top. Fix: .actions também vira
-   positioned com z-index maior que o do #fltbar (38), pra vencer essa disputa local. */
-.top .actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap;position:relative;z-index:39}
-/* 08/09/2026 -- Léo: barra de filtros vira painel lateral direito recolhível (mesmo padrão do
-   .drawer de detalhes do lead: position fixed, desliza da direita via transform), em vez de ocupar
-   uma faixa horizontal que quebrava em 2 linhas e empurrava o board pra baixo -- objetivo é ganhar
-   área de tela por padrão. Zero mudança de JS: toggleFltBar()/updateFltToggle() já alternam a
-   classe .collapsed em #fltbar -- só o que ela significa visualmente mudou. */
-#fltbar{position:fixed;top:var(--fltbar-top,64px);right:0;height:calc(100vh - var(--fltbar-top,64px));width:300px;max-width:92vw;background:#fff;
-  border-left:1px solid var(--ln);box-shadow:-8px 0 26px rgba(0,0,0,.14);z-index:38;
-  flex-direction:column;flex-wrap:nowrap;overflow-y:auto;padding:18px;gap:14px;
-  transform:translateX(0);transition:transform .22s ease,opacity .18s ease;opacity:1}
-#fltbar.collapsed{transform:translateX(100%);opacity:0;pointer-events:none;box-shadow:none}
-#fltbar .flt-period{border-right:none;border-bottom:1px solid var(--ln);padding-right:0;padding-bottom:12px;width:100%}
+/* 09/09/2026 -- Léo: filtros + relatórios agora moram dentro do menu lateral esquerdo, como mais
+   um grupo expansível (#navgroup-filtros) igual aos outros (Novas Receitas/Ajuda). Ao abrir: fecha
+   os outros grupos do menu (toggleTopGroup), o menu alarga (.side.filtros-open, só em telas
+   >=901px) e o conteúdo principal escurece (.main-scrim) pra dar foco -- é reflow de verdade
+   (flex-basis), não overlay por cima de nada, então acabou a disputa de z-index com o dashboard. */
+#fltbar{display:flex;flex-direction:column;gap:12px;width:100%}
+#fltbar .flt-lbl{color:rgba(255,255,255,.7)}
+#fltbar .flt-period{border-right:none;border-bottom:1px solid rgba(255,255,255,.18);padding-right:0;padding-bottom:12px;width:100%}
 #fltbar .flt-g,#fltbar .msel{width:100%}
 #fltbar .flt-g select,#fltbar .flt-g input,#fltbar .msel-btn{min-width:0;width:100%}
 #fltbar #mm-clr{align-self:stretch;text-align:center;margin-top:4px}
-#flt-toggle{white-space:nowrap}
+.navgroup-btn .filtros-badge{background:#fff;color:var(--w);font-size:10px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:6px;line-height:1.4}
+.filtros-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
+.filtros-actions button{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;font-size:11.5px;font-weight:700;padding:9px 6px;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;transition:.15s;font-family:inherit}
+.filtros-actions button:hover{background:rgba(255,255,255,.26)}
+.filtros-actions button:disabled{opacity:.5;cursor:default}
+.main-scrim{position:absolute;inset:0;background:rgba(20,10,12,.5);backdrop-filter:blur(1px);z-index:44;opacity:0;pointer-events:none;transition:opacity .2s ease}
+.main-scrim.on{opacity:1;pointer-events:auto;cursor:pointer}
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -260,6 +254,9 @@ td .up{color:var(--ok);font-weight:700}
   .side.mini .lbl,.side.mini .caret,.side.mini .foot{display:none}
   .side.mini .nav button,.side.mini .subnav .subitem{justify-content:center;gap:0;padding-left:0;padding-right:0}
   .side.mini .nav .subnav{padding-left:0;margin-left:0;border-left:0}
+  /* 09/09/2026 -- menu alarga quando o grupo Filtros abre, só em telas >=901px (no mobile o menu
+     já é a faixa horizontal do topo -- @media(max-width:900px) -- alargar não faz sentido lá). */
+  .side.filtros-open{width:400px;flex-basis:400px}
 }
 #cad-subnav{display:none}
 </style></head>
@@ -272,6 +269,46 @@ td .up{color:var(--ok);font-weight:700}
        Marketing (novo). Operações também é novo. Marketing e Operações entram por enquanto como
        placeholders (pedido do Léo: primeiro a estrutura de menu, o conteúdo entra depois, em blocos). -->
   <nav class="nav">
+    <!-- 09/09/2026 -- Léo: filtros + relatórios (PDF/Excel/Atualizar/Automação) saem do topo e
+         viram mais um grupo do menu lateral -- mesmo padrão de "Novas Receitas"/"Ajuda ao Usuário",
+         só que ao abrir também alarga o menu e escurece o conteúdo principal (toggleFiltrosGroup no
+         JS) pra ficar em foco, sem cobrir nada do dashboard. -->
+    <div class="navgroup toplvl" id="navgroup-filtros">
+      <button type="button" class="navgroup-btn" onclick="toggleFiltrosGroup()"><span class="ic">🔎</span><span class="lbl">Filtros<span class="filtros-badge" id="filtros-badge" hidden>0</span></span><span class="caret">▸</span></button>
+      <div class="subnav" id="subnav-filtros">
+        <div class="flt" id="fltbar">
+          <div class="flt-period">
+            <span class="flt-lbl">Período</span>
+            <div class="flt-period-row">
+              <select id="mm-ano" title="Ano"></select>
+              <select id="mm-mes" title="Mês"><option value="">Ano todo</option></select>
+              <select id="mm-semana" title="Semana" disabled><option value="">Mês todo</option></select>
+              <button type="button" class="flt-chip" id="mm-90">90 dias</button>
+              <button type="button" class="flt-chip" id="mm-all">Histórico</button>
+              <button type="button" class="flt-chip" id="mm-custom">Personalizado</button>
+            </div>
+            <div class="flt-custom-row" id="mm-custom-row" style="display:none">
+              <input type="date" id="mm-de"><span>até</span><input type="date" id="mm-ate">
+            </div>
+          </div>
+          <div class="flt-g"><span class="flt-lbl">Tipo</span><select id="mm-tipo"><option value="">Todos</option><option value="P">Pontual</option><option value="R">Recorrente</option></select></div>
+          <div class="flt-g flt-emp"><span class="flt-lbl">Empresa</span><input id="mm-cli" list="dl-mm-emp" placeholder="Buscar empresa..." autocomplete="off"><datalist id="dl-mm-emp"></datalist></div>
+          <div class="flt-g"><span class="flt-lbl">Unidade</span><select id="mm-uni"><option value="">Todas</option></select></div>
+          <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
+          <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+          <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
+          <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
+          <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
+          <button class="clr" id="mm-clr">Limpar</button>
+        </div>
+        <div class="filtros-actions">
+          <button id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
+          <button id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
+          <button id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
+          <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
+        </div>
+      </div>
+    </div>
     <div class="navgroup toplvl open" id="navgroup-receitas">
       <button type="button" class="navgroup-btn" onclick="toggleTopGroup('receitas')"><span class="ic">💰</span><span class="lbl">Novas Receitas</span><span class="caret">▸</span></button>
       <div class="subnav" id="subnav-receitas">
@@ -316,47 +353,11 @@ td .up{color:var(--ok);font-weight:700}
   <div class="foot">ElevaLife · Ergonomos<br>15 anos elevando pessoas e resultados</div>
 </aside>
 <div class="main">
+  <div class="main-scrim" id="main-scrim" onclick="toggleFiltrosGroup(true)"></div>
   <div class="top">
     <h2 id="vtitle">Painel KPI</h2><span id="elevai-src" title="origem dos dados" style="font-size:11px;opacity:.6;margin-left:8px"></span>
     <span id="warnbar" class="warnbar" style="display:none"></span>
     <div class="sp"></div>
-    <div class="flt" id="fltbar">
-      <div class="flt-period">
-        <span class="flt-lbl">Período</span>
-        <div class="flt-period-row">
-          <select id="mm-ano" title="Ano"></select>
-          <select id="mm-mes" title="Mês"><option value="">Ano todo</option></select>
-          <select id="mm-semana" title="Semana" disabled><option value="">Mês todo</option></select>
-          <button type="button" class="flt-chip" id="mm-90">90 dias</button>
-          <button type="button" class="flt-chip" id="mm-all">Histórico</button>
-          <button type="button" class="flt-chip" id="mm-custom">Personalizado</button>
-        </div>
-        <div class="flt-custom-row" id="mm-custom-row" style="display:none">
-          <input type="date" id="mm-de"><span>até</span><input type="date" id="mm-ate">
-        </div>
-      </div>
-      <div class="flt-g"><span class="flt-lbl">Tipo</span><select id="mm-tipo"><option value="">Todos</option><option value="P">Pontual</option><option value="R">Recorrente</option></select></div>
-      <div class="flt-g flt-emp"><span class="flt-lbl">Empresa</span><input id="mm-cli" list="dl-mm-emp" placeholder="Buscar empresa..." autocomplete="off"><datalist id="dl-mm-emp"></datalist></div>
-      <div class="flt-g"><span class="flt-lbl">Unidade</span><select id="mm-uni"><option value="">Todas</option></select></div>
-      <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
-      <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
-      <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
-      <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
-      <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
-      <button class="clr" id="mm-clr">Limpar</button>
-    </div>
-    <!-- 18/08/2026 — botões de ação agrupados (antes: PDF ficava sozinho lá embaixo no banner do
-         Painel, e Atualizar/Automação aqui em cima, separados — pedido do Léo p/ ficarem próximos) -->
-    <!-- 08/09/2026 — Léo: botão de Filtros estava com position:fixed, sobrepondo outras faixas da
-         tela em certas larguras (o .top pode quebrar em 2 linhas e o fixed não sabia disso). Volta
-         a ficar no fluxo normal, agrupado com os outros botões de ação (pedido dele). -->
-    <div class="actions">
-      <button type="button" class="clr" id="flt-toggle" title="Mostrar/ocultar filtros" onclick="toggleFltBar()">▾ Filtros</button>
-      <button class="clr" id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
-      <button class="clr" id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
-      <button class="clr" id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
-      <button class="clr" id="cfg-btn" title="Configurar automação">⚙ Automação</button>
-    </div>
   </div>
 
   <section class="view" id="view-painel">
@@ -1245,8 +1246,10 @@ function applyF(){
   saveF(); compute(); renderActive();
   updateFltToggle();
 }
-/* 18/08/2026 — recolher/expandir a barra de filtros (#fltbar), pra virar um botão só quando fechada
-   e liberar espaço em tela. Estado (aberto/fechado) fica salvo no localStorage entre sessões. */
+/* 09/09/2026 -- Leo: filtros + relatorios viraram um grupo do menu lateral (#navgroup-filtros) em
+   vez de barra/overlay. toggleFiltrosGroup() abre/fecha esse grupo (fechando os outros, igual aos
+   demais grupos do menu), alarga o menu (.side.filtros-open) e escurece o conteudo principal
+   (#main-scrim) pra dar foco -- fecha sozinho ao clicar fora (no scrim) ou com Esc. */
 function countActiveFiltros(){
   let n=0;
   if(F.preset) n++;
@@ -1263,41 +1266,33 @@ function countActiveFiltros(){
   return n;
 }
 function updateFltToggle(){
-  const bar=q('fltbar'), b=q('flt-toggle'); if(!bar||!b) return;
-  const collapsed=bar.classList.contains('collapsed');
+  const b=q('filtros-badge'); if(!b) return;
   const n=countActiveFiltros();
-  b.textContent=(collapsed?'▸':'▾')+' Filtros'+(n?' ('+n+')':'');
+  b.textContent=n;
+  b.hidden=!n;
 }
-function _posFltBar(){
-  const top=document.querySelector('.top'); if(!top) return;
-  const h=Math.ceil(top.getBoundingClientRect().bottom);
-  document.documentElement.style.setProperty('--fltbar-top', h+'px');
-}
-window.addEventListener('resize', _posFltBar);
-/* 09/09/2026 -- Leo reportou o painel de filtros com um vao/sobreposicao
-   estranha em relacao a faixa do topo, em telas reais (fora do preview).
-   Suspeita: .top pode mudar de altura DEPOIS da 1a medicao (troca da
-   fonte web Montserrat, zoom do navegador, ou o filtro de periodo
-   quebrando/desquebrando linha) e nada recalculava --fltbar-top depois
-   disso. Corrige observando o proprio .top com ResizeObserver -- qualquer
-   mudanca real de tamanho (fonte, zoom, wrap, resize) reposiciona o
-   painel automaticamente, sem depender so do evento 'resize' da janela. */
-try{
-  if('ResizeObserver' in window){
-    const _topEl=document.querySelector('.top');
-    if(_topEl){ new ResizeObserver(_posFltBar).observe(_topEl); }
+function toggleFiltrosGroup(forceClose){
+  const grp=q('navgroup-filtros'); if(!grp) return;
+  const wasOpen=grp.classList.contains('open');
+  if(forceClose===true || wasOpen){
+    grp.classList.remove('open');
+    const rec=q('navgroup-receitas'); if(rec) rec.classList.add('open');
+  } else {
+    toggleTopGroup('filtros');
   }
-}catch(e){}
-if(document.fonts && document.fonts.ready){ document.fonts.ready.then(_posFltBar).catch(function(){}); }
-window.addEventListener('load', _posFltBar);
-function toggleFltBar(force){
-  const bar=q('fltbar'); if(!bar) return;
-  const collapse = force!==undefined ? force : !bar.classList.contains('collapsed');
-  _posFltBar();
-  bar.classList.toggle('collapsed', collapse);
-  try{ localStorage.setItem('elevai_flt_collapsed', collapse?'1':'0'); }catch(e){}
-  updateFltToggle();
+  const open=grp.classList.contains('open');
+  const side=document.querySelector('.side');
+  const scrim=q('main-scrim');
+  if(side) side.classList.toggle('filtros-open', open);
+  if(scrim) scrim.classList.toggle('on', open);
 }
+window.toggleFiltrosGroup=toggleFiltrosGroup;
+document.addEventListener('keydown', function(e){
+  if(e.key==='Escape'){
+    const g=q('navgroup-filtros');
+    if(g && g.classList.contains('open')) toggleFiltrosGroup(true);
+  }
+});
 
 /* ---- RENOVACOES (contratos recorrentes, da base viva /api/contratos) ---- */
 let RNVIEW=[];  /* linhas exibidas (para a acao Renovar por indice) */
@@ -2108,7 +2103,7 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 const NOVAS_VIEWS=['op-implant'];
 const NOVOS_TITULOS={'op-implant':'Implantação de Serviços'};
 function toggleTopGroup(id){
-  ['receitas','ajuda'].forEach(g=>{
+  ['receitas','ajuda','filtros'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
     el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
   });
@@ -2126,6 +2121,11 @@ function bindNav(){
     ['painel','crm','renov','qual','tarefas','cadastro',...NOVAS_VIEWS].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
     q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro',...NOVOS_TITULOS}[v];
     q('fltbar').hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
+    var filtrosGrp=q('navgroup-filtros');
+    if(filtrosGrp){
+      filtrosGrp.hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
+      if(filtrosGrp.classList.contains('open')) toggleFiltrosGroup(true);
+    }
     var grp=q('navgroup-cadastro'); if(grp)grp.classList.toggle('open', v==='cadastro');
     renderActive();
   });
@@ -2183,10 +2183,7 @@ function setChipsOn(which){
     }catch(e){}
   }
   fillFilters(); populateCadDatalists(); populateCodServ();
-  try{
-    const _stored=localStorage.getItem('elevai_flt_collapsed');
-    toggleFltBar(_stored===null ? true : _stored==='1');
-  }catch(e){}
+  updateFltToggle();
   applyPeriod();
 })();
 
