@@ -1274,6 +1274,22 @@ function _posFltBar(){
   document.documentElement.style.setProperty('--fltbar-top', h+'px');
 }
 window.addEventListener('resize', _posFltBar);
+/* 09/09/2026 -- Leo reportou o painel de filtros com um vao/sobreposicao
+   estranha em relacao a faixa do topo, em telas reais (fora do preview).
+   Suspeita: .top pode mudar de altura DEPOIS da 1a medicao (troca da
+   fonte web Montserrat, zoom do navegador, ou o filtro de periodo
+   quebrando/desquebrando linha) e nada recalculava --fltbar-top depois
+   disso. Corrige observando o proprio .top com ResizeObserver -- qualquer
+   mudanca real de tamanho (fonte, zoom, wrap, resize) reposiciona o
+   painel automaticamente, sem depender so do evento 'resize' da janela. */
+try{
+  if('ResizeObserver' in window){
+    const _topEl=document.querySelector('.top');
+    if(_topEl){ new ResizeObserver(_posFltBar).observe(_topEl); }
+  }
+}catch(e){}
+if(document.fonts && document.fonts.ready){ document.fonts.ready.then(_posFltBar).catch(function(){}); }
+window.addEventListener('load', _posFltBar);
 function toggleFltBar(force){
   const bar=q('fltbar'); if(!bar) return;
   const collapse = force!==undefined ? force : !bar.classList.contains('collapsed');
