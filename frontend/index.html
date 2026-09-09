@@ -4009,8 +4009,18 @@ Object.assign(window,{render:render,testTeams:testTeams,closeDrawer:closeDrawer,
   abrirReverterStatus:abrirReverterStatus,cancelarReverterStatus:cancelarReverterStatus,confirmarReverterStatus:confirmarReverterStatus});
 window.CRM={render:crmRender};
 /* ===== Fase C — Nova Oportunidade (ligada à Empresa cadastrada) ===== */
-function _opEmpresas(){ return (window.STORE&&STORE.empresas)||[]; }
-function _opContatos(){ return (window.STORE&&STORE.contatos)||[]; }
+/* 09/09/2026 -- Léo: "o botao de nova oportunidade nao esta linkado com o cadastro de empresa
+   e contatos" -- bug real: STORE e' declarado com `let STORE=...` no script principal (bem acima
+   neste arquivo), e uma variavel `let`/`const` de topo de <script> NAO vira propriedade de
+   `window` (so' `var`/function declarations viram) -- so' fica visivel como identificador global
+   de verdade (compartilhado entre todas as tags <script> classicas da pagina). A guarda
+   `window.STORE && STORE...` abaixo, portanto, dava sempre falso e retornava [] mesmo com STORE
+   cheio (127 empresas, 9 contatos carregados) -- a lista de empresas do modal ficava sempre vazia
+   e nenhuma oportunidade nova conseguia casar com empresa/contato cadastrados. Fix: referenciar
+   STORE direto (mesmo padrao ja usado em renderEmpBucket/_conSegmento/etc, que sempre funcionaram
+   por nao terem essa guarda incorreta). */
+function _opEmpresas(){ return (STORE&&STORE.empresas)||[]; }
+function _opContatos(){ return (STORE&&STORE.contatos)||[]; }
 function _opEmpresaByName(v){ v=(v||'').trim().toLowerCase(); return _opEmpresas().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===v); }
 function opFillDatalists(){
   var dle=el('op-dl-empresas'); if(dle)dle.innerHTML=_opEmpresas().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
