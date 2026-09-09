@@ -25,7 +25,7 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .brand{padding:22px 20px 14px}
 .brand h1{font-family:'Montserrat Alternates';font-size:26px;margin:0;letter-spacing:.5px}
 .brand small{opacity:.85;font-size:11px;letter-spacing:2px;text-transform:uppercase}
-.nav{padding:10px 12px;display:flex;flex-direction:column;gap:4px;overflow-y:auto}
+.nav{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
 .nav button{all:unset;cursor:pointer;padding:11px 14px;border-radius:10px;font-weight:600;font-size:14px;display:flex;align-items:center;gap:10px;color:#fff;opacity:.85;transition:.15s}
 .nav button:hover{background:rgba(255,255,255,.12);opacity:1}
 .nav button.on{background:#fff;color:var(--w);opacity:1;box-shadow:0 4px 14px rgba(0,0,0,.15)}
@@ -62,24 +62,36 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .msel{position:relative}
 .msel-btn{font-family:inherit;font-size:13px;padding:6px 9px;border:1px solid var(--ln);border-radius:8px;background:#fff;color:var(--ink);cursor:pointer;min-width:120px;text-align:left;display:flex;justify-content:space-between;gap:6px}
 .msel-btn:hover{border-color:var(--w)}
-/* 09/09/2026 -- Léo: filtros + relatórios agora moram dentro do menu lateral esquerdo, como mais
-   um grupo expansível (#navgroup-filtros) igual aos outros (Novas Receitas/Ajuda). Ao abrir: fecha
-   os outros grupos do menu (toggleTopGroup), o menu alarga (.side.filtros-open, só em telas
-   >=901px) e o conteúdo principal escurece (.main-scrim) pra dar foco -- é reflow de verdade
-   (flex-basis), não overlay por cima de nada, então acabou a disputa de z-index com o dashboard. */
-#fltbar{display:flex;flex-direction:column;gap:12px;width:100%}
-#fltbar .flt-lbl{color:rgba(255,255,255,.7)}
-#fltbar .flt-period{border-right:none;border-bottom:1px solid rgba(255,255,255,.18);padding-right:0;padding-bottom:12px;width:100%}
+/* 09/09/2026 (v2) -- Léo: "ainda ficou ruim" -- o painel de filtros sai de dentro do menu lateral
+   (ficava lotado, sem identificação clara de cada campo) e vira uma coluna própria (#filtros-pane)
+   ao lado do menu -- que agora começa retraído/só ícones ("menu retrátil e curto", pedido dele).
+   Clicar no ícone de Filtros abre essa coluna (reflow de verdade, sem overlay). Fundo branco (não
+   mais bordô) pra reaproveitar o estilo original de .flt-lbl -- era isso que tinha sumido
+   visualmente quando os campos foram pra dentro do menu escuro. */
+#fltbar{display:flex;flex-direction:column;gap:12px;width:100%;padding:16px 16px 4px}
+#fltbar .flt-period{border-right:none;border-bottom:1px solid var(--ln);padding-right:0;padding-bottom:12px;width:100%}
 #fltbar .flt-g,#fltbar .msel{width:100%}
 #fltbar .flt-g select,#fltbar .flt-g input,#fltbar .msel-btn{min-width:0;width:100%}
 #fltbar #mm-clr{align-self:stretch;text-align:center;margin-top:4px}
 .navgroup-btn .filtros-badge{background:#fff;color:var(--w);font-size:10px;font-weight:800;border-radius:10px;padding:1px 6px;margin-left:6px;line-height:1.4}
-.filtros-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.18)}
-.filtros-actions button{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;font-size:11.5px;font-weight:700;padding:9px 6px;border-radius:8px;background:rgba(255,255,255,.14);color:#fff;transition:.15s;font-family:inherit}
-.filtros-actions button:hover{background:rgba(255,255,255,.26)}
+.filtros-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 16px 16px;padding-top:14px;border-top:1px solid var(--ln)}
+.filtros-actions button{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;font-size:11.5px;font-weight:700;padding:9px 6px;border-radius:8px;background:var(--bg);color:var(--wd);border:1px solid var(--ln);transition:.15s;font-family:inherit}
+.filtros-actions button:hover{background:#fff;border-color:var(--w)}
 .filtros-actions button:disabled{opacity:.5;cursor:default}
 .main-scrim{position:absolute;inset:0;background:rgba(20,10,12,.5);backdrop-filter:blur(1px);z-index:44;opacity:0;pointer-events:none;transition:opacity .2s ease}
 .main-scrim.on{opacity:1;pointer-events:auto;cursor:pointer}
+/* coluna própria dos filtros (ícones | menu | filtros). Cabeçalho em formato de funil/pirâmide
+   invertida (clip-path) -- pedido do Léo: "desenho do filtro em formato de filtro de papel". */
+.filtros-pane{width:0;overflow:hidden;flex-shrink:0;background:#fff;transition:width .22s ease}
+.filtros-pane.open{border-left:1px solid var(--ln);box-shadow:2px 0 14px rgba(0,0,0,.06)}
+.filtros-pane-inner{width:340px;max-width:100%;height:100vh;display:flex;flex-direction:column;overflow-y:auto}
+.filtros-pane-head{background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;padding:16px 20px 22px;clip-path:polygon(0 0,100% 0,86% 100%,14% 100%);display:flex;align-items:center;gap:10px}
+.filtros-pane-head .ic{width:20px;height:20px;flex:0 0 auto;display:flex}
+.filtros-pane-head .ttl{font-weight:800;font-size:15px;letter-spacing:.3px}
+.filtros-pane-close{all:unset;cursor:pointer;margin-left:auto;color:#fff;opacity:.8;font-size:20px;line-height:1;padding:2px 7px;border-radius:6px}
+.filtros-pane-close:hover{opacity:1;background:rgba(255,255,255,.18)}
+@media(min-width:901px){ .filtros-pane.open{width:340px} }
+@media(max-width:900px){ .filtros-pane.open{width:100%} .filtros-pane-inner{width:100%;height:auto} }
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -147,6 +159,7 @@ td .up{color:var(--ok);font-weight:700}
   --txt:#3D2E30; --txt2:#8A7A78; --pos:#3E7B7E; --neg:#B0463F;
   --gap:14px; --radius:12px;
 }#view-painel *{margin:0;padding:0;box-sizing:border-box}#view-painel{font-family:'Montserrat',-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt);line-height:1.5}#view-painel .wrap{max-width:1440px;margin:0 auto;padding:var(--gap)}#view-painel header.top{background:linear-gradient(120deg,var(--azul-900) 0%,#7A3139 70%,var(--azul-700) 100%);color:#fff;padding:18px 24px;border-radius:var(--radius);margin-bottom:var(--gap);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;box-shadow:0 4px 14px rgba(94,42,48,.25)}#view-painel .brand{display:flex;align-items:center;gap:16px}#view-painel .brand img{height:44px}#view-painel .brand .tt h1{font-family:'Montserrat Alternates',sans-serif;font-size:19px;font-weight:700;letter-spacing:.2px}#view-painel .brand .tt .sub{font-size:12px;color:var(--azul-100);font-weight:500}#view-painel .filters{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}#view-painel .fg{display:flex;flex-direction:column;gap:2px}#view-painel .fg label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:rgba(255,255,255,.65);font-weight:600}#view-painel .fg select, #view-painel .fg input[type=date]{padding:6px 9px;border:1px solid rgba(255,255,255,.3);border-radius:6px;background:rgba(255,255,255,.12);color:#fff;font-size:12.5px;font-family:'Montserrat',sans-serif;min-width:105px;color-scheme:dark}#view-painel .fg select option{background:var(--azul-900);color:#fff}#view-painel .btn{background:var(--coral-500);border:none;color:#fff;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;padding:9px 16px;border-radius:6px;cursor:pointer;box-shadow:0 2px 6px rgba(139,58,66,.4);transition:.15s}#view-painel .btn:hover{background:var(--coral-700)}#view-painel .section-title{font-family:'Montserrat Alternates',sans-serif;font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--azul-700);margin:24px 4px 10px;display:flex;align-items:center;gap:10px}#view-painel .section-title::after{content:"";flex:1;height:2px;background:linear-gradient(90deg,var(--azul-300),transparent)}#view-painel .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:var(--gap);margin-bottom:var(--gap)}#view-painel .kpi{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 2px 8px rgba(94,42,48,.08);border-top:3px solid var(--azul-500)}#view-painel .kpi.coral{border-top-color:var(--coral-500)}#view-painel .kpi .lbl{font-size:11px;color:var(--txt2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px;font-weight:600}#view-painel .kpi .val{font-size:24px;font-weight:800;color:var(--azul-900)}#view-painel .kpi .chg{font-size:12px;font-weight:600;color:var(--txt2)}#view-painel .chg.pos{color:var(--pos)}#view-painel .chg.neg{color:var(--neg)}#view-painel .grid{display:grid;gap:var(--gap);margin-bottom:var(--gap)}#view-painel .g2{grid-template-columns:repeat(auto-fit,minmax(420px,1fr))}#view-painel .g3{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}#view-painel .card{background:var(--card);border-radius:var(--radius);padding:16px 20px;box-shadow:0 2px 8px rgba(94,42,48,.08)}#view-painel .card h3{font-family:'Montserrat Alternates',sans-serif;font-size:13.5px;font-weight:700;color:var(--azul-900);margin-bottom:12px}#view-painel .card .note{font-size:11px;color:var(--txt2);margin-top:8px}#view-painel .hint{font-size:10.5px;color:var(--azul-500);font-weight:600;margin-top:6px}#view-painel .ch{position:relative;height:280px}#view-painel .ch.sm{height:230px}#view-painel .ch canvas{cursor:pointer}#view-painel .qrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:var(--gap);margin-bottom:var(--gap)}#view-painel .q{background:var(--card);border-radius:var(--radius);padding:14px 18px;box-shadow:0 2px 8px rgba(94,42,48,.08)}#view-painel .q .t{font-size:11.5px;font-weight:700;color:var(--txt2);margin-bottom:6px}#view-painel .q .v{font-size:17px;font-weight:800;color:var(--azul-900);margin-bottom:6px}#view-painel .q .bar{height:8px;background:#EFE3E4;border-radius:4px;overflow:hidden}#view-painel .q .bar>div{height:100%;border-radius:4px}#view-painel .q .pct{font-size:12px;font-weight:700;margin-top:4px;color:var(--azul-700)}#view-painel table.dt{width:100%;border-collapse:collapse;font-size:12px}#view-painel table.dt th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--azul-300);color:var(--azul-700);font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;white-space:nowrap;font-weight:700}#view-painel table.dt td{padding:7px 10px;border-bottom:1px solid #F6EEEA}#view-painel table.dt tr:hover td{background:#FBF6F2}#view-painel table.dt thead th{position:sticky;background:#fff;z-index:2}#view-painel table.dt thead tr:first-child th{top:0}#view-painel table.dt th.sortable{cursor:pointer;user-select:none}#view-painel table.dt th.sortable:hover{color:var(--azul-900)}#view-painel table.dt tr.filt th{top:30px;padding:3px 6px;border-bottom:1px solid var(--azul-300)}#view-painel table.dt tr.filt input.fin{width:100%;min-width:64px;font-family:'Montserrat',sans-serif;font-size:11px;padding:3px 6px;border:1px solid #E7D8D9;border-radius:5px;background:#FBF6F2;color:var(--txt);text-transform:none;font-weight:500;letter-spacing:0}#view-painel table.dt tr.filt input.fin:focus{outline:none;border-color:var(--coral-500)}#view-painel .ar{font-size:9px;color:var(--coral-500);margin-left:2px}#view-painel .pgnav{display:flex;gap:6px;align-items:center;justify-content:flex-end;padding:12px 2px 2px;font-size:12px;color:var(--txt2);flex-wrap:wrap}#view-painel .pgnav button{background:var(--card);border:1px solid var(--azul-300);color:var(--azul-700);font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;min-width:30px;padding:4px 9px;border-radius:6px;cursor:pointer}#view-painel .pgnav button:hover:not([disabled]){background:var(--coral-500);color:#fff;border-color:var(--coral-500)}#view-painel .pgnav button[disabled]{opacity:.4;cursor:default}#view-painel .mh-save{background:#fff;color:var(--azul-900);border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12px;padding:7px 12px;border-radius:6px;cursor:pointer;margin-right:10px}#view-painel .mh-save:hover{background:var(--coral-100)}#view-painel .stsel{font-family:'Montserrat',sans-serif;font-size:11.5px;font-weight:700;padding:3px 6px;border:1px solid var(--azul-300);border-radius:6px;background:#fff;color:var(--azul-900);cursor:pointer}#view-painel .stsel.man{border-color:var(--coral-500);background:#F3E3E1}#view-painel .btn2{background:transparent;border:1px solid rgba(255,255,255,.5)!important;box-shadow:none!important}#view-painel .btn2:hover{background:rgba(255,255,255,.15)!important}#view-painel .statusgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}#view-painel .stcard{border:1px solid #EadFe0;border-radius:10px;padding:10px 12px;background:#FBF6F2}#view-painel .stl{font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--txt2);font-weight:700}#view-painel .stv{font-size:22px;font-weight:800;color:var(--azul-900);line-height:1.1}#view-painel .stc{font-size:12px;color:var(--azul-700);font-weight:700}#view-painel table.dt td.r, #view-painel table.dt th.r{text-align:right}#view-painel .tag{display:inline-block;padding:1px 8px;border-radius:10px;font-size:10.5px;font-weight:700}#view-painel .tag.R{background:#F0E3E3;color:var(--azul-700)}#view-painel .tag.P{background:#F3E3E1;color:var(--coral-700)}#view-painel .tag.PR{background:#F3EAEA;color:#7d4b8f}#view-painel .tag.st-v{background:#DCECE9;color:#2E5F62}#view-painel .tag.st-p{background:#F3E3E1;color:#B0463F}#view-painel .tag.st-m{background:#F6E7D6;color:#8A5A2B}#view-painel .tag.st-n{background:#EDE1E2;color:#8A7A78}#view-painel .empty{color:var(--txt2);font-size:13px;padding:14px 0;text-align:center}#view-painel footer{font-size:11px;color:var(--txt2);text-align:center;padding:16px 0 26px}#view-painel footer b{color:var(--azul-700)}#view-painel .mask{position:fixed;inset:0;background:rgba(0,40,50,.55);display:none;align-items:flex-start;justify-content:center;z-index:50;padding:2vh 2vw;backdrop-filter:blur(2px)}#view-painel .mask.on{display:flex}#view-painel .modal{background:#fff;border-radius:14px;max-width:none;width:96vw;height:96vh;max-height:96vh;display:flex;flex-direction:column;box-shadow:0 18px 50px rgba(0,40,50,.4);overflow:hidden}#view-painel .modal .mh{background:var(--azul-900);color:#fff;padding:14px 20px;display:flex;justify-content:space-between;align-items:center}#view-painel .modal .mh h4{font-family:'Montserrat Alternates',sans-serif;font-size:15px;font-weight:700}#view-painel .modal .mh .ms{font-size:12px;color:var(--azul-100)}#view-painel .modal .mh button{background:none;border:none;color:#fff;font-size:22px;cursor:pointer;line-height:1}#view-painel .modal .mb{padding:14px 20px;overflow:auto;flex:1}#view-painel .modal .mt{display:flex;gap:18px;flex-wrap:wrap;padding:10px 20px;background:#FBF6F2;border-bottom:1px solid #EDE1E2;font-size:12.5px}#view-painel .modal .mt b{color:var(--azul-900)}@media(max-width:768px){#view-painel .g2, #view-painel .g3{grid-template-columns:1fr}#view-painel .brand img{height:34px}}
+#view-painel header.top{position:sticky;top:0;z-index:45;border-radius:0;margin:calc(var(--gap) * -1) calc(var(--gap) * -1) var(--gap)}
 /* ===== CRM (escopado) ===== */
 #view-crm{--wine:#8B3A42;--deep:#5E2A30;--mid:#A34E56;--soft:#C99AA0;--bg:#F5EFEA;--card:#fff;--txt:#3D2E30;--txt2:#8A7A78;--teal:#3E7B7E}#view-crm *{margin:0;padding:0;box-sizing:border-box}#view-crm{font-family:'Montserrat',-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt)}#view-crm header{background:linear-gradient(120deg,var(--deep),#7A3139 65%,var(--wine));color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}#view-crm header .t h1{font-family:'Montserrat Alternates',sans-serif;font-size:19px}#view-crm header .t .s{font-size:12px;color:#EBD9DB}#view-crm header .b15{display:flex;align-items:baseline;gap:6px;margin-right:8px}#view-crm header .b15 .n{font-size:26px;font-weight:800}#view-crm header .b15 .a{font-size:12px;font-weight:700}#view-crm .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 22px;background:#fff;border-bottom:1px solid #E7D8D9}#view-crm .bar select, #view-crm .bar input{font-family:'Montserrat',sans-serif;font-size:12.5px;padding:6px 9px;border:1px solid var(--soft);border-radius:6px;color:var(--txt);background:#fff}#view-crm .bar label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);font-weight:700;margin-right:3px}#view-crm .btn{background:var(--wine);color:#fff;border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:6px;cursor:pointer}#view-crm .btn.ghost{background:#fff;color:var(--wine);border:1px solid var(--wine)}#view-crm .note{font-size:11px;color:var(--txt2);padding:8px 22px}#view-crm .board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:8px 22px 22px;align-items:start}#view-crm .col{background:#efe4e5;border-radius:12px;display:flex;flex-direction:column;min-height:200px;max-height:calc(100vh - 210px)}#view-crm .col h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;padding:12px 14px 6px;color:var(--deep);display:flex;justify-content:space-between;align-items:center}#view-crm .col .sum{font-size:11px;color:var(--txt2);font-weight:700;padding:0 14px 8px}#view-crm .col .drop{padding:0 10px 10px;overflow-y:auto;flex:1}#view-crm .col.st-n{background:#EDE1E2}#view-crm .col.st-m{background:#F6E7D6}#view-crm .col.st-v{background:#DCECE9}#view-crm .col.st-p{background:#F3E3E1}#view-crm .col.st-pause{background:#DDE6EF}#view-painel .tag.st-pause{background:#DDE6EF;color:#3B5A80}#view-crm .col.over{outline:2px dashed var(--wine);outline-offset:-4px}#view-crm .card{background:#fff;border-radius:9px;padding:9px 11px;margin-bottom:8px;box-shadow:0 1px 3px rgba(94,42,48,.12);cursor:grab;border-left:3px solid var(--soft)}#view-crm .card:active{cursor:grabbing}#view-crm .card .emp{font-weight:700;font-size:13px;color:var(--deep);line-height:1.15}#view-crm .card .emp .soc{color:#C9962A;font-size:10.5px;margin-left:3px;letter-spacing:-1px}#view-crm .card .emp .tgt{font-size:10.5px;margin-left:3px}#view-crm .card .uni{font-size:10.5px;color:var(--txt2);margin-bottom:4px}#view-crm .card .row{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px}#view-crm .card .val{font-weight:800;font-size:12.5px;color:var(--wine)}#view-crm .tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#F0E3E3;color:var(--deep)}#view-crm .tag.R{background:#DCECE9;color:var(--teal)}#view-crm .tag.P{background:#F3E3E1;color:var(--wine)}#view-crm .tag.PR{background:#EDE3F0;color:#7d4b8f}#view-crm .meta{font-size:10.5px;color:var(--txt2)}#view-crm .tk{font-size:10px;font-weight:700;color:var(--teal)}#view-crm .nxt{font-size:10px;font-weight:700;color:var(--teal);white-space:nowrap}#view-crm .nxt.late{color:var(--wine)}
 /* 25/08/2026 — card compacto (Rafael: poluição visual). Oculta as linhas 2/3 (consultor+ICP/próxima
@@ -254,15 +267,12 @@ td .up{color:var(--ok);font-weight:700}
   .side.mini .lbl,.side.mini .caret,.side.mini .foot{display:none}
   .side.mini .nav button,.side.mini .subnav .subitem{justify-content:center;gap:0;padding-left:0;padding-right:0}
   .side.mini .nav .subnav{padding-left:0;margin-left:0;border-left:0}
-  /* 09/09/2026 -- menu alarga quando o grupo Filtros abre, só em telas >=901px (no mobile o menu
-     já é a faixa horizontal do topo -- @media(max-width:900px) -- alargar não faz sentido lá). */
-  .side.filtros-open{width:400px;flex-basis:400px}
 }
 #cad-subnav{display:none}
 </style></head>
 
 <body><div class="app">
-<aside class="side">
+<aside class="side mini">
   <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
        Operações). Dentro de Novas Receitas ficam dois sub-grupos: Comercial (tudo que já existia) e
@@ -274,40 +284,7 @@ td .up{color:var(--ok);font-weight:700}
          só que ao abrir também alarga o menu e escurece o conteúdo principal (toggleFiltrosGroup no
          JS) pra ficar em foco, sem cobrir nada do dashboard. -->
     <div class="navgroup toplvl" id="navgroup-filtros">
-      <button type="button" class="navgroup-btn" onclick="toggleFiltrosGroup()"><span class="ic">🔎</span><span class="lbl">Filtros<span class="filtros-badge" id="filtros-badge" hidden>0</span></span><span class="caret">▸</span></button>
-      <div class="subnav" id="subnav-filtros">
-        <div class="flt" id="fltbar">
-          <div class="flt-period">
-            <span class="flt-lbl">Período</span>
-            <div class="flt-period-row">
-              <select id="mm-ano" title="Ano"></select>
-              <select id="mm-mes" title="Mês"><option value="">Ano todo</option></select>
-              <select id="mm-semana" title="Semana" disabled><option value="">Mês todo</option></select>
-              <button type="button" class="flt-chip" id="mm-90">90 dias</button>
-              <button type="button" class="flt-chip" id="mm-all">Histórico</button>
-              <button type="button" class="flt-chip" id="mm-custom">Personalizado</button>
-            </div>
-            <div class="flt-custom-row" id="mm-custom-row" style="display:none">
-              <input type="date" id="mm-de"><span>até</span><input type="date" id="mm-ate">
-            </div>
-          </div>
-          <div class="flt-g"><span class="flt-lbl">Tipo</span><select id="mm-tipo"><option value="">Todos</option><option value="P">Pontual</option><option value="R">Recorrente</option></select></div>
-          <div class="flt-g flt-emp"><span class="flt-lbl">Empresa</span><input id="mm-cli" list="dl-mm-emp" placeholder="Buscar empresa..." autocomplete="off"><datalist id="dl-mm-emp"></datalist></div>
-          <div class="flt-g"><span class="flt-lbl">Unidade</span><select id="mm-uni"><option value="">Todas</option></select></div>
-          <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
-          <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
-          <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
-          <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
-          <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
-          <button class="clr" id="mm-clr">Limpar</button>
-        </div>
-        <div class="filtros-actions">
-          <button id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
-          <button id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
-          <button id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
-          <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
-        </div>
-      </div>
+      <button type="button" class="navgroup-btn" onclick="toggleFiltrosGroup()"><span class="ic"><svg viewBox="0 0 20 20" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h14l-5.2 6.5v5.5l-3.6 1.8v-7.3z"/></svg></span><span class="lbl">Filtros<span class="filtros-badge" id="filtros-badge" hidden>0</span></span></button>
     </div>
     <div class="navgroup toplvl open" id="navgroup-receitas">
       <button type="button" class="navgroup-btn" onclick="toggleTopGroup('receitas')"><span class="ic">💰</span><span class="lbl">Novas Receitas</span><span class="caret">▸</span></button>
@@ -350,11 +327,51 @@ td .up{color:var(--ok);font-weight:700}
       </div>
     </div>
   </nav>
-  <div class="foot">ElevaLife · Ergonomos<br>15 anos elevando pessoas e resultados</div>
+  <div class="foot">ElevaLife<br>15 anos elevando pessoas e resultados</div>
 </aside>
+<div class="filtros-pane" id="filtros-pane">
+  <div class="filtros-pane-inner">
+    <div class="filtros-pane-head">
+      <span class="ic"><svg viewBox="0 0 20 20" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h14l-5.2 6.5v5.5l-3.6 1.8v-7.3z"/></svg></span>
+      <span class="ttl">Filtros</span>
+      <button type="button" class="filtros-pane-close" title="Fechar filtros" onclick="toggleFiltrosGroup(true)">×</button>
+    </div>
+    <div class="flt" id="fltbar">
+      <div class="flt-period">
+        <span class="flt-lbl">Período</span>
+        <div class="flt-period-row">
+          <select id="mm-ano" title="Ano"></select>
+          <select id="mm-mes" title="Mês"><option value="">Ano todo</option></select>
+          <select id="mm-semana" title="Semana" disabled><option value="">Mês todo</option></select>
+          <button type="button" class="flt-chip" id="mm-90">90 dias</button>
+          <button type="button" class="flt-chip" id="mm-all">Histórico</button>
+          <button type="button" class="flt-chip" id="mm-custom">Personalizado</button>
+        </div>
+        <div class="flt-custom-row" id="mm-custom-row" style="display:none">
+          <input type="date" id="mm-de"><span>até</span><input type="date" id="mm-ate">
+        </div>
+      </div>
+      <div class="flt-g"><span class="flt-lbl">Tipo</span><select id="mm-tipo"><option value="">Todos</option><option value="P">Pontual</option><option value="R">Recorrente</option></select></div>
+      <div class="flt-g flt-emp"><span class="flt-lbl">Empresa</span><input id="mm-cli" list="dl-mm-emp" placeholder="Buscar empresa..." autocomplete="off"><datalist id="dl-mm-emp"></datalist></div>
+      <div class="flt-g"><span class="flt-lbl">Unidade</span><select id="mm-uni"><option value="">Todas</option></select></div>
+      <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
+      <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
+      <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
+      <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
+      <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
+      <button class="clr" id="mm-clr">Limpar</button>
+    </div>
+    <div class="filtros-actions">
+      <button id="btn-pdf" title="Gerar relatório em PDF" onclick="app.pdf()">⬇ PDF</button>
+      <button id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
+      <button id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
+      <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
+    </div>
+  </div>
+</div>
 <div class="main">
   <div class="main-scrim" id="main-scrim" onclick="toggleFiltrosGroup(true)"></div>
-  <div class="top">
+  <div class="top" id="apptop" style="display:none">
     <h2 id="vtitle">Painel KPI</h2><span id="elevai-src" title="origem dos dados" style="font-size:11px;opacity:.6;margin-left:8px"></span>
     <span id="warnbar" class="warnbar" style="display:none"></span>
     <div class="sp"></div>
@@ -1246,10 +1263,11 @@ function applyF(){
   saveF(); compute(); renderActive();
   updateFltToggle();
 }
-/* 09/09/2026 -- Leo: filtros + relatorios viraram um grupo do menu lateral (#navgroup-filtros) em
-   vez de barra/overlay. toggleFiltrosGroup() abre/fecha esse grupo (fechando os outros, igual aos
-   demais grupos do menu), alarga o menu (.side.filtros-open) e escurece o conteudo principal
-   (#main-scrim) pra dar foco -- fecha sozinho ao clicar fora (no scrim) ou com Esc. */
+/* 09/09/2026 (v2) -- Leo: filtros saem do menu lateral e viram uma coluna propria (#filtros-pane),
+   ao lado do menu (que agora comeca retraido/so icones). toggleFiltrosGroup() abre/fecha essa
+   coluna e escurece o conteudo principal (#main-scrim) pra dar foco -- fecha sozinho ao clicar
+   fora (no scrim) ou com Esc. Filtros nao faz mais parte do grupo mutuamente exclusivo do menu
+   (toggleTopGroup) porque nao compete mais por espaco com Novas Receitas/Ajuda. */
 function countActiveFiltros(){
   let n=0;
   if(F.preset) n++;
@@ -1272,18 +1290,12 @@ function updateFltToggle(){
   b.hidden=!n;
 }
 function toggleFiltrosGroup(forceClose){
-  const grp=q('navgroup-filtros'); if(!grp) return;
+  const grp=q('navgroup-filtros'); const pane=q('filtros-pane'); if(!grp||!pane) return;
   const wasOpen=grp.classList.contains('open');
-  if(forceClose===true || wasOpen){
-    grp.classList.remove('open');
-    const rec=q('navgroup-receitas'); if(rec) rec.classList.add('open');
-  } else {
-    toggleTopGroup('filtros');
-  }
-  const open=grp.classList.contains('open');
-  const side=document.querySelector('.side');
+  const open = forceClose===true ? false : !wasOpen;
+  grp.classList.toggle('open', open);
+  pane.classList.toggle('open', open);
   const scrim=q('main-scrim');
-  if(side) side.classList.toggle('filtros-open', open);
   if(scrim) scrim.classList.toggle('on', open);
 }
 window.toggleFiltrosGroup=toggleFiltrosGroup;
@@ -1369,7 +1381,7 @@ function mnMontar(){ if(!MNC)return; const c=MNC; const val=moneyNum('mn-valor')
     'Reajuste IPCA'+(ip!==''?(' ('+ip+'%)'):' (a definir)')+'\n'+
     'Novo valor proposto: '+brl(nv)+'\n\n'+
     'Prazo de pagamento (DLL): '+(c.dll!=null?c.dll+' dias':'—')+'\n\n'+
-    'Em caso de aprovação, seguimos com a minuta de aditamento.\n\nAtenciosamente,\nEquipe Comercial · ElevaLife — Ergonomos';
+    'Em caso de aprovação, seguimos com a minuta de aditamento.\n\nAtenciosamente,\nEquipe Comercial · ElevaLife';
 }
 function mnCopiar(){ const t=q('mn-corpo'); t.select(); try{document.execCommand('copy');toast('Texto copiado ✓');}catch(e){} }
 async function enviarRenovacao(){
@@ -2103,7 +2115,7 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 const NOVAS_VIEWS=['op-implant'];
 const NOVOS_TITULOS={'op-implant':'Implantação de Serviços'};
 function toggleTopGroup(id){
-  ['receitas','ajuda','filtros'].forEach(g=>{
+  ['receitas','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
     el.classList.toggle('open', g===id ? !el.classList.contains('open') : false);
   });
@@ -2126,10 +2138,11 @@ function bindNav(){
       filtrosGrp.hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
       if(filtrosGrp.classList.contains('open')) toggleFiltrosGroup(true);
     }
+    var apptop=q('apptop'); if(apptop) apptop.style.display=(v==='painel')?'none':'';
     var grp=q('navgroup-cadastro'); if(grp)grp.classList.toggle('open', v==='cadastro');
     renderActive();
   });
-  try{ if(localStorage.getItem('elevai_side_mini')==='1'){ var sd=document.querySelector('.side'); if(sd)sd.classList.add('mini'); } }catch(e){}
+  try{ if(localStorage.getItem('elevai_side_mini')==='0'){ var sd=document.querySelector('.side'); if(sd)sd.classList.remove('mini'); } }catch(e){}
 }
 function bindFilters(){
   q('mm-ano').addEventListener('change',()=>{
