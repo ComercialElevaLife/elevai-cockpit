@@ -1,6 +1,14 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ElevAI — Cockpit Comercial</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#7A2F42">
+<link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ElevAI Cockpit">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Montserrat+Alternates:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
@@ -3910,5 +3918,15 @@ window.fupDecidir=fupDecidir;window._fupFecharModal=_fupFecharModal;
 window._fupMostrarMotivos=_fupMostrarMotivos;window._fupVoltarStep1=_fupVoltarStep1;window._fupOutroMotivo=_fupOutroMotivo;
 
 })();
+</script>
+<script>
+// 09/09/2026 -- Leo: PWA -- registra o service worker para permitir instalar o
+// Cockpit como app (Android/desktop). Nao interfere em nada do app -- o SW so
+// cacheia icones/manifest, HTML e dados sempre vem da rede (ver frontend/sw.js).
+if('serviceWorker' in navigator){
+  window.addEventListener('load',function(){
+    navigator.serviceWorker.register('/sw.js').catch(function(e){ console.warn('SW register falhou:', e); });
+  });
+}
 </script>
 </body></html>
