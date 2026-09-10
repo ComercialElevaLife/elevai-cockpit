@@ -93,14 +93,15 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 @media(min-width:901px){ .filtros-pane.open{width:340px} }
 @media(max-width:900px){ .filtros-pane.open{width:100%} .filtros-pane-inner{width:100%;height:auto} }
 /* 10/09/2026 -- sino de notificações (Léo: aprovações do scan de e-mail/Teams por palavra-chave +
-   changelog de deploys). Painel flutuante (position:fixed), não empurra o layout como .filtros-pane. */
-.bell-btn{all:unset;cursor:pointer;color:#fff;opacity:.85;font-size:16px;padding:4px 8px;border-radius:8px;line-height:1;position:relative}
-.bell-btn:hover{background:rgba(255,255,255,.14);opacity:1}
-.bell-badge{position:absolute;top:-3px;right:0;background:var(--bad);color:#fff;font-size:9px;font-weight:800;border-radius:8px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;box-shadow:0 0 0 2px var(--w)}
-.side.mini .bell-btn{order:1}
+   changelog de deploys). Painel flutuante (position:fixed), não empurra o layout como .filtros-pane.
+   11/09/2026 -- Léo: sino vivia dentro de .brand (sidebar), pouco visível -- agora é um botão fixo
+   no canto superior direito da TELA (não só do menu), acima de qualquer view/scroll. */
+.bell-btn{all:unset;cursor:pointer;position:fixed;top:14px;right:14px;z-index:98;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;border-radius:50%;background:linear-gradient(180deg,var(--wd),var(--w));box-shadow:0 4px 14px rgba(58,42,46,.3)}
+.bell-btn:hover{filter:brightness(1.1)}
+.bell-badge{position:absolute;top:-3px;right:-3px;background:var(--bad);color:#fff;font-size:9px;font-weight:800;border-radius:8px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;box-shadow:0 0 0 2px #fff}
 .notif-ov{position:fixed;inset:0;background:rgba(20,10,12,.35);z-index:96;display:none}
 .notif-ov.on{display:block}
-.notif-pane{position:fixed;top:14px;left:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 28px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);z-index:97;display:none;flex-direction:column;overflow:hidden}
+.notif-pane{position:fixed;top:60px;right:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 76px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);z-index:97;display:none;flex-direction:column;overflow:hidden}
 .notif-pane.on{display:flex}
 .notif-pane-head{background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:8px}
 .notif-pane-head .ttl{font-weight:800;font-size:14px}
@@ -122,7 +123,7 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .notif-item .acts .ok{background:var(--ok);color:#fff}
 .notif-item .acts .w{background:var(--w);color:#fff}
 .notif-item .acts .gh{background:var(--bg);color:var(--wd);border:1px solid var(--ln)}
-@media(max-width:480px){ .notif-pane{top:0;left:0;width:100%;max-width:100%;max-height:100%;border-radius:0} }
+@media(max-width:480px){ .bell-btn{top:8px;right:8px;width:34px;height:34px;font-size:15px} .notif-pane{top:0;left:0;width:100%;max-width:100%;max-height:100%;border-radius:0} }
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -250,7 +251,7 @@ td .up{color:var(--ok);font-weight:700}
 @media(max-width:900px){
   .app{flex-direction:column;min-height:100vh}
   .side{width:100%;flex:0 0 auto;height:auto;position:sticky;top:0;flex-direction:row;align-items:center;gap:4px;padding:0;overflow-x:auto;z-index:40;box-shadow:0 2px 8px rgba(0,0,0,.12)}
-  .side .brand{padding:10px 14px;flex:0 0 auto}
+  .side .brand{padding:10px 58px 10px 14px;flex:0 0 auto}
   .side .brand h1{font-size:20px}
   .side .brand small{display:none}
   .side .nav{flex-direction:row;padding:8px 8px;gap:6px;flex:1 1 auto;overflow-x:auto;flex-wrap:nowrap}
@@ -283,6 +284,13 @@ td .up{color:var(--ok);font-weight:700}
   #view-crm .board .col:not(.collapsed){flex-basis:88vw}
   #view-painel .kpis{grid-template-columns:1fr 1fr}
   #view-cadastro form{grid-template-columns:1fr!important}
+  /* 11/09/2026 -- Léo: mobile "bem ruim" -- estes grids de 2 colunas ficam de fora da regra acima
+     porque são <div>s aninhados com grid-template-columns próprio (não o <form> em si), ou vivem
+     fora de #view-cadastro (modal Nova Oportunidade no Kanban, drawer de detalhe do lead). */
+  #cad-fase2 div[style*="grid-template-columns"],
+  #cad-recbox,
+  #opForm,
+  .lead-edit{grid-template-columns:1fr!important}
 }
 /* ===== Menu lateral retrátil + submenu aninhado (UX 05/08) ===== */
 .side .brand{display:flex;align-items:center;gap:10px;justify-content:space-between}
@@ -316,7 +324,7 @@ td .up{color:var(--ok);font-weight:700}
 
 <body><div class="app">
 <aside class="side mini">
-  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="bell-btn" id="bell-btn" title="Notificações" onclick="toggleNotifPane()">🔔<span class="bell-badge" id="bell-badge" hidden>0</span></button><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
        Operações). Dentro de Novas Receitas ficam dois sub-grupos: Comercial (tudo que já existia) e
        Marketing (novo). Operações também é novo. Marketing e Operações entram por enquanto como
@@ -413,8 +421,10 @@ td .up{color:var(--ok);font-weight:700}
   </div>
 </div>
 <!-- 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema).
-     Overlay + painel flutuante (não é reflow como #filtros-pane -- fica ancorado perto do sino, no
-     canto esquerdo, então não faz sentido empurrar o layout do menu). -->
+     Overlay + painel flutuante (não é reflow como #filtros-pane -- fica ancorado perto do sino).
+     11/09/2026 -- sino movido pra canto superior direito da TELA (fixed, fora de .side), pra ficar
+     visível em qualquer view/scroll, a pedido do Léo -- painel passou a ancorar dali também. -->
+<button class="bell-btn" id="bell-btn" title="Notificações" onclick="toggleNotifPane()">🔔<span class="bell-badge" id="bell-badge" hidden>0</span></button>
 <div class="notif-ov" id="notif-ov" onclick="toggleNotifPane(false)"></div>
 <div class="notif-pane" id="notif-pane">
   <div class="notif-pane-head">
