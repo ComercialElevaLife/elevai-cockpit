@@ -1,0 +1,12 @@
+[
+  {
+    "_metodo": "PATCH",
+    "id": "11",
+    "fields": {
+      "detalhe": "Retomada de relacionamento com a Atlas Schindler (contato original de cerca de 3 anos atrás). Pamela retomou o contato e sugeriu datas para reunião: 16/09 às 10h ou 14h, ou 21/09 às 9h ou 14h.",
+      "classificacao": "oportunidade",
+      "empresaTarget": "SIM",
+      "contatosExtraJson": "[{\"nome\":\"Selma\",\"sobrenome\":\"Regina Cruz Furlan\",\"email\":\"selma.cruz@schindler.com\",\"telefone\":\"+55 11 99201-2039\"}]"
+    }
+  }
+]
