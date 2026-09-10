@@ -18,7 +18,7 @@
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
 *{box-sizing:border-box}
-body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--bg);overflow-x:hidden}
 .app{display:flex;min-height:100vh}
 /* sidebar */
 .side{width:236px;flex:0 0 236px;background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
@@ -254,7 +254,12 @@ td .up{color:var(--ok);font-weight:700}
   .side .brand{padding:10px 58px 10px 14px;flex:0 0 auto}
   .side .brand h1{font-size:20px}
   .side .brand small{display:none}
-  .side .nav{flex-direction:row;padding:8px 8px;gap:6px;flex:1 1 auto;overflow-x:auto;flex-wrap:nowrap}
+  /* 11/09/2026 -- min-width:0 e o que faz o overflow-x:auto acima funcionar de verdade: sem isso,
+     um flex item por padrao nunca encolhe alem do tamanho do proprio conteudo (min-width:auto),
+     entao o menu (Filtros/Novas Receitas/.../Ajuda) empurrava a PAGINA INTEIRA pra mais de 900px
+     de largura em vez de rolar dentro de si mesmo -- e o bug por tras do "mobile bem ruim" do Leo:
+     pagina inteira com scroll horizontal, sino/elementos fixed mal posicionados, etc. */
+  .side .nav{flex-direction:row;padding:8px 8px;gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;flex-wrap:nowrap}
   .side .nav button{white-space:nowrap;padding:9px 12px;font-size:13px}
   .side .foot{display:none}
   .top{padding:10px 14px;position:static}
