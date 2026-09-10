@@ -330,9 +330,34 @@ td .up{color:var(--ok);font-weight:700}
   .side.mini .nav .subnav{padding-left:0;margin-left:0;border-left:0}
 }
 #cad-subnav{display:none}
+/* 11/09/2026 -- Léo: acesso restrito a @elevalife.com.br -- gate de UX enquanto confirma o domínio
+   do login (a trava de verdade é no backend, em cada /api/*: ver requireDomain em _shared/crud.js). */
+#access-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+#access-gate.ok{display:none}
+#access-gate .box{max-width:380px;text-align:center}
+#access-gate h2{margin:0 0 8px;color:var(--ink);font-size:18px}
+#access-gate p{margin:0;color:var(--mut);font-size:14px;line-height:1.5}
+#access-gate a.out{display:inline-block;margin-top:14px;background:var(--w);color:#fff;text-decoration:none;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px}
 </style></head>
 
-<body><div class="app">
+<body>
+<div id="access-gate"><div class="box"><h2 id="ag-ttl">Carregando…</h2><p id="ag-msg"></p><a id="ag-out" class="out" href="/.auth/logout?post_logout_redirect_uri=/" hidden>Sair e entrar com outra conta</a></div></div>
+<script>
+(function(){
+  fetch('/.auth/me').then(function(r){return r.json();}).then(function(d){
+    var gate=document.getElementById('access-gate');
+    var cp=(d&&d.clientPrincipal)||null;
+    if(!cp){ gate.classList.add('ok'); return; } // sem login: a rota já teria redirecionado pro AAD
+    var email=String(cp.userDetails||'').toLowerCase();
+    var DOM='@elevalife.com.br';
+    if(email.length>DOM.length && email.slice(-DOM.length)===DOM){ gate.classList.add('ok'); return; }
+    document.getElementById('ag-ttl').textContent='Acesso restrito';
+    document.getElementById('ag-msg').textContent='O Cockpit ElevaLife é restrito a contas @elevalife.com.br. Você entrou como '+(cp.userDetails||'uma conta não autorizada')+'.';
+    document.getElementById('ag-out').hidden=false;
+  }).catch(function(){ document.getElementById('access-gate').classList.add('ok'); });
+})();
+</script>
+<div class="app">
 <aside class="side mini">
   <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /

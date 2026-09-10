@@ -2,7 +2,7 @@
 //  TO  = responsável do contrato   |   CC (fixo) = leonardo@ + rafael@elevalife.com.br
 // Requer no app Entra a permissão Graph "Mail.Send" (Application) + consentimento.
 const g = require('../_shared/graph');
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 const SENDER  = process.env.RENOV_SENDER || 'leonardo@elevalife.com.br';
 const CC_FIXO = (process.env.RENOV_CC || 'leonardo@elevalife.com.br,rafael@elevalife.com.br')
@@ -14,6 +14,7 @@ function addr(a){ return { emailAddress: { address: String(a).trim() } }; }
 
 module.exports = async function (context, req) {
   try {
+    if (!requireDomain(context, req)) return;
     const b = req.body || {};
     const to = String(b.para || '').trim();
     if (!to || to.indexOf('@') < 0) { context.res = json(400, { ok:false, error:'sem e-mail válido do responsável (campo "para")' }); return; }

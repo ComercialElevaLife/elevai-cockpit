@@ -1,12 +1,13 @@
 // /api/ipca — IPCA acumulado nos últimos 12 meses, fonte oficial IBGE/SIDRA (tabela 1737, variável 2265).
 // Retorna { ok, pct, referencia, fonte }. Cache de 6h. Se o IBGE falhar, ok:false (a tela cai p/ input manual).
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 const URL = 'https://apisidra.ibge.gov.br/values/t/1737/n1/1/v/2265/p/last%201';
 let _cache = { at: 0, data: null };
 
 module.exports = async function (context, req) {
   try {
+    if (!requireDomain(context, req)) return;
     if (_cache.data && (Date.now() - _cache.at) < 6 * 3600 * 1000) { context.res = json(200, _cache.data); return; }
     const r = await fetch(URL, { headers: { 'Accept': 'application/json' } });
     const arr = await r.json();

@@ -1,8 +1,9 @@
 const { LISTS } = require('../_shared/schema');
 const g = require('../_shared/graph');
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 module.exports = async function (context, req) {
+  if (!requireDomain(context, req)) return;
   const out = { ok: true, env: {
     hasClientId: !!process.env.AAD_CLIENT_ID,
     hasSecret: !!process.env.AAD_CLIENT_SECRET,

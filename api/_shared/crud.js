@@ -3,19 +3,45 @@ const { LISTS, toFields, fromFields } = require('./schema');
 const g = require('./graph');
 
 // Identidade do usuário logado, injetada pela SWA no header x-ms-client-principal (base64 JSON)
-function readUser(req) {
+function readPrincipal(req) {
   try {
     const h = (req.headers && (req.headers['x-ms-client-principal'] || req.headers['X-MS-CLIENT-PRINCIPAL'])) || '';
-    if (!h) return '';
-    const p = JSON.parse(Buffer.from(h, 'base64').toString('utf8'));
-    return p.userDetails || p.userId || '';
-  } catch (e) { return ''; }
+    if (!h) return null;
+    return JSON.parse(Buffer.from(h, 'base64').toString('utf8'));
+  } catch (e) { return null; }
+}
+
+function readUser(req) {
+  const p = readPrincipal(req);
+  if (!p) return '';
+  return p.userDetails || p.userId || '';
+}
+
+// 11/09/2026 -- Léo: trava de domínio. Por padrão o provedor AAD pré-configurado da SWA aceita
+// QUALQUER conta Microsoft (pessoal ou de outra empresa), não só do nosso domínio -- não dá pra
+// restringir por tenant sem um app registration próprio (fora do nosso alcance sem acesso ao
+// portal do Azure). Este guard fecha a brecha na camada da API: bloqueia qualquer usuário LOGADO
+// cujo e-mail não termine em @elevalife.com.br. Requisições sem login (as rotas explicitamente
+// anônimas, ex.: POST /api/lead-publico e POST /api/notificacoes) não são afetadas -- a decisão de
+// permitir anônimo ali já é do staticwebapp.config.json, este guard só olha pra quem FEZ login.
+const DOMINIO_PERMITIDO = '@elevalife.com.br';
+function domainOk(req) {
+  const p = readPrincipal(req);
+  if (!p) return true;
+  const email = String(p.userDetails || '').toLowerCase();
+  return email.endsWith(DOMINIO_PERMITIDO);
+}
+function requireDomain(context, req) {
+  if (domainOk(req)) return true;
+  context.res = json(403, { ok: false, error: 'Acesso restrito a contas @elevalife.com.br' });
+  return false;
 }
 
 function makeHandler(kind) {
   const def = LISTS[kind];
   return async function (context, req) {
     try {
+      if (!requireDomain(context, req)) return;
       const { id: listId } = await g.ensureList(def); // provisão + garante colunas (inclui auditoria)
       const method = (req.method || 'GET').toUpperCase();
 
@@ -77,4 +103,4 @@ function json(status, obj) {
   return { status, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: obj };
 }
 
-module.exports = { makeHandler, json };
+module.exports = { makeHandler, json, requireDomain, domainOk, readUser };

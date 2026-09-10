@@ -1,6 +1,6 @@
 const { LISTS, toFields } = require('../_shared/schema');
 const g = require('../_shared/graph');
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 async function bulkInsert(siteId, listId, records) {
   let done = 0; const errors = [];
@@ -58,6 +58,7 @@ async function dedupLists(commit) {
 
 // POST /api/migrate?fresh=1  body: { leads:[...], vendas:[...], eventos:[...] }
 module.exports = async function (context, req) {
+  if (!requireDomain(context, req)) return;
   const fresh = (req.query.fresh === '1');
   const force = (req.query.force === '1');
   const dedup = (req.query.dedup === '1');   // deduplicacao: remove linhas identicas repetidas

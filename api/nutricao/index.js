@@ -1,7 +1,7 @@
 // /api/nutricao — avisa a responsável pelo fluxo de nutrição (Clara) quando um lead é PAUSADO (esfriou).
 // Envia e-mail via Graph sendMail (Mail.Send). Destinatário configurável via NUTRICAO_TO.
 const g = require('../_shared/graph');
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 const SENDER = process.env.RENOV_SENDER || 'leonardo@elevalife.com.br';
 const TO      = process.env.NUTRICAO_TO || 'clara@elevalife.com.br';
@@ -14,6 +14,7 @@ function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace
 
 module.exports = async function (context, req) {
   try {
+    if (!requireDomain(context, req)) return;
     const l = req.body || {};
     const to = (l.to && String(l.to).trim()) || TO;   // destinatário editável (fallback: Clara)
     const html =

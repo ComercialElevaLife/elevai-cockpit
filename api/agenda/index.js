@@ -5,7 +5,7 @@
 //    dispara o convite por e-mail (o responsavel entra como participante).
 // Requer no app Entra a permissao Graph "Calendars.ReadWrite" (Application) + consentimento.
 const g = require('../_shared/graph');
-const { json } = require('../_shared/crud');
+const { json, requireDomain } = require('../_shared/crud');
 
 const TZ = 'E. South America Standard Time'; // Brasilia
 
@@ -29,6 +29,7 @@ function buildBody(b) {
 
 module.exports = async function (context, req) {
   try {
+    if (!requireDomain(context, req)) return;
     const b = req.body || {};
     const tipo = b.tipo || 'Tarefa';
     const mailbox = String(b.organizador || b.responsavelEmail || '').trim();
