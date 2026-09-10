@@ -23,7 +23,10 @@ jobs:
           skip_api_build: true
       # 10/09/2026 -- sino de notificações (Léo): cada deploy vira um item na aba "Novidades do
       # sistema" do sino, automaticamente -- sem isso, o changelog do sino ficaria manual. Nunca
-      # falha o deploy: continue-on-error + try/except próprio (best-effort).
+      # falha o deploy: continue-on-error + best-effort. Reescrito de Python/urllib para curl
+      # porque o urllib estava reportando sucesso sem realmente gravar o registro (causa não
+      # 100% confirmada -- suspeita de redirect/handling estranho -- mas curl já é usado com
+      # sucesso em todo o resto deste projeto).
       - name: Registrar novidade no sino do Cockpit
         if: success()
         continue-on-error: true
@@ -31,28 +34,24 @@ jobs:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
-          python3 - <<'PYEOF2'
-          import json, os, urllib.request, datetime
-          msg = os.environ.get("COMMIT_MSG", "").strip() or "Atualização do sistema"
-          titulo = msg.splitlines()[0][:120]
-          sha = os.environ.get("COMMIT_SHA", "")[:7]
-          payload = {
-              "tipo": "sistema",
-              "status": "",
-              "titulo": titulo,
-              "detalhe": msg + ("\n\ncommit " + sha if sha else ""),
-              "origem": "sistema",
-              "criadoEm": datetime.datetime.utcnow().isoformat() + "Z",
-              "alteradoPor": "GitHub Actions",
-          }
-          req = urllib.request.Request(
-              "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes",
-              data=json.dumps(payload).encode("utf-8"),
-              headers={"Content-Type": "application/json"},
-              method="POST",
-          )
-          try:
-              urllib.request.urlopen(req, timeout=20)
-          except Exception as e:
-              print("Aviso: falha ao registrar novidade no sino (nao bloqueia o deploy):", e)
-          PYEOF2
+          TITULO=$(printf '%s' "${COMMIT_MSG:-Atualização do sistema}" | head -n1 | cut -c1-120)
+          SHA_CURTO=$(printf '%s' "$COMMIT_SHA" | cut -c1-7)
+          DETALHE="${COMMIT_MSG:-Atualização do sistema}"
+          if [ -n "$SHA_CURTO" ]; then DETALHE="$DETALHE
+
+commit $SHA_CURTO"; fi
+          CRIADO_EM=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          PAYLOAD=$(python3 -c '
+import json, sys
+titulo, detalhe, criado_em = sys.argv[1], sys.argv[2], sys.argv[3]
+print(json.dumps({
+    "tipo": "sistema", "status": "", "titulo": titulo,
+    "detalhe": detalhe, "origem": "sistema",
+    "criadoEm": criado_em, "alteradoPor": "GitHub Actions",
+}))
+' "$TITULO" "$DETALHE" "$CRIADO_EM")
+          curl -sS -X POST "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            --max-time 20 \
+            || echo "Aviso: falha ao registrar novidade no sino (nao bloqueia o deploy)"
