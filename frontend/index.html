@@ -3197,16 +3197,35 @@ async function _notifGarantirContatos(it,emp){
   }
   return out;
 }
+/* 11/09/2026 -- Léo: "fechei a tela sem concluir a análise e a definição da atualização" -- uma
+   notificação só pode sumir da aba Aprovações quando a tratativa REALMENTE terminou: cadastro
+   concluído (oportunidade salva, ou lead com Empresa/Contato conferidos) OU ignorada/excluída de
+   propósito. Por isso o PATCH pra status:'aprovado' não acontece mais na hora do clique -- só
+   depois que o resultado de fato aconteceu. Enquanto isso, _notifPendenteOp guarda qual
+   notificação está "em aberto" no formulário de Nova Oportunidade; opFechar() (✕ ou clique fora,
+   ver #op-ov) trava o fechamento com uma confirmação em vez de deixar a notificação sumir sem
+   nada ter sido salvo -- ela continua pendente no sino até ser retomada. */
+window._notifPendenteOp=null;
+/* Chamada pelo opSalvar() (dentro da IIFE do CRM) quando a Nova Oportunidade aberta a partir de
+   uma notificação foi REALMENTE salva -- só aí a notificação conclui e sai da aba Aprovações. */
+function _notifConcluirOportunidade(leadIds){
+  if(!window._notifPendenteOp)return;
+  const id=window._notifPendenteOp.id;
+  notifPatch(id,{status:'aprovado',leadIdCriado:(leadIds||[]).join(',')});
+  const itp=NOTIFS.find(x=>x.__id===id); if(itp)itp.status='aprovado';
+  window._notifPendenteOp=null;
+  renderNotifBadge(); renderNotifPane();
+}
+window._notifConcluirOportunidade=_notifConcluirOportunidade;
 async function notifAprovar(id){
   const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
-  notifPatch(id,{status:'aprovado'});
-  it.status='aprovado'; renderNotifBadge(); renderNotifPane();
   toggleNotifPane(false);
   const isOp=(it.classificacao==='oportunidade');
   try{
     const emp=await _notifGarantirEmpresa(it);
     const cons=await _notifGarantirContatos(it,emp);
     if(isOp){
+      window._notifPendenteOp={id:id};
       if(typeof window.opNovaOportunidade==='function'){
         window.opNovaOportunidade();
         setTimeout(function(){
@@ -3224,16 +3243,22 @@ async function notifAprovar(id){
           }catch(e){}
         },80);
       }
-    } else if(typeof toast==='function'){
-      const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida||'empresa';
-      toast('✅ '+nomeEmp+' e contato conferidos/cadastrados. Sem reunião marcada ainda — fica como lead, sem abrir oportunidade.');
+    } else {
+      // classificação 'lead': a tratativa termina aqui mesmo (sem reunião marcada ainda não abre
+      // formulário nenhum) -- só marca resolvida depois que Empresa/Contato foram de fato conferidos.
+      notifPatch(id,{status:'aprovado'});
+      it.status='aprovado'; renderNotifBadge(); renderNotifPane();
+      if(typeof toast==='function'){
+        const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida||'empresa';
+        toast('✅ '+nomeEmp+' e contato conferidos/cadastrados. Sem reunião marcada ainda — fica como lead, sem abrir oportunidade.');
+      }
     }
-  }catch(e){ if(typeof toast==='function')toast('⚠ Não consegui concluir o cadastro automático — confira em Cadastro > Empresas/Contatos.'); }
+  }catch(e){ if(typeof toast==='function')toast('⚠ Não consegui concluir o cadastro automático — a notificação continua pendente, tente novamente.'); }
 }
 function notifVerEmpresa(id){
   const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
-  notifPatch(id,{status:'aprovado'});
-  it.status='aprovado'; renderNotifBadge(); renderNotifPane();
+  // só navega pra conferir/editar -- não conclui a tratativa, então a notificação continua
+  // pendente no sino (ver comentário acima de notifAprovar).
   toggleNotifPane(false);
   try{
     const crmBtn=document.querySelector('[data-v="crm"]'); if(crmBtn)crmBtn.click();
@@ -4346,7 +4371,18 @@ function opServRowHtml(){
 function opAddServ(){ var sl=el('op-serv-list'); if(!sl)return; sl.insertAdjacentHTML('beforeend',opServRowHtml()); }
 function opRemServ(btn){ var sl=el('op-serv-list'); if(!sl)return; var rows=sl.querySelectorAll('.op-serv-row'); if(rows.length<=1)return; btn.closest('.op-serv-row').remove(); }
 window.opAddServ=opAddServ;window.opRemServ=opRemServ;
-function opFechar(){ var o=el('op-ov'); if(o)o.style.display='none'; }
+function opFechar(){
+  /* 11/09/2026 -- Léo: não pode "sumir" uma notificação do scan sem a tratativa concluída de
+     verdade -- se este formulário foi aberto a partir do sino (window._notifPendenteOp) e ainda
+     não foi salvo, avisa antes de fechar; a notificação continua pendente no sino (nada foi
+     marcado como aprovado ainda -- ver notifAprovar/_notifConcluirOportunidade). */
+  if(window._notifPendenteOp){
+    var seguir=confirm('Esta oportunidade veio de uma notificação do sino e ainda não foi salva.\n\nSe sair agora, ela continua pendente em Aprovações para você retomar depois.\n\nFechar mesmo assim?');
+    if(!seguir)return;
+    window._notifPendenteOp=null;
+  }
+  var o=el('op-ov'); if(o)o.style.display='none';
+}
 function opEmpChange(){
   var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato');
   if(hit){
@@ -4380,16 +4416,22 @@ async function opSalvar(ev){
     cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),grupoNegociacaoId:grupoId,
     nome:con?(con.nome||''):'',contatoSobrenome:con?(con.sobrenome||''):'',telefone:con?(con.telefone||''):'',email:con?(con.email||''):'',contatoTipo:con?(con.tipo||''):''};
   var btn=el('op-btn'); btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Criando...';
-  var ok=0, falhas=[];
+  var ok=0, falhas=[], criados=[];
   for(var i=0;i<servs.length;i++){
     var rec=Object.assign({},base,{serv:servs[i]});
     try{
       var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
       var j=await r.json().catch(function(){return {};});
-      if(r.ok&&j.ok)ok++; else falhas.push(servs[i]+' ('+(j.error||('HTTP '+r.status))+')');
+      if(r.ok&&j.ok){ ok++; if(j.id)criados.push(j.id); } else falhas.push(servs[i]+' ('+(j.error||('HTTP '+r.status))+')');
     }catch(e){ falhas.push(servs[i]+' (falha de rede: '+e.message+')'); }
   }
-  if(!falhas.length){ msg.style.color='#2E7D5B'; msg.textContent='✓ '+ok+' oportunidade'+(ok>1?'s criadas':' criada')+'.'; setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700); }
+  if(!falhas.length){
+    msg.style.color='#2E7D5B'; msg.textContent='✓ '+ok+' oportunidade'+(ok>1?'s criadas':' criada')+'.';
+    // 11/09/2026 -- Léo: só marca a notificação do sino como concluída depois que a oportunidade
+    // FOI salva de verdade (ver opFechar/_notifConcluirOportunidade) -- nunca antes.
+    if(window._notifPendenteOp&&typeof window._notifConcluirOportunidade==='function')window._notifConcluirOportunidade(criados);
+    setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700);
+  }
   else{ msg.style.color='#B0463F'; msg.textContent=ok+' criada(s), falhou: '+falhas.join('; ')+'. Verifique se a base já foi publicada.'; if(window.reloadData)reloadData(); }
   btn.disabled=false; return false;
 }
