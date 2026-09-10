@@ -1,0 +1,20 @@
+[
+  {
+    "tipo": "aprovacao",
+    "status": "pendente",
+    "titulo": "[teste] verificacao da fila scan-queue -- pode ignorar/apagar",
+    "detalhe": "Notificacao de teste criada para verificar o pipeline scan-queue -> GitHub Actions -> /api/notificacoes antes de deixar o scan automatico rodando sozinho.",
+    "origem": "teams",
+    "origemLink": "",
+    "palavraChave": "teste",
+    "remetente": "Claude (verificacao)",
+    "dataOrigem": "2026-09-10T15:09:19.810137+00:00",
+    "empresaSugerida": "",
+    "contatoSugeridoNome": "",
+    "contatoSugeridoSobrenome": "",
+    "contatoSugeridoEmail": "",
+    "contatoSugeridoTelefone": "",
+    "criadoEm": "2026-09-10T15:09:19.810173+00:00",
+    "alteradoPor": "Claude (verificacao pipeline)"
+  }
+]
