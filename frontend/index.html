@@ -3276,6 +3276,15 @@ function notifIgnorar(id){
 window.toggleNotifPane=toggleNotifPane; window.notifSetTab=notifSetTab;
 window.notifAprovar=notifAprovar; window.notifVerEmpresa=notifVerEmpresa; window.notifIgnorar=notifIgnorar;
 window.loadNotificacoes=loadNotificacoes;
+/* 10/09/2026 -- Léo: o sino só buscava novidades ao abrir o painel ou no carregamento inicial da
+   página -- se ele deixasse o Cockpit aberto sem dar F5/reabrir o sino, uma notificação nova do
+   scan (a cada 4h) não aparecia sozinha. Agora verifica sozinho em segundo plano (a cada 2min) e
+   também assim que a aba volta a ficar em primeiro plano (troca de aba/minimizar e voltar) --
+   nenhuma das duas exige recarregar a página. */
+setInterval(function(){ try{ loadNotificacoes(); }catch(e){} }, 120000);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible'){ try{ loadNotificacoes(); }catch(e){} }
+});
 function testTeams(){ var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL){alert("Webhook do Teams não configurado.");return;} const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",text:"🎉 TESTE — ElevaLife"},{type:"TextBlock",text:"Se você vê este card no canal Vendas, a integração está OK.",wrap:true}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(r=>alert("Enviado ao Teams (HTTP "+r.status+"). Confira o canal Vendas.")).catch(e=>alert("Falha ao enviar: "+e.message+"\n\nProvavel bloqueio CORS do endpoint do Power Automate (fluxo HTTP nao aceita chamada do navegador). Me avise: troco para um fluxo AGENDADO que le a base e posta no Teams — sem CORS.")); }
 function pad(n){return (''+n).padStart(2,'0');}
 function dlICS(ics){const b=new Blob([ics],{type:'text/calendar;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tarefa_elevalife.ics';a.click();}
