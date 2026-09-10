@@ -18,6 +18,7 @@
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
 *{box-sizing:border-box}
+html{overflow-x:hidden}
 body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--bg);overflow-x:hidden}
 .app{display:flex;min-height:100vh}
 /* sidebar */
@@ -273,6 +274,10 @@ td .up{color:var(--ok);font-weight:700}
   #view-painel .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
   #view-painel .ch{height:240px}
   #view-painel .ch.sm{height:220px}
+  /* 11/09/2026 -- as tabelas do Painel KPI (rankings/detalhe por clique) nunca tinham overflow-x
+     proprio -- so as de Renovacoes/Qualificacao/Tarefas tinham. Numa tela estreita, essas tabelas
+     empurravam a PAGINA INTEIRA pra ~600-900px de largura (mesma classe de bug do menu lateral). */
+  #view-painel table.dt{display:block;overflow-x:auto}
   #view-crm header{padding:12px 16px}
   #view-crm .board{overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:8px 16px 20px}
   #view-crm .col{flex:0 0 82vw;scroll-snap-align:start;max-height:calc(100vh - 250px)}
