@@ -20,7 +20,9 @@ module.exports = async function (context, req) {
       '<p>O lead abaixo foi <b>PAUSADO (esfriou)</b> no ElevAI Cockpit e precisa <b>entrar no fluxo de nutrição</b>:</p>' +
       '<ul>' +
       '<li><b>Cliente:</b> ' + esc(l.cliente) + (l.unidade ? ' — ' + esc(l.unidade) : '') + '</li>' +
-      '<li><b>Contato:</b> ' + esc(l.nome || '—') + '</li>' +
+      '<li><b>Contato:</b> ' + esc([l.nome, l.contatoSobrenome].filter(Boolean).join(' ') || '—') + '</li>' +
+      (l.email ? '<li><b>E-mail do contato:</b> ' + esc(l.email) + '</li>' : '') +
+      (l.telefone ? '<li><b>Telefone do contato:</b> ' + esc(l.telefone) + '</li>' : '') +
       '<li><b>Serviço:</b> ' + esc(l.serv || '—') + '</li>' +
       '<li><b>Consultor:</b> ' + esc(l.cons || '—') + '</li>' +
       (l.valor ? '<li><b>Valor proposto:</b> R$ ' + esc(l.valor) + '</li>' : '') +
