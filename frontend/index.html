@@ -92,6 +92,37 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .filtros-pane-close:hover{opacity:1;background:rgba(255,255,255,.18)}
 @media(min-width:901px){ .filtros-pane.open{width:340px} }
 @media(max-width:900px){ .filtros-pane.open{width:100%} .filtros-pane-inner{width:100%;height:auto} }
+/* 10/09/2026 -- sino de notificações (Léo: aprovações do scan de e-mail/Teams por palavra-chave +
+   changelog de deploys). Painel flutuante (position:fixed), não empurra o layout como .filtros-pane. */
+.bell-btn{all:unset;cursor:pointer;color:#fff;opacity:.85;font-size:16px;padding:4px 8px;border-radius:8px;line-height:1;position:relative}
+.bell-btn:hover{background:rgba(255,255,255,.14);opacity:1}
+.bell-badge{position:absolute;top:-3px;right:0;background:var(--bad);color:#fff;font-size:9px;font-weight:800;border-radius:8px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;box-shadow:0 0 0 2px var(--w)}
+.side.mini .bell-btn{order:1}
+.notif-ov{position:fixed;inset:0;background:rgba(20,10,12,.35);z-index:96;display:none}
+.notif-ov.on{display:block}
+.notif-pane{position:fixed;top:14px;left:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 28px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);z-index:97;display:none;flex-direction:column;overflow:hidden}
+.notif-pane.on{display:flex}
+.notif-pane-head{background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:8px}
+.notif-pane-head .ttl{font-weight:800;font-size:14px}
+.notif-pane-close{all:unset;cursor:pointer;margin-left:auto;color:#fff;opacity:.85;font-size:18px;line-height:1;padding:2px 7px;border-radius:6px}
+.notif-pane-close:hover{opacity:1;background:rgba(255,255,255,.18)}
+.notif-tabs{display:flex;border-bottom:1px solid var(--ln);flex:0 0 auto}
+.notif-tab{all:unset;flex:1;text-align:center;cursor:pointer;font-size:12px;font-weight:700;padding:10px 6px;color:var(--mut);border-bottom:2px solid transparent;box-sizing:border-box}
+.notif-tab.on{color:var(--w);border-bottom-color:var(--w)}
+.notif-tab .cnt{background:var(--bad);color:#fff;font-size:9.5px;font-weight:800;border-radius:8px;padding:1px 6px;margin-left:5px}
+.notif-body{overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.notif-empty{padding:26px 10px;text-align:center;color:var(--mut);font-size:12.5px}
+.notif-item{border:1px solid var(--ln);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.notif-item .ttl{font-weight:700;color:var(--ink);margin-bottom:2px}
+.notif-item .meta{font-size:11px;color:var(--mut);margin-bottom:6px}
+.notif-item .meta a{color:var(--w)}
+.notif-item .det{font-size:12px;color:var(--ink);margin-bottom:8px;white-space:pre-wrap}
+.notif-item .acts{display:flex;gap:6px;flex-wrap:wrap}
+.notif-item .acts button{all:unset;cursor:pointer;font-size:11px;font-weight:700;padding:5px 9px;border-radius:7px;box-sizing:border-box}
+.notif-item .acts .ok{background:var(--ok);color:#fff}
+.notif-item .acts .w{background:var(--w);color:#fff}
+.notif-item .acts .gh{background:var(--bg);color:var(--wd);border:1px solid var(--ln)}
+@media(max-width:480px){ .notif-pane{top:0;left:0;width:100%;max-width:100%;max-height:100%;border-radius:0} }
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -285,7 +316,7 @@ td .up{color:var(--ok);font-weight:700}
 
 <body><div class="app">
 <aside class="side mini">
-  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="bell-btn" id="bell-btn" title="Notificações" onclick="toggleNotifPane()">🔔<span class="bell-badge" id="bell-badge" hidden>0</span></button><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
        Operações). Dentro de Novas Receitas ficam dois sub-grupos: Comercial (tudo que já existia) e
        Marketing (novo). Operações também é novo. Marketing e Operações entram por enquanto como
@@ -380,6 +411,21 @@ td .up{color:var(--ok);font-weight:700}
       <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
     </div>
   </div>
+</div>
+<!-- 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema).
+     Overlay + painel flutuante (não é reflow como #filtros-pane -- fica ancorado perto do sino, no
+     canto esquerdo, então não faz sentido empurrar o layout do menu). -->
+<div class="notif-ov" id="notif-ov" onclick="toggleNotifPane(false)"></div>
+<div class="notif-pane" id="notif-pane">
+  <div class="notif-pane-head">
+    <span class="ttl">🔔 Notificações</span>
+    <button type="button" class="notif-pane-close" title="Fechar" onclick="toggleNotifPane(false)">×</button>
+  </div>
+  <div class="notif-tabs">
+    <button type="button" class="notif-tab on" id="notif-tab-aprov" onclick="notifSetTab('aprovacao')">Aprovações<span class="cnt" id="notif-tab-aprov-cnt" hidden>0</span></button>
+    <button type="button" class="notif-tab" id="notif-tab-sistema" onclick="notifSetTab('sistema')">Novidades do sistema</button>
+  </div>
+  <div class="notif-body" id="notif-body"><div class="notif-empty">Carregando…</div></div>
 </div>
 <div class="main">
   <div class="main-scrim" id="main-scrim" onclick="toggleFiltrosGroup(true)"></div>
@@ -1005,6 +1051,9 @@ async function loadStore(){
      re-renderiza a lista de sugestões e os "recentes" do Cadastro (senão ficam vazios da 1ª renderização). */
   try{ if(typeof fillEmpresaDatalist==='function')fillEmpresaDatalist(); if(typeof renderEmpRecentes==='function')renderEmpRecentes(); if(typeof renderConRecentes==='function')renderConRecentes(); }catch(e){}
   updateBadge(ok);
+  /* 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema)
+     -- carrega junto do resto da base, sem travar o resto se a lista ainda não existir/der erro. */
+  try{ loadNotificacoes(); }catch(e){}
 }
 function updateBadge(ok){
   const b=q('elevai-src'); if(b)b.textContent=(SRC==='api'?'● ao vivo':'○ local');
@@ -2952,6 +3001,112 @@ function notifyNutricao(l){
   var to=(window.getNutTo?window.getNutTo():'')||'';                // destinatário editável (vazio = padrão Clara)
   try{ fetch('/api/nutricao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:l.cliente,unidade:l.unidade,nome:l.nome,contatoSobrenome:l.contatoSobrenome,telefone:l.telefone,email:l.email,serv:l.serv,cons:l.cons,valor:l.valor,to:to})}).catch(function(){}); }catch(e){}
 }
+/* 10/09/2026 -- Léo: sino de notificações -- duas abas: "Aprovações" (achados do scan periódico de
+   e-mail/Teams por palavra-chave -- proposta/cotação/BID/orçamento/SPEC/RPD/RIF/pregão -- aguardando
+   Léo aprovar/atualizar/ignorar) e "Novidades do sistema" (changelog automático a cada deploy).
+   Uma lista só no SharePoint (Notificacoes_Comercial, ver schema.js) filtrada por `tipo` no cliente.
+   Este bloco fica no <script> do shell (fora da IIFE do CRM) -- por isso chama opNovaOportunidade/
+   opEmpChange via window.*, guardado com typeof (mesmo padrão de renderEmpBucket/toggleColCollapse
+   citado nos comentários acima), nunca direto. */
+let NOTIFS=[];
+let notifTab='aprovacao';
+async function loadNotificacoes(){
+  try{
+    const r=await fetch('/api/notificacoes');
+    if(r&&r.ok){ const j=await r.json(); NOTIFS=(j&&j.items)||[]; }
+  }catch(e){}
+  renderNotifBadge(); renderNotifPane();
+}
+function renderNotifBadge(){
+  const n=NOTIFS.filter(x=>x.tipo==='aprovacao'&&x.status==='pendente').length;
+  const b=q('bell-badge'); if(!b)return;
+  if(n>0){ b.textContent=n>99?'99+':String(n); b.hidden=false; } else { b.hidden=true; }
+}
+function toggleNotifPane(force){
+  const p=q('notif-pane'), ov=q('notif-ov'); if(!p||!ov)return;
+  const on=(typeof force==='boolean')?force:!p.classList.contains('on');
+  p.classList.toggle('on',on); ov.classList.toggle('on',on);
+  if(on) loadNotificacoes();
+}
+function notifSetTab(t){ notifTab=t; renderNotifPane(); }
+function renderNotifPane(){
+  const tabAprov=q('notif-tab-aprov'), tabSis=q('notif-tab-sistema'), body=q('notif-body'), cntEl=q('notif-tab-aprov-cnt');
+  if(!body)return;
+  const aprov=NOTIFS.filter(x=>x.tipo==='aprovacao').sort((a,b)=>String(b.criadoEm||'').localeCompare(String(a.criadoEm||'')));
+  const sistema=NOTIFS.filter(x=>x.tipo==='sistema').sort((a,b)=>String(b.criadoEm||'').localeCompare(String(a.criadoEm||'')));
+  if(tabAprov)tabAprov.classList.toggle('on',notifTab==='aprovacao');
+  if(tabSis)tabSis.classList.toggle('on',notifTab==='sistema');
+  if(cntEl){ const p=aprov.filter(x=>x.status==='pendente').length; cntEl.textContent=p; cntEl.hidden=!p; }
+  let h='';
+  if(notifTab==='aprovacao'){
+    const pend=aprov.filter(x=>x.status==='pendente');
+    if(!pend.length) h='<div class="notif-empty">Sem aprovações pendentes.</div>';
+    else pend.forEach(it=>{
+      const contato=[it.contatoSugeridoNome,it.contatoSugeridoSobrenome].filter(Boolean).join(' ');
+      h+='<div class="notif-item">'
+        +'<div class="ttl">'+esc(it.titulo||it.empresaSugerida||'—')+'</div>'
+        +'<div class="meta">'+esc(it.origem||'')+(it.palavraChave?' · palavra-chave: "'+esc(it.palavraChave)+'"':'')+(it.remetente?' · '+esc(it.remetente):'')+'</div>'
+        +(it.detalhe?'<div class="det">'+esc(it.detalhe)+'</div>':'')
+        +((contato||it.contatoSugeridoEmail||it.contatoSugeridoTelefone)?'<div class="meta">Contato sugerido: '+esc(contato||'—')+(it.contatoSugeridoEmail?' · '+esc(it.contatoSugeridoEmail):'')+(it.contatoSugeridoTelefone?' · '+esc(it.contatoSugeridoTelefone):'')+'</div>':'')
+        +(it.origemLink?'<div class="meta"><a href="'+esc(it.origemLink)+'" target="_blank" rel="noopener">Abrir original ↗</a></div>':'')
+        +'<div class="acts">'
+        +'<button class="ok" onclick="notifAprovar(\''+it.__id+'\')">✅ Aprovar (nova oportunidade)</button>'
+        +'<button class="w" onclick="notifVerEmpresa(\''+it.__id+'\')">🔎 Ver/atualizar empresa</button>'
+        +'<button class="gh" onclick="notifIgnorar(\''+it.__id+'\')">✖ Ignorar</button>'
+        +'</div></div>';
+    });
+  } else {
+    if(!sistema.length) h='<div class="notif-empty">Nenhuma novidade registrada ainda.</div>';
+    else sistema.forEach(it=>{
+      h+='<div class="notif-item">'
+        +'<div class="ttl">'+esc(it.titulo||'Atualização do sistema')+'</div>'
+        +'<div class="meta">'+esc((it.criadoEm||'').slice(0,16).replace('T',' '))+'</div>'
+        +(it.detalhe?'<div class="det">'+esc(it.detalhe)+'</div>':'')
+        +'</div>';
+    });
+  }
+  body.innerHTML=h;
+}
+async function notifPatch(id,fields){
+  try{ await fetch('/api/notificacoes',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,fields:fields})}); }catch(e){}
+}
+function notifAprovar(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  notifPatch(id,{status:'aprovado'});
+  it.status='aprovado'; renderNotifBadge(); renderNotifPane();
+  toggleNotifPane(false);
+  try{
+    if(typeof window.opNovaOportunidade==='function'){
+      window.opNovaOportunidade();
+      setTimeout(function(){
+        try{
+          const eEmp=q('op-empresa');
+          if(eEmp&&it.empresaSugerida){ eEmp.value=it.empresaSugerida; if(typeof window.opEmpChange==='function')window.opEmpChange(); }
+        }catch(e){}
+      },80);
+    }
+  }catch(e){}
+}
+function notifVerEmpresa(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  notifPatch(id,{status:'aprovado'});
+  it.status='aprovado'; renderNotifBadge(); renderNotifPane();
+  toggleNotifPane(false);
+  try{
+    const crmBtn=document.querySelector('[data-v="crm"]'); if(crmBtn)crmBtn.click();
+    setTimeout(function(){
+      const cli=q('mm-cli');
+      if(cli&&it.empresaSugerida){ cli.value=it.empresaSugerida; cli.dispatchEvent(new Event('input',{bubbles:true})); }
+    },150);
+  }catch(e){}
+}
+function notifIgnorar(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  notifPatch(id,{status:'ignorado'});
+  it.status='ignorado'; renderNotifBadge(); renderNotifPane();
+}
+window.toggleNotifPane=toggleNotifPane; window.notifSetTab=notifSetTab;
+window.notifAprovar=notifAprovar; window.notifVerEmpresa=notifVerEmpresa; window.notifIgnorar=notifIgnorar;
 function testTeams(){ var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL){alert("Webhook do Teams não configurado.");return;} const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",text:"🎉 TESTE — ElevaLife"},{type:"TextBlock",text:"Se você vê este card no canal Vendas, a integração está OK.",wrap:true}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(r=>alert("Enviado ao Teams (HTTP "+r.status+"). Confira o canal Vendas.")).catch(e=>alert("Falha ao enviar: "+e.message+"\n\nProvavel bloqueio CORS do endpoint do Power Automate (fluxo HTTP nao aceita chamada do navegador). Me avise: troco para um fluxo AGENDADO que le a base e posta no Teams — sem CORS.")); }
 function pad(n){return (''+n).padStart(2,'0');}
 function dlICS(ics){const b=new Blob([ics],{type:'text/calendar;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tarefa_elevalife.ics';a.click();}

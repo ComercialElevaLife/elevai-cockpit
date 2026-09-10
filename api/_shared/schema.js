@@ -221,6 +221,36 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
+  // --- Sino de notificações (10/09/2026): aprovação de leads detectados em e-mail/Teams por
+  // palavra-chave (Léo pediu um jeito de aprovar/atualizar/ignorar o que o scan encontra, em vez
+  // de criar direto) + changelog automático de deploys ("novidades do sistema"). Mesma lista serve
+  // os dois casos (campo `tipo` distingue); o sino no frontend filtra por `tipo` pra montar as
+  // duas abas (Aprovações / Novidades do sistema) sem precisar de duas listas no SharePoint.
+  notificacoes: {
+    displayName: 'Notificacoes_Comercial',
+    titleFrom: 'titulo',
+    columns: [
+      { name: 'tipo', type: 'text' },              // 'aprovacao' | 'sistema'
+      { name: 'status', type: 'text' },             // aprovacao: pendente/aprovado/ignorado | sistema: lida/''
+      { name: 'titulo', type: 'text' },
+      { name: 'detalhe', type: 'text', long: true },// resumo/trecho do e-mail-Teams, ou corpo da novidade
+      { name: 'origem', type: 'text' },             // 'email' | 'teams' | 'sistema'
+      { name: 'origemLink', type: 'text' },         // deep link pro e-mail/mensagem original (webLink Graph)
+      { name: 'palavraChave', type: 'text' },       // qual termo da lista bateu (proposta/cotação/BID/...)
+      { name: 'remetente', type: 'text' },
+      { name: 'dataOrigem', type: 'text' },         // ISO — data do e-mail/mensagem original
+      { name: 'empresaSugerida', type: 'text' },    // nome da empresa candidata (heurística do scan)
+      { name: 'empresaId', type: 'text' },          // preenchido quando o scan já casou c/ Empresas_Comercial
+      { name: 'contatoSugeridoNome', type: 'text' },
+      { name: 'contatoSugeridoSobrenome', type: 'text' },
+      { name: 'contatoSugeridoEmail', type: 'text' },
+      { name: 'contatoSugeridoTelefone', type: 'text' },
+      { name: 'leadIdCriado', type: 'text' },        // rastreabilidade: id do lead criado ao aprovar
+      { name: 'criadoEm', type: 'text' },            // ISO — quando a notificação foi gerada
+      { name: 'alteradoEm', type: 'text' },
+      { name: 'alteradoPor', type: 'text' },
+    ],
+  },
 };
 
 function toFields(kind, rec) {
