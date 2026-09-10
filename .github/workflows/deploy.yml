@@ -42,5 +42,5 @@ jobs:
           if [ -n "$SHA_CURTO" ]; then DETALHE="$(printf '%s\n\ncommit %s' "$DETALHE" "$SHA_CURTO")"; fi
           CRIADO_EM=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           PAYLOAD=$(TITULO="$TITULO" DETALHE="$DETALHE" CRIADO_EM="$CRIADO_EM" python3 -c "import json, os; print(json.dumps({'tipo': 'sistema', 'status': '', 'titulo': os.environ['TITULO'], 'detalhe': os.environ['DETALHE'], 'origem': 'sistema', 'criadoEm': os.environ['CRIADO_EM'], 'alteradoPor': 'GitHub Actions'}))")
-          HTTP_RESP=$(curl -sS -A "$UA" -H "Accept: application/json" -X POST "$URL/api/notificacoes" -H "Content-Type: application/json" -d "$PAYLOAD" --max-time 20 -w "\nHTTP_STATUS:%{http_code}\n")
+          HTTP_RESP=$(curl -sS -D - -A "$UA" -H "Accept: application/json" -X POST "$URL/api/notificacoes" -H "Content-Type: application/json" -d "$PAYLOAD" --max-time 20 -w "\nHTTP_STATUS:%{http_code}\nREDIRECT_URL:%{redirect_url}\n")
           echo "$HTTP_RESP"
