@@ -6,6 +6,7 @@
     { "route": "/lp", "rewrite": "/lp.html", "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/lp.html", "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/lead-publico", "methods": ["POST"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/notificacoes", "methods": ["POST"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/*", "allowedRoles": ["authenticated"] },
     { "route": "/*", "allowedRoles": ["authenticated"] }
   ],
