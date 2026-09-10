@@ -23,8 +23,7 @@ jobs:
           skip_api_build: true
       # 10/09/2026 -- sino de notificações (Léo): cada deploy vira um item na aba "Novidades do
       # sistema" do sino, automaticamente -- sem isso, o changelog do sino ficaria manual. Nunca
-      # falha o deploy: continue-on-error + best-effort. Usa curl (não Python/urllib -- essa
-      # versão anterior reportava sucesso sem gravar o registro de verdade).
+      # falha o deploy: continue-on-error + best-effort.
       - name: Registrar novidade no sino do Cockpit
         if: success()
         continue-on-error: true
@@ -32,10 +31,20 @@ jobs:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
           COMMIT_SHA: ${{ github.sha }}
         run: |
+          echo "==NOTIF_STEP_START=="
+          set +e
           TITULO=$(printf '%s' "${COMMIT_MSG:-Atualização do sistema}" | head -n1 | cut -c1-120)
           SHA_CURTO=$(printf '%s' "$COMMIT_SHA" | cut -c1-7)
           DETALHE="${COMMIT_MSG:-Atualização do sistema}"
           if [ -n "$SHA_CURTO" ]; then DETALHE="$(printf '%s\n\ncommit %s' "$DETALHE" "$SHA_CURTO")"; fi
           CRIADO_EM=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "TITULO=$TITULO"
+          echo "CRIADO_EM=$CRIADO_EM"
           PAYLOAD=$(TITULO="$TITULO" DETALHE="$DETALHE" CRIADO_EM="$CRIADO_EM" python3 -c "import json, os; print(json.dumps({'tipo': 'sistema', 'status': '', 'titulo': os.environ['TITULO'], 'detalhe': os.environ['DETALHE'], 'origem': 'sistema', 'criadoEm': os.environ['CRIADO_EM'], 'alteradoPor': 'GitHub Actions'}))")
-          curl -sS -X POST "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes" -H "Content-Type: application/json" -d "$PAYLOAD" --max-time 20 || echo "Aviso: falha ao registrar novidade no sino (nao bloqueia o deploy)"
+          echo "PAYLOAD_LEN=${#PAYLOAD}"
+          echo "PAYLOAD=$PAYLOAD"
+          HTTP_RESP=$(curl -sS -X POST "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes" -H "Content-Type: application/json" -d "$PAYLOAD" --max-time 20 -w "\nHTTP_STATUS:%{http_code}\n")
+          CURL_EXIT=$?
+          echo "CURL_EXIT=$CURL_EXIT"
+          echo "HTTP_RESP=$HTTP_RESP"
+          echo "==NOTIF_STEP_END=="
