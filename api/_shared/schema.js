@@ -245,6 +245,18 @@ const LISTS = {
       { name: 'contatoSugeridoSobrenome', type: 'text' },
       { name: 'contatoSugeridoEmail', type: 'text' },
       { name: 'contatoSugeridoTelefone', type: 'text' },
+      // 11/09/2026 -- Léo (regra do funil): a varredura tem que dizer se o que achou ainda é só um
+      // LEAD (sem reunião marcada, sem escopo, sem proposta) ou já é uma OPORTUNIDADE (reunião
+      // marcada, negociação em andamento, ou reativação de um histórico anterior). Em QUALQUER dos
+      // dois casos a Empresa/Contato(s) têm que ser conferidos/cadastrados primeiro; só a
+      // OPORTUNIDADE abre card na coluna Oportunidade do Kanban -- o Lead fica só com Empresa/Contato
+      // registrados, pra alguém decidir depois se avança (mesmo espírito do "LEAD começa vazio" que
+      // já valia pro Kanban). `contatosExtraJson` carrega os demais contatos vistos em cópia no
+      // e-mail/thread (além do principal, que continua nos campos contatoSugerido*), pra também
+      // cadastrar os cc'ds -- cada item: {nome,sobrenome,email,telefone}.
+      { name: 'classificacao', type: 'text' },        // 'lead' | 'oportunidade'
+      { name: 'empresaTarget', type: 'text' },        // 'SIM' | 'NÃO' -- heurística do scan p/ marcar a Empresa como TARGET
+      { name: 'contatosExtraJson', type: 'text', long: true },
       { name: 'leadIdCriado', type: 'text' },        // rastreabilidade: id do lead criado ao aprovar
       { name: 'criadoEm', type: 'text' },            // ISO — quando a notificação foi gerada
       { name: 'alteradoEm', type: 'text' },

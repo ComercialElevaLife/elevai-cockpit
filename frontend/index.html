@@ -3088,14 +3088,22 @@ function renderNotifPane(){
     if(!pend.length) h='<div class="notif-empty">Sem aprovações pendentes.</div>';
     else pend.forEach(it=>{
       const contato=[it.contatoSugeridoNome,it.contatoSugeridoSobrenome].filter(Boolean).join(' ');
+      /* 11/09/2026 -- Léo: regra do funil -- notificação sem reunião/negociação ainda é só LEAD
+         (default, se o scan não marcou classificacao); só vira OPORTUNIDADE quando o próprio scan
+         sinaliza reunião marcada/negociação/reativação. O rótulo aqui é só pra Léo saber o que o
+         botão "Aprovar" vai fazer -- nunca informação técnica do sistema. */
+      const isOp=(it.classificacao==='oportunidade');
+      const tag=isOp
+        ?'<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;background:#F5E9D6;color:#96731F;margin-right:6px">🎯 OPORTUNIDADE</span>'
+        :'<span style="display:inline-block;font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;background:#E7EFE9;color:#2E7D5B;margin-right:6px">🌱 LEAD</span>';
       h+='<div class="notif-item">'
-        +'<div class="ttl">'+esc(it.titulo||it.empresaSugerida||'—')+'</div>'
+        +'<div class="ttl">'+tag+esc(it.titulo||it.empresaSugerida||'—')+'</div>'
         +'<div class="meta">'+esc(it.origem||'')+(it.palavraChave?' · palavra-chave: "'+esc(it.palavraChave)+'"':'')+(it.remetente?' · '+esc(it.remetente):'')+'</div>'
         +(it.detalhe?'<div class="det">'+esc(it.detalhe)+'</div>':'')
         +((contato||it.contatoSugeridoEmail||it.contatoSugeridoTelefone)?'<div class="meta">Contato sugerido: '+esc(contato||'—')+(it.contatoSugeridoEmail?' · '+esc(it.contatoSugeridoEmail):'')+(it.contatoSugeridoTelefone?' · '+esc(it.contatoSugeridoTelefone):'')+'</div>':'')
         +(it.origemLink?'<div class="meta"><a href="'+esc(it.origemLink)+'" target="_blank" rel="noopener">Abrir original ↗</a></div>':'')
         +'<div class="acts">'
-        +'<button class="ok" onclick="notifAprovar(\''+it.__id+'\')">✅ Aprovar (nova oportunidade)</button>'
+        +'<button class="ok" onclick="notifAprovar(\''+it.__id+'\')">✅ '+(isOp?'Aprovar (abrir oportunidade)':'Aprovar (registrar lead)')+'</button>'
         +'<button class="w" onclick="notifVerEmpresa(\''+it.__id+'\')">🔎 Ver/atualizar empresa</button>'
         +'<button class="gh" onclick="notifIgnorar(\''+it.__id+'\')">✖ Ignorar</button>'
         +'</div></div>';
@@ -3115,22 +3123,112 @@ function renderNotifPane(){
 async function notifPatch(id,fields){
   try{ await fetch('/api/notificacoes',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,fields:fields})}); }catch(e){}
 }
-function notifAprovar(id){
+/* 11/09/2026 -- Léo (regra do funil comercial): aprovar uma notificação do scan NUNCA pode pular
+   direto pra Oportunidade. Sempre primeiro confere/cadastra a Empresa (sinalizando TARGET quando
+   for o caso) e confere/cadastra o(s) Contato(s) (inclusive quem só apareceu em cópia no e-mail) --
+   só DEPOIS, se o scan classificou como 'oportunidade' (já tem reunião marcada / negociação em
+   andamento / reativação de histórico), abre o card na coluna Oportunidade. Se for só 'lead' (nada
+   disso ainda), fica registrado em Empresas/Contatos e não abre oportunidade nenhuma -- é o time
+   comercial que decide depois se avança, do jeito que o Kanban já funciona hoje pro LEAD manual. */
+function _notifEmpresaByAnyName(nome){
+  var v=(nome||'').trim().toLowerCase(); if(!v)return null;
+  return (STORE.empresas||[]).find(function(e){ return String(e.cliente||e.razaoSocial||e.nomeFantasia||'').trim().toLowerCase()===v; });
+}
+async function _notifGarantirEmpresa(it){
+  var nome=(it.empresaSugerida||'').trim();
+  var hit=(it.empresaId&&(STORE.empresas||[]).find(function(e){return String(e.__id)===String(it.empresaId);}))||_notifEmpresaByAnyName(nome);
+  if(hit){
+    if(it.empresaTarget==='SIM'&&String(hit.target||'').toUpperCase()!=='TARGET'){
+      try{
+        await fetch('/api/empresas',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:hit.__id,fields:{target:'TARGET'}})});
+        hit.target='TARGET';
+      }catch(e){}
+    }
+    return hit;
+  }
+  if(!nome) return null;
+  try{
+    var r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:nome,target:(it.empresaTarget==='SIM'?'TARGET':'NÃO TARGET')})});
+    var j=await r.json().catch(function(){return {};});
+    if(r.ok&&j.ok&&j.item){ STORE.empresas=(STORE.empresas||[]).concat([j.item]); return j.item; }
+  }catch(e){}
+  return null;
+}
+function _notifContatosCandidatos(it){
+  var list=[];
+  if(it.contatoSugeridoNome||it.contatoSugeridoEmail){
+    list.push({nome:it.contatoSugeridoNome||'',sobrenome:it.contatoSugeridoSobrenome||'',email:it.contatoSugeridoEmail||'',telefone:it.contatoSugeridoTelefone||''});
+  }
+  if(it.contatosExtraJson){
+    try{
+      var extra=JSON.parse(it.contatosExtraJson);
+      if(Array.isArray(extra))extra.forEach(function(c){ if(c&&(c.nome||c.email))list.push({nome:c.nome||'',sobrenome:c.sobrenome||'',email:c.email||'',telefone:c.telefone||''}); });
+    }catch(e){}
+  }
+  var seen={};
+  return list.filter(function(c){ var k=(c.email||c.nome||'').trim().toLowerCase(); if(!k||seen[k])return false; seen[k]=1; return true; });
+}
+async function _notifGarantirContatos(it,emp){
+  var cands=_notifContatosCandidatos(it);
+  if(!emp||!cands.length)return [];
+  var out=[];
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i];
+    var emailN=(c.email||'').trim().toLowerCase();
+    var nomeN=((c.nome||'')+' '+(c.sobrenome||'')).trim().toLowerCase();
+    var existente=(STORE.contatos||[]).find(function(x){
+      var mesmaEmpresa=(emp.__id&&String(x.empresaId||'')===String(emp.__id))||String(x.empresaNome||'').trim().toLowerCase()===String(emp.cliente||'').trim().toLowerCase();
+      if(!mesmaEmpresa)return false;
+      if(emailN)return String(x.email||'').trim().toLowerCase()===emailN;
+      return ((x.nome||'')+' '+(x.sobrenome||'')).trim().toLowerCase()===nomeN;
+    });
+    if(existente){
+      if(c.telefone&&!existente.telefone){
+        try{ await fetch('/api/contatos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:existente.__id,fields:{telefone:c.telefone}})}); existente.telefone=c.telefone; }catch(e){}
+      }
+      out.push(existente); continue;
+    }
+    if(!c.nome&&!c.email)continue;
+    try{
+      var r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,sobrenome:c.sobrenome,email:c.email,telefone:c.telefone,empresaId:String(emp.__id||''),empresaNome:(emp.cliente||emp.razaoSocial||'')})});
+      var j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok&&j.item){ STORE.contatos=(STORE.contatos||[]).concat([j.item]); out.push(j.item); }
+    }catch(e){}
+  }
+  return out;
+}
+async function notifAprovar(id){
   const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
   notifPatch(id,{status:'aprovado'});
   it.status='aprovado'; renderNotifBadge(); renderNotifPane();
   toggleNotifPane(false);
+  const isOp=(it.classificacao==='oportunidade');
   try{
-    if(typeof window.opNovaOportunidade==='function'){
-      window.opNovaOportunidade();
-      setTimeout(function(){
-        try{
-          const eEmp=q('op-empresa');
-          if(eEmp&&it.empresaSugerida){ eEmp.value=it.empresaSugerida; if(typeof window.opEmpChange==='function')window.opEmpChange(); }
-        }catch(e){}
-      },80);
+    const emp=await _notifGarantirEmpresa(it);
+    const cons=await _notifGarantirContatos(it,emp);
+    if(isOp){
+      if(typeof window.opNovaOportunidade==='function'){
+        window.opNovaOportunidade();
+        setTimeout(function(){
+          try{
+            const eEmp=q('op-empresa');
+            const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida;
+            if(eEmp&&nomeEmp){
+              eEmp.value=nomeEmp;
+              if(typeof window.opEmpChange==='function')window.opEmpChange();
+              if(cons&&cons.length){
+                const sel=q('op-contato'), alvo=String((cons[0].email||cons[0].nome||'')).trim().toLowerCase();
+                if(sel&&sel._list){ for(var k=0;k<sel._list.length;k++){ var cc=sel._list[k]; if(String((cc.email||cc.nome||'')).trim().toLowerCase()===alvo){ sel.value=String(k); break; } } }
+              }
+            }
+          }catch(e){}
+        },80);
+      }
+    } else if(typeof toast==='function'){
+      const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida||'empresa';
+      toast('✅ '+nomeEmp+' e contato conferidos/cadastrados. Sem reunião marcada ainda — fica como lead, sem abrir oportunidade.');
     }
-  }catch(e){}
+  }catch(e){ if(typeof toast==='function')toast('⚠ Não consegui concluir o cadastro automático — confira em Cadastro > Empresas/Contatos.'); }
 }
 function notifVerEmpresa(id){
   const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
