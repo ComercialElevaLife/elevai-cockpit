@@ -23,10 +23,8 @@ jobs:
           skip_api_build: true
       # 10/09/2026 -- sino de notificações (Léo): cada deploy vira um item na aba "Novidades do
       # sistema" do sino, automaticamente -- sem isso, o changelog do sino ficaria manual. Nunca
-      # falha o deploy: continue-on-error + best-effort. Reescrito de Python/urllib para curl
-      # porque o urllib estava reportando sucesso sem realmente gravar o registro (causa não
-      # 100% confirmada -- suspeita de redirect/handling estranho -- mas curl já é usado com
-      # sucesso em todo o resto deste projeto).
+      # falha o deploy: continue-on-error + best-effort. Usa curl (não Python/urllib -- essa
+      # versão anterior reportava sucesso sem gravar o registro de verdade).
       - name: Registrar novidade no sino do Cockpit
         if: success()
         continue-on-error: true
@@ -37,21 +35,7 @@ jobs:
           TITULO=$(printf '%s' "${COMMIT_MSG:-Atualização do sistema}" | head -n1 | cut -c1-120)
           SHA_CURTO=$(printf '%s' "$COMMIT_SHA" | cut -c1-7)
           DETALHE="${COMMIT_MSG:-Atualização do sistema}"
-          if [ -n "$SHA_CURTO" ]; then DETALHE="$DETALHE
-
-commit $SHA_CURTO"; fi
+          if [ -n "$SHA_CURTO" ]; then DETALHE="$(printf '%s\n\ncommit %s' "$DETALHE" "$SHA_CURTO")"; fi
           CRIADO_EM=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          PAYLOAD=$(python3 -c '
-import json, sys
-titulo, detalhe, criado_em = sys.argv[1], sys.argv[2], sys.argv[3]
-print(json.dumps({
-    "tipo": "sistema", "status": "", "titulo": titulo,
-    "detalhe": detalhe, "origem": "sistema",
-    "criadoEm": criado_em, "alteradoPor": "GitHub Actions",
-}))
-' "$TITULO" "$DETALHE" "$CRIADO_EM")
-          curl -sS -X POST "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes" \
-            -H "Content-Type: application/json" \
-            -d "$PAYLOAD" \
-            --max-time 20 \
-            || echo "Aviso: falha ao registrar novidade no sino (nao bloqueia o deploy)"
+          PAYLOAD=$(TITULO="$TITULO" DETALHE="$DETALHE" CRIADO_EM="$CRIADO_EM" python3 -c "import json, os; print(json.dumps({'tipo': 'sistema', 'status': '', 'titulo': os.environ['TITULO'], 'detalhe': os.environ['DETALHE'], 'origem': 'sistema', 'criadoEm': os.environ['CRIADO_EM'], 'alteradoPor': 'GitHub Actions'}))")
+          curl -sS -X POST "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes" -H "Content-Type: application/json" -d "$PAYLOAD" --max-time 20 || echo "Aviso: falha ao registrar novidade no sino (nao bloqueia o deploy)"
