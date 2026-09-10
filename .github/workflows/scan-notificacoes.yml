@@ -1,0 +1,43 @@
+name: Fila de notificações do scan (sino de aprovações)
+
+# 11/09/2026 -- Léo: scan automático de e-mail/Teams a cada 4h. A sessão do Claude que roda o scan
+# não tem acesso de rede direto ao Cockpit (política de egress do ambiente onde ela roda bloqueia o
+# domínio do Static Web App) -- então ela só ESCREVE a fila de achados aqui no repo (branch
+# scan-queue, arquivos scan-queue/*.json) e faz git push, que é a única via que já se mostrou
+# confiável a partir de lá. Este workflow (que roda num runner do GitHub, sem essa restrição de
+# rede) lê a fila, faz o POST de verdade em /api/notificacoes, e limpa os arquivos processados.
+on:
+  push:
+    branches: [ scan-queue ]
+
+permissions:
+  contents: write
+
+jobs:
+  processar_fila:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: scan-queue
+      - name: Postar notificações pendentes
+        run: |
+          set -e
+          shopt -s nullglob
+          FILES=(scan-queue/*.json)
+          if [ ${#FILES[@]} -eq 0 ]; then echo "fila vazia -- nada a fazer"; exit 0; fi
+          for f in "${FILES[@]}"; do
+            echo "=== processando $f ==="
+            python3 .github/workflows/scripts/postar_fila.py "$f" "https://red-mushroom-08695330f.7.azurestaticapps.net/api/notificacoes"
+          done
+      - name: Limpar a fila processada
+        run: |
+          set -e
+          shopt -s nullglob
+          FILES=(scan-queue/*.json)
+          if [ ${#FILES[@]} -eq 0 ]; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git rm -q "${FILES[@]}"
+          git commit -m "Fila de notificações processada (auto)"
+          git push origin scan-queue
