@@ -1,0 +1,20 @@
+[
+  {
+    "tipo": "aprovacao",
+    "status": "pendente",
+    "titulo": "RE: SOLICITAÇÃO ORÇAMENTO - Elevadores Atlas Schindler",
+    "detalhe": "Pamela (Atlas Schindler) respondeu confirmando disponibilidade para retomar contato -- pediu desculpas pela demora (viagens/eventos/ferias) e sugeriu agenda: 16/09 as 10h ou 14h, ou 21/09 as 9h ou 14h. Recuperado manualmente: a execucao automatica do scan (16:15 UTC) bateu rate limit do Microsoft Graph e nao pegou este e-mail; a logica de retry ja foi corrigida para as proximas execucoes.",
+    "origem": "email",
+    "origemLink": "https://outlook.office365.com/owa/?ItemID=AAMkADljODk5NzhlLTM4ZjktNDJlNC05OTY3LTliMjMxNDcyMTlhZQBGAAAAAACogUsGDm%2BsSbHYRt%2FblMw3BwA%2BKUkte66ZQ5A4kyvZ6dIxAAAAAAEMAAA%2BKUkte66ZQ5A4kyvZ6dIxAAOIw%2Bl9AAA%3D&exvsurl=1&viewmodel=ReadMessageItem",
+    "palavraChave": "orçamento",
+    "remetente": "Pamela Aparecida Rocha da Cruz <pamela.cruz@schindler.com>",
+    "dataOrigem": "2026-09-10T15:28:24.000Z",
+    "empresaSugerida": "Atlas Schindler",
+    "contatoSugeridoNome": "Pamela",
+    "contatoSugeridoSobrenome": "Rocha da Cruz",
+    "contatoSugeridoEmail": "pamela.cruz@schindler.com",
+    "contatoSugeridoTelefone": "",
+    "criadoEm": "2026-09-10T16:23:40.468054+00:00",
+    "alteradoPor": "Claude (recuperacao manual pos-teste)"
+  }
+]
