@@ -18,7 +18,8 @@
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
 *{box-sizing:border-box}
-body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--bg)}
+html{overflow-x:hidden}
+body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);background:var(--bg);overflow-x:hidden}
 .app{display:flex;min-height:100vh}
 /* sidebar */
 .side{width:236px;flex:0 0 236px;background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
@@ -92,6 +93,44 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 .filtros-pane-close:hover{opacity:1;background:rgba(255,255,255,.18)}
 @media(min-width:901px){ .filtros-pane.open{width:340px} }
 @media(max-width:900px){ .filtros-pane.open{width:100%} .filtros-pane-inner{width:100%;height:auto} }
+/* 10/09/2026 -- sino de notificações (Léo: aprovações do scan de e-mail/Teams por palavra-chave +
+   changelog de deploys). Painel flutuante (position:fixed), não empurra o layout como .filtros-pane.
+   11/09/2026 -- Léo: sino vivia dentro de .brand (sidebar), pouco visível -- agora é um botão fixo
+   no canto superior direito da TELA (não só do menu), acima de qualquer view/scroll. */
+.bell-btn{all:unset;cursor:pointer;position:fixed;top:14px;right:14px;z-index:98;width:38px;height:38px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;line-height:1;border-radius:50%;background:linear-gradient(180deg,var(--wd),var(--w));box-shadow:0 4px 14px rgba(58,42,46,.3);transition:opacity .15s,transform .15s}
+.bell-btn:hover{filter:brightness(1.1)}
+/* 12/09/2026 -- Léo: o sino fixo (z-index alto, canto superior direito) tampava o "x" de fechar
+   de janelas que abrem no mesmo canto (drawer do Kanban, modal de Nova Oportunidade). Em vez de
+   escolher só uma solução, o sino agora recua (some) enquanto uma dessas janelas está aberta
+   (ver _bellSync() no IIFE do CRM) E essas janelas ganharam clique-fora/Esc pra fechar -- as duas
+   coisas juntas, como o Léo pediu. */
+.bell-btn.bell-recuado{opacity:0;transform:scale(.5);pointer-events:none}
+.bell-badge{position:absolute;top:-3px;right:-3px;background:var(--bad);color:#fff;font-size:9px;font-weight:800;border-radius:8px;min-width:14px;height:14px;display:flex;align-items:center;justify-content:center;padding:0 3px;line-height:1;box-shadow:0 0 0 2px #fff}
+.notif-ov{position:fixed;inset:0;background:rgba(20,10,12,.35);z-index:96;display:none}
+.notif-ov.on{display:block}
+.notif-pane{position:fixed;top:60px;right:14px;width:380px;max-width:calc(100vw - 28px);max-height:calc(100vh - 76px);background:#fff;border-radius:14px;box-shadow:0 12px 40px rgba(0,0,0,.22);z-index:97;display:none;flex-direction:column;overflow:hidden}
+.notif-pane.on{display:flex}
+.notif-pane-head{background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;padding:14px 16px;display:flex;align-items:center;gap:8px}
+.notif-pane-head .ttl{font-weight:800;font-size:14px}
+.notif-pane-close{all:unset;cursor:pointer;margin-left:auto;color:#fff;opacity:.85;font-size:18px;line-height:1;padding:2px 7px;border-radius:6px}
+.notif-pane-close:hover{opacity:1;background:rgba(255,255,255,.18)}
+.notif-tabs{display:flex;border-bottom:1px solid var(--ln);flex:0 0 auto}
+.notif-tab{all:unset;flex:1;text-align:center;cursor:pointer;font-size:12px;font-weight:700;padding:10px 6px;color:var(--mut);border-bottom:2px solid transparent;box-sizing:border-box}
+.notif-tab.on{color:var(--w);border-bottom-color:var(--w)}
+.notif-tab .cnt{background:var(--bad);color:#fff;font-size:9.5px;font-weight:800;border-radius:8px;padding:1px 6px;margin-left:5px}
+.notif-body{overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px}
+.notif-empty{padding:26px 10px;text-align:center;color:var(--mut);font-size:12.5px}
+.notif-item{border:1px solid var(--ln);border-radius:10px;padding:10px 12px;font-size:12.5px}
+.notif-item .ttl{font-weight:700;color:var(--ink);margin-bottom:2px}
+.notif-item .meta{font-size:11px;color:var(--mut);margin-bottom:6px}
+.notif-item .meta a{color:var(--w)}
+.notif-item .det{font-size:12px;color:var(--ink);margin-bottom:8px;white-space:pre-wrap}
+.notif-item .acts{display:flex;gap:6px;flex-wrap:wrap}
+.notif-item .acts button{all:unset;cursor:pointer;font-size:11px;font-weight:700;padding:5px 9px;border-radius:7px;box-sizing:border-box}
+.notif-item .acts .ok{background:var(--ok);color:#fff}
+.notif-item .acts .w{background:var(--w);color:#fff}
+.notif-item .acts .gh{background:var(--bg);color:var(--wd);border:1px solid var(--ln)}
+@media(max-width:480px){ .bell-btn{top:8px;right:8px;width:34px;height:34px;font-size:15px} .notif-pane{top:0;left:0;width:100%;max-width:100%;max-height:100%;border-radius:0} }
 .msel-count{color:var(--w);font-weight:700}
 .msel-menu{display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--ln);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.14);padding:8px;z-index:30;min-width:200px;max-height:260px;overflow:auto}
 .msel-menu.on{display:block}
@@ -171,7 +210,7 @@ td .up{color:var(--ok);font-weight:700}
 #view-painel header.top.compact .brand .tt .sub{display:none}
 #view-painel header.top.compact .brand .tt h1{font-size:15px}
 /* ===== CRM (escopado) ===== */
-#view-crm{--wine:#8B3A42;--deep:#5E2A30;--mid:#A34E56;--soft:#C99AA0;--bg:#F5EFEA;--card:#fff;--txt:#3D2E30;--txt2:#8A7A78;--teal:#3E7B7E}#view-crm *{margin:0;padding:0;box-sizing:border-box}#view-crm{font-family:'Montserrat',-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt)}#view-crm header{background:linear-gradient(120deg,var(--deep),#7A3139 65%,var(--wine));color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}#view-crm header .t h1{font-family:'Montserrat Alternates',sans-serif;font-size:19px}#view-crm header .t .s{font-size:12px;color:#EBD9DB}#view-crm header .b15{display:flex;align-items:baseline;gap:6px;margin-right:8px}#view-crm header .b15 .n{font-size:26px;font-weight:800}#view-crm header .b15 .a{font-size:12px;font-weight:700}#view-crm .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 22px;background:#fff;border-bottom:1px solid #E7D8D9}#view-crm .bar select, #view-crm .bar input{font-family:'Montserrat',sans-serif;font-size:12.5px;padding:6px 9px;border:1px solid var(--soft);border-radius:6px;color:var(--txt);background:#fff}#view-crm .bar label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);font-weight:700;margin-right:3px}#view-crm .btn{background:var(--wine);color:#fff;border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:6px;cursor:pointer}#view-crm .btn.ghost{background:#fff;color:var(--wine);border:1px solid var(--wine)}#view-crm .note{font-size:11px;color:var(--txt2);padding:8px 22px}#view-crm .board{display:flex;flex-wrap:nowrap;gap:12px;padding:8px 22px 22px;align-items:start}#view-crm .col{background:#efe4e5;border-radius:12px;display:flex;flex-direction:column;min-height:200px;max-height:calc(100vh - 210px);flex:1 1 0;min-width:0;transition:flex-basis .18s ease,max-width .18s ease}#view-crm .col h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;padding:12px 14px 6px;color:var(--deep);display:flex;justify-content:space-between;align-items:center}#view-crm .col .sum{font-size:11px;color:var(--txt2);font-weight:700;padding:0 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px}#view-crm .col-sort{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;padding:2px 3px;border:1px solid var(--soft);border-radius:5px;background:#fff;color:var(--txt);max-width:112px;cursor:pointer}#view-crm .col .drop{padding:0 10px 10px;overflow-y:auto;flex:1}#view-crm .col-toggle{all:unset;cursor:pointer;font-weight:800;font-size:13px;line-height:1;width:18px;height:18px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:5px;color:var(--deep)}#view-crm .col-toggle:hover{background:rgba(94,42,48,.14)}#view-crm .col.collapsed{flex:0 0 46px;max-width:46px;min-width:46px}#view-crm .col.collapsed .sum,#view-crm .col.collapsed .drop{display:none}#view-crm .col.collapsed h2{flex-direction:column;height:100%;padding:12px 6px;gap:10px}#view-crm .col.collapsed .col-name{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;white-space:nowrap;letter-spacing:.4px}#view-crm .col.collapsed .col-toggle{order:-1}#view-crm .col.st-n{background:#EDE1E2}#view-crm .col.st-m{background:#F6E7D6}#view-crm .col.st-v{background:#DCECE9}#view-crm .col.st-p{background:#F3E3E1}#view-crm .col.st-pause{background:#DDE6EF}#view-crm .col.st-op{background:#F2E8D5}#view-painel .tag.st-pause{background:#DDE6EF;color:#3B5A80}#view-painel .tag.st-op{background:#F2E8D5;color:#96731F}#view-crm .col.over{outline:2px dashed var(--wine);outline-offset:-4px}#view-crm .card{background:#fff;border-radius:9px;padding:9px 11px;margin-bottom:8px;box-shadow:0 1px 3px rgba(94,42,48,.12);cursor:grab;border-left:3px solid var(--soft)}#view-crm .card:active{cursor:grabbing}#view-crm .card .emp{font-weight:700;font-size:13px;color:var(--deep);line-height:1.15}#view-crm .card .emp .soc{color:#C9962A;font-size:10.5px;margin-left:3px;letter-spacing:-1px}#view-crm .card .emp .tgt{font-size:10.5px;margin-left:3px}#view-crm .card .uni{font-size:10.5px;color:var(--txt2);margin-bottom:4px}#view-crm .card .row{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px}#view-crm .card .val{font-weight:800;font-size:12.5px;color:var(--wine)}#view-crm .tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#F0E3E3;color:var(--deep)}#view-crm .tag.R{background:#DCECE9;color:var(--teal)}#view-crm .tag.P{background:#F3E3E1;color:var(--wine)}#view-crm .tag.PR{background:#EDE3F0;color:#7d4b8f}#view-crm .meta{font-size:10.5px;color:var(--txt2)}#view-crm .tk{font-size:10px;font-weight:700;color:var(--teal)}#view-crm .nxt{font-size:10px;font-weight:700;color:var(--teal);white-space:nowrap}#view-crm .nxt.late{color:var(--wine)}
+#view-crm{--wine:#8B3A42;--deep:#5E2A30;--mid:#A34E56;--soft:#C99AA0;--bg:#F5EFEA;--card:#fff;--txt:#3D2E30;--txt2:#8A7A78;--teal:#3E7B7E}#view-crm *{margin:0;padding:0;box-sizing:border-box}#view-crm{font-family:'Montserrat',-apple-system,'Segoe UI',sans-serif;background:var(--bg);color:var(--txt)}#view-crm header{background:linear-gradient(120deg,var(--deep),#7A3139 65%,var(--wine));color:#fff;padding:14px 22px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px}#view-crm header .t h1{font-family:'Montserrat Alternates',sans-serif;font-size:19px}#view-crm header .t .s{font-size:12px;color:#EBD9DB}#view-crm header .b15{display:flex;align-items:baseline;gap:6px;margin-right:8px}#view-crm header .b15 .n{font-size:26px;font-weight:800}#view-crm header .b15 .a{font-size:12px;font-weight:700}#view-crm .bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px 22px;background:#fff;border-bottom:1px solid #E7D8D9}#view-crm .bar select, #view-crm .bar input{font-family:'Montserrat',sans-serif;font-size:12.5px;padding:6px 9px;border:1px solid var(--soft);border-radius:6px;color:var(--txt);background:#fff}#view-crm .bar label{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:var(--txt2);font-weight:700;margin-right:3px}#view-crm .btn{background:var(--wine);color:#fff;border:none;font-family:'Montserrat',sans-serif;font-weight:700;font-size:12.5px;padding:8px 14px;border-radius:6px;cursor:pointer}#view-crm .btn.ghost{background:#fff;color:var(--wine);border:1px solid var(--wine)}#view-crm .note{font-size:11px;color:var(--txt2);padding:8px 22px}#view-crm .board{display:flex;flex-wrap:nowrap;gap:12px;padding:8px 22px 22px;align-items:start}#view-crm .col{background:#efe4e5;border-radius:12px;display:flex;flex-direction:column;min-height:200px;max-height:calc(100vh - 158px);flex:1 1 0;min-width:0;transition:flex-basis .18s ease,max-width .18s ease}#view-crm .col h2{font-size:12px;text-transform:uppercase;letter-spacing:.6px;padding:12px 14px 6px;color:var(--deep);display:flex;justify-content:space-between;align-items:center}#view-crm .col .sum{font-size:11px;color:var(--txt2);font-weight:700;padding:0 14px 8px;display:flex;align-items:center;justify-content:space-between;gap:6px}#view-crm .col-sort{font-family:'Montserrat',sans-serif;font-size:10px;font-weight:600;padding:2px 3px;border:1px solid var(--soft);border-radius:5px;background:#fff;color:var(--txt);max-width:112px;cursor:pointer}#view-crm .col .drop{padding:0 10px 10px;overflow-y:auto;flex:1}#view-crm .col-toggle{all:unset;cursor:pointer;font-weight:800;font-size:13px;line-height:1;width:18px;height:18px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:5px;color:var(--deep)}#view-crm .col-toggle:hover{background:rgba(94,42,48,.14)}#view-crm .col.collapsed{flex:0 0 46px;max-width:46px;min-width:46px}#view-crm .col.collapsed .sum,#view-crm .col.collapsed .drop{display:none}#view-crm .col.collapsed h2{flex-direction:column;height:100%;padding:12px 6px;gap:10px}#view-crm .col.collapsed .col-name{writing-mode:vertical-rl;text-orientation:mixed;font-size:11px;white-space:nowrap;letter-spacing:.4px}#view-crm .col.collapsed .col-toggle{order:-1}#view-crm .col.st-n{background:#EDE1E2}#view-crm .col.st-m{background:#F6E7D6}#view-crm .col.st-v{background:#DCECE9}#view-crm .col.st-p{background:#F3E3E1}#view-crm .col.st-pause{background:#DDE6EF}#view-crm .col.st-op{background:#F2E8D5}#view-painel .tag.st-pause{background:#DDE6EF;color:#3B5A80}#view-painel .tag.st-op{background:#F2E8D5;color:#96731F}#view-crm .col.over{outline:2px dashed var(--wine);outline-offset:-4px}#view-crm .card{background:#fff;border-radius:9px;padding:9px 11px;margin-bottom:8px;box-shadow:0 1px 3px rgba(94,42,48,.12);cursor:grab;border-left:3px solid var(--soft)}#view-crm .card:active{cursor:grabbing}#view-crm .card .emp{font-weight:700;font-size:13px;color:var(--deep);line-height:1.15}#view-crm .card .emp .soc{color:#C9962A;font-size:10.5px;margin-left:3px;letter-spacing:-1px}#view-crm .card .emp .tgt{font-size:10.5px;margin-left:3px}#view-crm .card .uni{font-size:10.5px;color:var(--txt2);margin-bottom:4px}#view-crm .card .row{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px}#view-crm .card .val{font-weight:800;font-size:12.5px;color:var(--wine)}#view-crm .tag{display:inline-block;padding:1px 7px;border-radius:9px;font-size:10px;font-weight:700;background:#F0E3E3;color:var(--deep)}#view-crm .tag.R{background:#DCECE9;color:var(--teal)}#view-crm .tag.P{background:#F3E3E1;color:var(--wine)}#view-crm .tag.PR{background:#EDE3F0;color:#7d4b8f}#view-crm .meta{font-size:10.5px;color:var(--txt2)}#view-crm .tk{font-size:10px;font-weight:700;color:var(--teal)}#view-crm .nxt{font-size:10px;font-weight:700;color:var(--teal);white-space:nowrap}#view-crm .nxt.late{color:var(--wine)}
 /* 25/08/2026 — card compacto (Rafael: poluição visual). Oculta as linhas 2/3 (consultor+ICP/próxima
    tarefa, e datas) e aperta o espaçamento — a linha 1 (tipo P/R+serviço e valor) e o nome/badges
    continuam sempre visíveis, é o mínimo pra identificar o card. */
@@ -222,7 +261,12 @@ td .up{color:var(--ok);font-weight:700}
   .side .brand{padding:10px 14px;flex:0 0 auto}
   .side .brand h1{font-size:20px}
   .side .brand small{display:none}
-  .side .nav{flex-direction:row;padding:8px 8px;gap:6px;flex:1 1 auto;overflow-x:auto;flex-wrap:nowrap}
+  /* 11/09/2026 -- min-width:0 e o que faz o overflow-x:auto acima funcionar de verdade: sem isso,
+     um flex item por padrao nunca encolhe alem do tamanho do proprio conteudo (min-width:auto),
+     entao o menu (Filtros/Novas Receitas/.../Ajuda) empurrava a PAGINA INTEIRA pra mais de 900px
+     de largura em vez de rolar dentro de si mesmo -- e o bug por tras do "mobile bem ruim" do Leo:
+     pagina inteira com scroll horizontal, sino/elementos fixed mal posicionados, etc. */
+  .side .nav{flex-direction:row;padding:8px 8px;gap:6px;flex:1 1 auto;min-width:0;overflow-x:auto;flex-wrap:nowrap}
   .side .nav button{white-space:nowrap;padding:9px 12px;font-size:13px}
   .side .foot{display:none}
   .top{padding:10px 14px;position:static}
@@ -236,9 +280,13 @@ td .up{color:var(--ok);font-weight:700}
   #view-painel .kpis{grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
   #view-painel .ch{height:240px}
   #view-painel .ch.sm{height:220px}
+  /* 11/09/2026 -- as tabelas do Painel KPI (rankings/detalhe por clique) nunca tinham overflow-x
+     proprio -- so as de Renovacoes/Qualificacao/Tarefas tinham. Numa tela estreita, essas tabelas
+     empurravam a PAGINA INTEIRA pra ~600-900px de largura (mesma classe de bug do menu lateral). */
+  #view-painel table.dt{display:block;overflow-x:auto}
   #view-crm header{padding:12px 16px}
   #view-crm .board{overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-snap-type:x mandatory;padding:8px 16px 20px}
-  #view-crm .col{flex:0 0 82vw;scroll-snap-align:start;max-height:calc(100vh - 250px)}
+  #view-crm .col{flex:0 0 82vw;scroll-snap-align:start;max-height:calc(100vh - 198px)}
   #view-crm .col.collapsed{flex:0 0 46px}
   #view-renov .wrap,#view-qual .wrap{padding:12px 14px}
   #view-renov table,#view-qual table,#view-tarefas table{display:block;overflow-x:auto;white-space:nowrap}
@@ -252,6 +300,13 @@ td .up{color:var(--ok);font-weight:700}
   #view-crm .board .col:not(.collapsed){flex-basis:88vw}
   #view-painel .kpis{grid-template-columns:1fr 1fr}
   #view-cadastro form{grid-template-columns:1fr!important}
+  /* 11/09/2026 -- Léo: mobile "bem ruim" -- estes grids de 2 colunas ficam de fora da regra acima
+     porque são <div>s aninhados com grid-template-columns próprio (não o <form> em si), ou vivem
+     fora de #view-cadastro (modal Nova Oportunidade no Kanban, drawer de detalhe do lead). */
+  #cad-fase2 div[style*="grid-template-columns"],
+  #cad-recbox,
+  #opForm,
+  .lead-edit{grid-template-columns:1fr!important}
 }
 /* ===== Menu lateral retrátil + submenu aninhado (UX 05/08) ===== */
 .side .brand{display:flex;align-items:center;gap:10px;justify-content:space-between}
@@ -281,9 +336,34 @@ td .up{color:var(--ok);font-weight:700}
   .side.mini .nav .subnav{padding-left:0;margin-left:0;border-left:0}
 }
 #cad-subnav{display:none}
+/* 11/09/2026 -- Léo: acesso restrito a @elevalife.com.br -- gate de UX enquanto confirma o domínio
+   do login (a trava de verdade é no backend, em cada /api/*: ver requireDomain em _shared/crud.js). */
+#access-gate{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px}
+#access-gate.ok{display:none}
+#access-gate .box{max-width:380px;text-align:center}
+#access-gate h2{margin:0 0 8px;color:var(--ink);font-size:18px}
+#access-gate p{margin:0;color:var(--mut);font-size:14px;line-height:1.5}
+#access-gate a.out{display:inline-block;margin-top:14px;background:var(--w);color:#fff;text-decoration:none;padding:9px 18px;border-radius:8px;font-weight:700;font-size:13px}
 </style></head>
 
-<body><div class="app">
+<body>
+<div id="access-gate"><div class="box"><h2 id="ag-ttl">Carregando…</h2><p id="ag-msg"></p><a id="ag-out" class="out" href="/.auth/logout?post_logout_redirect_uri=/" hidden>Sair e entrar com outra conta</a></div></div>
+<script>
+(function(){
+  fetch('/.auth/me').then(function(r){return r.json();}).then(function(d){
+    var gate=document.getElementById('access-gate');
+    var cp=(d&&d.clientPrincipal)||null;
+    if(!cp){ gate.classList.add('ok'); return; } // sem login: a rota já teria redirecionado pro AAD
+    var email=String(cp.userDetails||'').toLowerCase();
+    var DOM='@elevalife.com.br';
+    if(email.length>DOM.length && email.slice(-DOM.length)===DOM){ gate.classList.add('ok'); return; }
+    document.getElementById('ag-ttl').textContent='Acesso restrito';
+    document.getElementById('ag-msg').textContent='O Cockpit ElevaLife é restrito a contas @elevalife.com.br. Você entrou como '+(cp.userDetails||'uma conta não autorizada')+'.';
+    document.getElementById('ag-out').hidden=false;
+  }).catch(function(){ document.getElementById('access-gate').classList.add('ok'); });
+})();
+</script>
+<div class="app">
 <aside class="side mini">
   <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
@@ -380,6 +460,23 @@ td .up{color:var(--ok);font-weight:700}
       <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
     </div>
   </div>
+</div>
+<!-- 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema).
+     Overlay + painel flutuante (não é reflow como #filtros-pane -- fica ancorado perto do sino).
+     11/09/2026 -- sino movido pra canto superior direito da TELA (fixed, fora de .side), pra ficar
+     visível em qualquer view/scroll, a pedido do Léo -- painel passou a ancorar dali também. -->
+<button class="bell-btn" id="bell-btn" title="Notificações" onclick="toggleNotifPane()">🔔<span class="bell-badge" id="bell-badge" hidden>0</span></button>
+<div class="notif-ov" id="notif-ov" onclick="toggleNotifPane(false)"></div>
+<div class="notif-pane" id="notif-pane">
+  <div class="notif-pane-head">
+    <span class="ttl">🔔 Notificações</span>
+    <button type="button" class="notif-pane-close" title="Fechar" onclick="toggleNotifPane(false)">×</button>
+  </div>
+  <div class="notif-tabs">
+    <button type="button" class="notif-tab on" id="notif-tab-aprov" onclick="notifSetTab('aprovacao')">Aprovações<span class="cnt" id="notif-tab-aprov-cnt" hidden>0</span></button>
+    <button type="button" class="notif-tab" id="notif-tab-sistema" onclick="notifSetTab('sistema')">Novidades do sistema</button>
+  </div>
+  <div class="notif-body" id="notif-body"><div class="notif-empty">Carregando…</div></div>
 </div>
 <div class="main">
   <div class="main-scrim" id="main-scrim" onclick="toggleFiltrosGroup(true)"></div>
@@ -523,6 +620,7 @@ td .up{color:var(--ok);font-weight:700}
 </div>
 <div class="note" id="crm-note">Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).</div>
 <div class="board" id="board"></div>
+<div id="drawer-ov" onclick="closeDrawer()" style="display:none;position:fixed;inset:0;background:rgba(94,42,48,.35);z-index:49"></div>
 <div class="drawer" id="drawer"><div class="dh"><div><span id="d-kind" class="dkind"></span><h3 id="d-emp"></h3><div id="d-uni" style="font-size:12px;color:#EBD9DB"></div></div><button class="x" onclick="closeDrawer()">×</button></div><div class="db" id="d-body"></div></div>
 <div id="op-ov" onclick="if(event.target===this)opFechar()" style="position:fixed;inset:0;background:rgba(94,42,48,.45);display:none;align-items:flex-start;justify-content:center;z-index:60;padding:4vh 3vw;backdrop-filter:blur(2px)">
   <div style="background:#fff;border-radius:14px;width:640px;max-width:96vw;max-height:92vh;overflow:auto;box-shadow:0 18px 50px rgba(94,42,48,.35)">
@@ -1005,6 +1103,9 @@ async function loadStore(){
      re-renderiza a lista de sugestões e os "recentes" do Cadastro (senão ficam vazios da 1ª renderização). */
   try{ if(typeof fillEmpresaDatalist==='function')fillEmpresaDatalist(); if(typeof renderEmpRecentes==='function')renderEmpRecentes(); if(typeof renderConRecentes==='function')renderConRecentes(); }catch(e){}
   updateBadge(ok);
+  /* 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema)
+     -- carrega junto do resto da base, sem travar o resto se a lista ainda não existir/der erro. */
+  try{ if(typeof window.loadNotificacoes==='function')window.loadNotificacoes(); }catch(e){}
 }
 function updateBadge(ok){
   const b=q('elevai-src'); if(b)b.textContent=(SRC==='api'?'● ao vivo':'○ local');
@@ -2203,7 +2304,11 @@ function bindNav(){
       filtrosGrp.hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
       if(filtrosGrp.classList.contains('open')) toggleFiltrosGroup(true);
     }
-    var apptop=q('apptop'); if(apptop) apptop.style.display=(v==='painel')?'none':'';
+    /* 12/09/2026 -- Léo: no CRM a faixa branca (#apptop, "CRM · Kanban" + "● ao vivo") só repetia
+       o que a faixa bordô do próprio Kanban já mostra ("CRM Comercial — Kanban" + "15 anos...");
+       tirando ela sobra mais altura pra ver os cards (ver #view-crm .col max-height mais abaixo,
+       reduzido na mesma medida). Continua aparecendo normalmente nas outras views. */
+    var apptop=q('apptop'); if(apptop) apptop.style.display=(v==='painel'||v==='crm')?'none':'';
     var grp=q('navgroup-cadastro'); if(grp)grp.classList.toggle('open', v==='cadastro');
     renderActive();
     updatePainelHeaderCompact();
@@ -2950,8 +3055,269 @@ function notifyNutricao(l){
   if(window.getModoTeste && window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: e-mail de pausa NÃO enviado.'); return; }
   if(window.getNutOn && !window.getNutOn()) return;                 // usuário desativou o aviso
   var to=(window.getNutTo?window.getNutTo():'')||'';                // destinatário editável (vazio = padrão Clara)
-  try{ fetch('/api/nutricao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:l.cliente,unidade:l.unidade,nome:l.nome,serv:l.serv,cons:l.cons,valor:l.valor,to:to})}).catch(function(){}); }catch(e){}
+  try{ fetch('/api/nutricao',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:l.cliente,unidade:l.unidade,nome:l.nome,contatoSobrenome:l.contatoSobrenome,telefone:l.telefone,email:l.email,serv:l.serv,cons:l.cons,valor:l.valor,to:to})}).catch(function(){}); }catch(e){}
 }
+/* 10/09/2026 -- Léo: sino de notificações -- duas abas: "Aprovações" (achados do scan periódico de
+   e-mail/Teams por palavra-chave -- proposta/cotação/BID/orçamento/SPEC/RPD/RIF/pregão -- aguardando
+   Léo aprovar/atualizar/ignorar) e "Novidades do sistema" (changelog automático a cada deploy).
+   Uma lista só no SharePoint (Notificacoes_Comercial, ver schema.js) filtrada por `tipo` no cliente.
+   Este bloco fica no <script> do shell (fora da IIFE do CRM) -- por isso chama opNovaOportunidade/
+   opEmpChange via window.*, guardado com typeof (mesmo padrão de renderEmpBucket/toggleColCollapse
+   citado nos comentários acima), nunca direto. */
+let NOTIFS=[];
+let notifTab='aprovacao';
+/* 12/09/2026 -- Léo: "ele já vem enviesado como oportunidade... vai ter uma primeira pergunta
+   séria, só lead ou oportunidade... e aí eu edito depois, só pra saber mesmo" -- a classificação
+   que o scan sugere (it.classificacao) continua vindo pré-preenchida, mas agora é só uma sugestão
+   editável na hora de aprovar, não mais uma decisão automática silenciosa. _notifClassOverride
+   guarda a escolha do Léo por notificação (em memória, só nesta sessão da aba) até ele clicar
+   Aprovar; notifSetClass() troca a escolha e notifAprovar() usa o valor efetivo (override, senão a
+   sugestão do scan, senão 'lead' por padrão). */
+let _notifClassOverride={};
+function notifSetClass(id,val){ _notifClassOverride[id]=val; renderNotifPane(); }
+function _notifClassEfetiva(it){ return _notifClassOverride[it.__id]||it.classificacao||'lead'; }
+window.notifSetClass=notifSetClass;
+async function loadNotificacoes(){
+  try{
+    const r=await fetch('/api/notificacoes');
+    if(r&&r.ok){ const j=await r.json(); NOTIFS=(j&&j.items)||[]; }
+  }catch(e){}
+  renderNotifBadge(); renderNotifPane();
+}
+function renderNotifBadge(){
+  const n=NOTIFS.filter(x=>x.tipo==='aprovacao'&&x.status==='pendente').length;
+  const b=q('bell-badge'); if(!b)return;
+  if(n>0){ b.textContent=n>99?'99+':String(n); b.hidden=false; } else { b.hidden=true; }
+}
+function toggleNotifPane(force){
+  const p=q('notif-pane'), ov=q('notif-ov'); if(!p||!ov)return;
+  const on=(typeof force==='boolean')?force:!p.classList.contains('on');
+  p.classList.toggle('on',on); ov.classList.toggle('on',on);
+  if(on) loadNotificacoes();
+}
+function notifSetTab(t){ notifTab=t; renderNotifPane(); }
+function renderNotifPane(){
+  const tabAprov=q('notif-tab-aprov'), tabSis=q('notif-tab-sistema'), body=q('notif-body'), cntEl=q('notif-tab-aprov-cnt');
+  if(!body)return;
+  const aprov=NOTIFS.filter(x=>x.tipo==='aprovacao').sort((a,b)=>String(b.criadoEm||'').localeCompare(String(a.criadoEm||'')));
+  const sistema=NOTIFS.filter(x=>x.tipo==='sistema').sort((a,b)=>String(b.criadoEm||'').localeCompare(String(a.criadoEm||'')));
+  if(tabAprov)tabAprov.classList.toggle('on',notifTab==='aprovacao');
+  if(tabSis)tabSis.classList.toggle('on',notifTab==='sistema');
+  if(cntEl){ const p=aprov.filter(x=>x.status==='pendente').length; cntEl.textContent=p; cntEl.hidden=!p; }
+  let h='';
+  if(notifTab==='aprovacao'){
+    const pend=aprov.filter(x=>x.status==='pendente');
+    if(!pend.length) h='<div class="notif-empty">Sem aprovações pendentes.</div>';
+    else pend.forEach(it=>{
+      const contato=[it.contatoSugeridoNome,it.contatoSugeridoSobrenome].filter(Boolean).join(' ');
+      /* 11/09/2026 -- Léo: regra do funil -- notificação sem reunião/negociação ainda é só LEAD
+         (default, se o scan não marcou classificacao); só vira OPORTUNIDADE quando o próprio scan
+         sinaliza reunião marcada/negociação/reativação.
+         12/09/2026 -- Léo: isso é só uma SUGESTÃO agora -- ver notifSetClass()/_notifClassEfetiva()
+         acima. Os dois pills abaixo mostram a sugestão do scan já marcada, mas dá pra trocar antes
+         de clicar Aprovar (não manda nada pro servidor ainda, só troca o que o botão Aprovar vai
+         fazer). Nunca informação técnica do sistema aqui, só o rótulo de negócio. */
+      const efetiva=_notifClassEfetiva(it), isOp=(efetiva==='oportunidade');
+      const pillBase='display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;padding:3px 8px;border-radius:6px;border:1px solid transparent;cursor:pointer;font-family:\'Montserrat\',sans-serif';
+      const pillLead=(!isOp)?(pillBase+';background:#E7EFE9;color:#2E7D5B;border-color:#2E7D5B'):(pillBase+';background:#F3F3F1;color:#8A7A78');
+      const pillOp=(isOp)?(pillBase+';background:#F5E9D6;color:#96731F;border-color:#96731F'):(pillBase+';background:#F3F3F1;color:#8A7A78');
+      const tag='<div style="display:flex;gap:5px;margin-bottom:5px" title="Sugestão do scan — clique pra trocar antes de aprovar">'
+        +'<button type="button" style="'+pillLead+'" onclick="notifSetClass(\''+it.__id+'\',\'lead\')">🌱 LEAD</button>'
+        +'<button type="button" style="'+pillOp+'" onclick="notifSetClass(\''+it.__id+'\',\'oportunidade\')">🎯 OPORTUNIDADE</button>'
+        +'</div>';
+      h+='<div class="notif-item">'
+        +tag
+        +'<div class="ttl">'+esc(it.titulo||it.empresaSugerida||'—')+'</div>'
+        +'<div class="meta">'+esc(it.origem||'')+(it.palavraChave?' · palavra-chave: "'+esc(it.palavraChave)+'"':'')+(it.remetente?' · '+esc(it.remetente):'')+'</div>'
+        +(it.detalhe?'<div class="det">'+esc(it.detalhe)+'</div>':'')
+        +((contato||it.contatoSugeridoEmail||it.contatoSugeridoTelefone)?'<div class="meta">Contato sugerido: '+esc(contato||'—')+(it.contatoSugeridoEmail?' · '+esc(it.contatoSugeridoEmail):'')+(it.contatoSugeridoTelefone?' · '+esc(it.contatoSugeridoTelefone):'')+'</div>':'')
+        +(it.origemLink?'<div class="meta"><a href="'+esc(it.origemLink)+'" target="_blank" rel="noopener">Abrir original ↗</a></div>':'')
+        +'<div class="acts">'
+        +'<button class="ok" onclick="notifAprovar(\''+it.__id+'\')">✅ '+(isOp?'Aprovar (abrir oportunidade)':'Aprovar (registrar lead)')+'</button>'
+        +'<button class="w" onclick="notifVerEmpresa(\''+it.__id+'\')">🔎 Ver/atualizar empresa</button>'
+        +'<button class="gh" onclick="notifIgnorar(\''+it.__id+'\')">✖ Ignorar</button>'
+        +'</div></div>';
+    });
+  } else {
+    if(!sistema.length) h='<div class="notif-empty">Nenhuma novidade registrada ainda.</div>';
+    else sistema.forEach(it=>{
+      h+='<div class="notif-item">'
+        +'<div class="ttl">'+esc(it.titulo||'Atualização do sistema')+'</div>'
+        +'<div class="meta">'+esc((it.criadoEm||'').slice(0,16).replace('T',' '))+'</div>'
+        +(it.detalhe?'<div class="det">'+esc(it.detalhe)+'</div>':'')
+        +'</div>';
+    });
+  }
+  body.innerHTML=h;
+}
+async function notifPatch(id,fields){
+  try{ await fetch('/api/notificacoes',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,fields:fields})}); }catch(e){}
+}
+/* 11/09/2026 -- Léo (regra do funil comercial): aprovar uma notificação do scan NUNCA pode pular
+   direto pra Oportunidade. Sempre primeiro confere/cadastra a Empresa (sinalizando TARGET quando
+   for o caso) e confere/cadastra o(s) Contato(s) (inclusive quem só apareceu em cópia no e-mail) --
+   só DEPOIS, se o scan classificou como 'oportunidade' (já tem reunião marcada / negociação em
+   andamento / reativação de histórico), abre o card na coluna Oportunidade. Se for só 'lead' (nada
+   disso ainda), fica registrado em Empresas/Contatos e não abre oportunidade nenhuma -- é o time
+   comercial que decide depois se avança, do jeito que o Kanban já funciona hoje pro LEAD manual. */
+function _notifEmpresaByAnyName(nome){
+  var v=(nome||'').trim().toLowerCase(); if(!v)return null;
+  return (STORE.empresas||[]).find(function(e){ return String(e.cliente||e.razaoSocial||e.nomeFantasia||'').trim().toLowerCase()===v; });
+}
+async function _notifGarantirEmpresa(it){
+  var nome=(it.empresaSugerida||'').trim();
+  var hit=(it.empresaId&&(STORE.empresas||[]).find(function(e){return String(e.__id)===String(it.empresaId);}))||_notifEmpresaByAnyName(nome);
+  if(hit){
+    if(it.empresaTarget==='SIM'&&String(hit.target||'').toUpperCase()!=='TARGET'){
+      try{
+        await fetch('/api/empresas',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:hit.__id,fields:{target:'TARGET'}})});
+        hit.target='TARGET';
+      }catch(e){}
+    }
+    return hit;
+  }
+  if(!nome) return null;
+  try{
+    var r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:nome,target:(it.empresaTarget==='SIM'?'TARGET':'NÃO TARGET')})});
+    var j=await r.json().catch(function(){return {};});
+    if(r.ok&&j.ok&&j.item){ STORE.empresas=(STORE.empresas||[]).concat([j.item]); return j.item; }
+  }catch(e){}
+  return null;
+}
+function _notifContatosCandidatos(it){
+  var list=[];
+  if(it.contatoSugeridoNome||it.contatoSugeridoEmail){
+    list.push({nome:it.contatoSugeridoNome||'',sobrenome:it.contatoSugeridoSobrenome||'',email:it.contatoSugeridoEmail||'',telefone:it.contatoSugeridoTelefone||''});
+  }
+  if(it.contatosExtraJson){
+    try{
+      var extra=JSON.parse(it.contatosExtraJson);
+      if(Array.isArray(extra))extra.forEach(function(c){ if(c&&(c.nome||c.email))list.push({nome:c.nome||'',sobrenome:c.sobrenome||'',email:c.email||'',telefone:c.telefone||''}); });
+    }catch(e){}
+  }
+  var seen={};
+  return list.filter(function(c){ var k=(c.email||c.nome||'').trim().toLowerCase(); if(!k||seen[k])return false; seen[k]=1; return true; });
+}
+async function _notifGarantirContatos(it,emp){
+  var cands=_notifContatosCandidatos(it);
+  if(!emp||!cands.length)return [];
+  var out=[];
+  for(var i=0;i<cands.length;i++){
+    var c=cands[i];
+    var emailN=(c.email||'').trim().toLowerCase();
+    var nomeN=((c.nome||'')+' '+(c.sobrenome||'')).trim().toLowerCase();
+    var existente=(STORE.contatos||[]).find(function(x){
+      var mesmaEmpresa=(emp.__id&&String(x.empresaId||'')===String(emp.__id))||String(x.empresaNome||'').trim().toLowerCase()===String(emp.cliente||'').trim().toLowerCase();
+      if(!mesmaEmpresa)return false;
+      if(emailN)return String(x.email||'').trim().toLowerCase()===emailN;
+      return ((x.nome||'')+' '+(x.sobrenome||'')).trim().toLowerCase()===nomeN;
+    });
+    if(existente){
+      if(c.telefone&&!existente.telefone){
+        try{ await fetch('/api/contatos',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:existente.__id,fields:{telefone:c.telefone}})}); existente.telefone=c.telefone; }catch(e){}
+      }
+      out.push(existente); continue;
+    }
+    if(!c.nome&&!c.email)continue;
+    try{
+      var r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:c.nome,sobrenome:c.sobrenome,email:c.email,telefone:c.telefone,empresaId:String(emp.__id||''),empresaNome:(emp.cliente||emp.razaoSocial||'')})});
+      var j=await r.json().catch(function(){return {};});
+      if(r.ok&&j.ok&&j.item){ STORE.contatos=(STORE.contatos||[]).concat([j.item]); out.push(j.item); }
+    }catch(e){}
+  }
+  return out;
+}
+/* 11/09/2026 -- Léo: "fechei a tela sem concluir a análise e a definição da atualização" -- uma
+   notificação só pode sumir da aba Aprovações quando a tratativa REALMENTE terminou: cadastro
+   concluído (oportunidade salva, ou lead com Empresa/Contato conferidos) OU ignorada/excluída de
+   propósito. Por isso o PATCH pra status:'aprovado' não acontece mais na hora do clique -- só
+   depois que o resultado de fato aconteceu. Enquanto isso, _notifPendenteOp guarda qual
+   notificação está "em aberto" no formulário de Nova Oportunidade; opFechar() (✕ ou clique fora,
+   ver #op-ov) trava o fechamento com uma confirmação em vez de deixar a notificação sumir sem
+   nada ter sido salvo -- ela continua pendente no sino até ser retomada. */
+window._notifPendenteOp=null;
+/* Chamada pelo opSalvar() (dentro da IIFE do CRM) quando a Nova Oportunidade aberta a partir de
+   uma notificação foi REALMENTE salva -- só aí a notificação conclui e sai da aba Aprovações. */
+function _notifConcluirOportunidade(leadIds){
+  if(!window._notifPendenteOp)return;
+  const id=window._notifPendenteOp.id;
+  notifPatch(id,{status:'aprovado',leadIdCriado:(leadIds||[]).join(',')});
+  const itp=NOTIFS.find(x=>x.__id===id); if(itp)itp.status='aprovado';
+  window._notifPendenteOp=null;
+  delete _notifClassOverride[id];
+  renderNotifBadge(); renderNotifPane();
+}
+window._notifConcluirOportunidade=_notifConcluirOportunidade;
+async function notifAprovar(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  toggleNotifPane(false);
+  // 12/09/2026 -- Léo: usa a classificação que ficou marcada nos pills (sugestão do scan, ou a
+  // troca que o Léo fez antes de clicar Aprovar -- ver notifSetClass/_notifClassEfetiva acima).
+  const efetiva=_notifClassEfetiva(it), isOp=(efetiva==='oportunidade');
+  try{
+    const emp=await _notifGarantirEmpresa(it);
+    const cons=await _notifGarantirContatos(it,emp);
+    if(isOp){
+      window._notifPendenteOp={id:id};
+      if(typeof window.opNovaOportunidade==='function'){
+        window.opNovaOportunidade();
+        setTimeout(function(){
+          try{
+            const eEmp=q('op-empresa');
+            const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida;
+            if(eEmp&&nomeEmp){
+              eEmp.value=nomeEmp;
+              if(typeof window.opEmpChange==='function')window.opEmpChange();
+              if(cons&&cons.length){
+                const sel=q('op-contato'), alvo=String((cons[0].email||cons[0].nome||'')).trim().toLowerCase();
+                if(sel&&sel._list){ for(var k=0;k<sel._list.length;k++){ var cc=sel._list[k]; if(String((cc.email||cc.nome||'')).trim().toLowerCase()===alvo){ sel.value=String(k); break; } } }
+              }
+            }
+          }catch(e){}
+        },80);
+      }
+    } else {
+      // classificação 'lead': a tratativa termina aqui mesmo (sem reunião marcada ainda não abre
+      // formulário nenhum) -- só marca resolvida depois que Empresa/Contato foram de fato conferidos.
+      notifPatch(id,{status:'aprovado'});
+      it.status='aprovado'; delete _notifClassOverride[id]; renderNotifBadge(); renderNotifPane();
+      if(typeof toast==='function'){
+        const nomeEmp=(emp&&(emp.cliente||emp.razaoSocial))||it.empresaSugerida||'empresa';
+        toast('✅ '+nomeEmp+' e contato conferidos/cadastrados. Sem reunião marcada ainda — fica como lead, sem abrir oportunidade.');
+      }
+    }
+  }catch(e){ if(typeof toast==='function')toast('⚠ Não consegui concluir o cadastro automático — a notificação continua pendente, tente novamente.'); }
+}
+function notifVerEmpresa(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  // só navega pra conferir/editar -- não conclui a tratativa, então a notificação continua
+  // pendente no sino (ver comentário acima de notifAprovar).
+  toggleNotifPane(false);
+  try{
+    const crmBtn=document.querySelector('[data-v="crm"]'); if(crmBtn)crmBtn.click();
+    setTimeout(function(){
+      const cli=q('mm-cli');
+      if(cli&&it.empresaSugerida){ cli.value=it.empresaSugerida; cli.dispatchEvent(new Event('input',{bubbles:true})); }
+    },150);
+  }catch(e){}
+}
+function notifIgnorar(id){
+  const it=NOTIFS.find(x=>x.__id===id); if(!it)return;
+  notifPatch(id,{status:'ignorado'});
+  it.status='ignorado'; renderNotifBadge(); renderNotifPane();
+}
+window.toggleNotifPane=toggleNotifPane; window.notifSetTab=notifSetTab;
+window.notifAprovar=notifAprovar; window.notifVerEmpresa=notifVerEmpresa; window.notifIgnorar=notifIgnorar;
+window.loadNotificacoes=loadNotificacoes;
+/* 10/09/2026 -- Léo: o sino só buscava novidades ao abrir o painel ou no carregamento inicial da
+   página -- se ele deixasse o Cockpit aberto sem dar F5/reabrir o sino, uma notificação nova do
+   scan (a cada 4h) não aparecia sozinha. Agora verifica sozinho em segundo plano (a cada 2min) e
+   também assim que a aba volta a ficar em primeiro plano (troca de aba/minimizar e voltar) --
+   nenhuma das duas exige recarregar a página. */
+setInterval(function(){ try{ loadNotificacoes(); }catch(e){} }, 120000);
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState==='visible'){ try{ loadNotificacoes(); }catch(e){} }
+});
 function testTeams(){ var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL){alert("Webhook do Teams não configurado.");return;} const card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",text:"🎉 TESTE — ElevaLife"},{type:"TextBlock",text:"Se você vê este card no canal Vendas, a integração está OK.",wrap:true}]}}]}; fetch(TEAMS_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(r=>alert("Enviado ao Teams (HTTP "+r.status+"). Confira o canal Vendas.")).catch(e=>alert("Falha ao enviar: "+e.message+"\n\nProvavel bloqueio CORS do endpoint do Power Automate (fluxo HTTP nao aceita chamada do navegador). Me avise: troco para um fluxo AGENDADO que le a base e posta no Teams — sem CORS.")); }
 function pad(n){return (''+n).padStart(2,'0');}
 function dlICS(ics){const b=new Blob([ics],{type:'text/calendar;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='tarefa_elevalife.ics';a.click();}
@@ -3776,6 +4142,8 @@ function openDrawer(id){curId=id;
    </div>
    </div>`;
   el('drawer').classList.add('on');
+  var dov=el('drawer-ov'); if(dov)dov.style.display='block';
+  _bellSync();
 }
 function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.data.split('-').reverse().join('/')+(t.hora?' '+t.hora:'')):'';
   let ac=`<a href="#" onclick="toggleTask(${curId},${i});return false">${t.feito?'reabrir':'concluir'}</a> · <a href="#" onclick="delTask(${curId},${i});return false">excluir</a>`;
@@ -3926,7 +4294,22 @@ function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if
   if(!confirm('Excluir definitivamente o lead "'+(l.cliente||'')+(l.unidade?' — '+l.unidade:'')+'"?\nIsso remove o registro da base viva.'))return;
   if(window.deleteLead){ window.deleteLead(l.spid, function(){ closeDrawer(); }, function(){ alert('Falha ao excluir. Tente novamente.'); }); }
   else { alert('Exclusão indisponível.'); } }
-function closeDrawer(){el('drawer').classList.remove('on');curId=null;}
+function closeDrawer(){el('drawer').classList.remove('on');curId=null;var dov=el('drawer-ov'); if(dov)dov.style.display='none'; _bellSync();}
+/* 12/09/2026 -- ver comentário na CSS .bell-recuado: o sino fica escondido enquanto o drawer do
+   Kanban OU o modal de Nova Oportunidade estiverem abertos (senão ele tampa o "x" de fechar). */
+function _bellSync(){
+  var d=document.getElementById('drawer'), o=document.getElementById('op-ov'), b=document.getElementById('bell-btn');
+  if(!b)return;
+  var aberto=(d&&d.classList.contains('on'))||(o&&o.style.display==='flex');
+  b.classList.toggle('bell-recuado', !!aberto);
+}
+document.addEventListener('keydown', function(e){
+  if(e.key!=='Escape')return;
+  var o=document.getElementById('op-ov');
+  if(o && o.style.display==='flex'){ opFechar(); return; }
+  var d=document.getElementById('drawer');
+  if(d && d.classList.contains('on')){ closeDrawer(); return; }
+});
 
 /* ===== API publica do CRM ===== */
 /* 25/08/2026 — mapeamento do registro cru (SharePoint/API) pro formato interno do card, extraído
@@ -4036,6 +4419,7 @@ function opNovaOportunidade(){
   el('op-contato').innerHTML='<option value="">—</option>';
   var sl=el('op-serv-list'); if(sl)sl.innerHTML=''; opAddServ();
   el('op-ov').style.display='flex';
+  _bellSync();
   setTimeout(function(){var e=el('op-empresa'); if(e)e.focus();},50);
 }
 function opServRowHtml(){
@@ -4047,7 +4431,19 @@ function opServRowHtml(){
 function opAddServ(){ var sl=el('op-serv-list'); if(!sl)return; sl.insertAdjacentHTML('beforeend',opServRowHtml()); }
 function opRemServ(btn){ var sl=el('op-serv-list'); if(!sl)return; var rows=sl.querySelectorAll('.op-serv-row'); if(rows.length<=1)return; btn.closest('.op-serv-row').remove(); }
 window.opAddServ=opAddServ;window.opRemServ=opRemServ;
-function opFechar(){ var o=el('op-ov'); if(o)o.style.display='none'; }
+function opFechar(){
+  /* 11/09/2026 -- Léo: não pode "sumir" uma notificação do scan sem a tratativa concluída de
+     verdade -- se este formulário foi aberto a partir do sino (window._notifPendenteOp) e ainda
+     não foi salvo, avisa antes de fechar; a notificação continua pendente no sino (nada foi
+     marcado como aprovado ainda -- ver notifAprovar/_notifConcluirOportunidade). */
+  if(window._notifPendenteOp){
+    var seguir=confirm('Esta oportunidade veio de uma notificação do sino e ainda não foi salva.\n\nSe sair agora, ela continua pendente em Aprovações para você retomar depois.\n\nFechar mesmo assim?');
+    if(!seguir)return;
+    window._notifPendenteOp=null;
+  }
+  var o=el('op-ov'); if(o)o.style.display='none';
+  _bellSync();
+}
 function opEmpChange(){
   var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato');
   if(hit){
@@ -4081,16 +4477,22 @@ async function opSalvar(ev){
     cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),grupoNegociacaoId:grupoId,
     nome:con?(con.nome||''):'',contatoSobrenome:con?(con.sobrenome||''):'',telefone:con?(con.telefone||''):'',email:con?(con.email||''):'',contatoTipo:con?(con.tipo||''):''};
   var btn=el('op-btn'); btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Criando...';
-  var ok=0, falhas=[];
+  var ok=0, falhas=[], criados=[];
   for(var i=0;i<servs.length;i++){
     var rec=Object.assign({},base,{serv:servs[i]});
     try{
       var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
       var j=await r.json().catch(function(){return {};});
-      if(r.ok&&j.ok)ok++; else falhas.push(servs[i]+' ('+(j.error||('HTTP '+r.status))+')');
+      if(r.ok&&j.ok){ ok++; if(j.id)criados.push(j.id); } else falhas.push(servs[i]+' ('+(j.error||('HTTP '+r.status))+')');
     }catch(e){ falhas.push(servs[i]+' (falha de rede: '+e.message+')'); }
   }
-  if(!falhas.length){ msg.style.color='#2E7D5B'; msg.textContent='✓ '+ok+' oportunidade'+(ok>1?'s criadas':' criada')+'.'; setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700); }
+  if(!falhas.length){
+    msg.style.color='#2E7D5B'; msg.textContent='✓ '+ok+' oportunidade'+(ok>1?'s criadas':' criada')+'.';
+    // 11/09/2026 -- Léo: só marca a notificação do sino como concluída depois que a oportunidade
+    // FOI salva de verdade (ver opFechar/_notifConcluirOportunidade) -- nunca antes.
+    if(window._notifPendenteOp&&typeof window._notifConcluirOportunidade==='function')window._notifConcluirOportunidade(criados);
+    setTimeout(function(){opFechar(); if(window.reloadData)reloadData();},700);
+  }
   else{ msg.style.color='#B0463F'; msg.textContent=ok+' criada(s), falhou: '+falhas.join('; ')+'. Verifique se a base já foi publicada.'; if(window.reloadData)reloadData(); }
   btn.disabled=false; return false;
 }
