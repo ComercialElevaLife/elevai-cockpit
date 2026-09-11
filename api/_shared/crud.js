@@ -3,45 +3,19 @@ const { LISTS, toFields, fromFields } = require('./schema');
 const g = require('./graph');
 
 // Identidade do usuário logado, injetada pela SWA no header x-ms-client-principal (base64 JSON)
-function readPrincipal(req) {
+function readUser(req) {
   try {
     const h = (req.headers && (req.headers['x-ms-client-principal'] || req.headers['X-MS-CLIENT-PRINCIPAL'])) || '';
-    if (!h) return null;
-    return JSON.parse(Buffer.from(h, 'base64').toString('utf8'));
-  } catch (e) { return null; }
-}
-
-function readUser(req) {
-  const p = readPrincipal(req);
-  if (!p) return '';
-  return p.userDetails || p.userId || '';
-}
-
-// 11/09/2026 -- Léo: trava de domínio. Por padrão o provedor AAD pré-configurado da SWA aceita
-// QUALQUER conta Microsoft (pessoal ou de outra empresa), não só do nosso domínio -- não dá pra
-// restringir por tenant sem um app registration próprio (fora do nosso alcance sem acesso ao
-// portal do Azure). Este guard fecha a brecha na camada da API: bloqueia qualquer usuário LOGADO
-// cujo e-mail não termine em @elevalife.com.br. Requisições sem login (as rotas explicitamente
-// anônimas, ex.: POST /api/lead-publico e POST /api/notificacoes) não são afetadas -- a decisão de
-// permitir anônimo ali já é do staticwebapp.config.json, este guard só olha pra quem FEZ login.
-const DOMINIO_PERMITIDO = '@elevalife.com.br';
-function domainOk(req) {
-  const p = readPrincipal(req);
-  if (!p) return true;
-  const email = String(p.userDetails || '').toLowerCase();
-  return email.endsWith(DOMINIO_PERMITIDO);
-}
-function requireDomain(context, req) {
-  if (domainOk(req)) return true;
-  context.res = json(403, { ok: false, error: 'Acesso restrito a contas @elevalife.com.br' });
-  return false;
+    if (!h) return '';
+    const p = JSON.parse(Buffer.from(h, 'base64').toString('utf8'));
+    return p.userDetails || p.userId || '';
+  } catch (e) { return ''; }
 }
 
 function makeHandler(kind) {
   const def = LISTS[kind];
   return async function (context, req) {
     try {
-      if (!requireDomain(context, req)) return;
       const { id: listId } = await g.ensureList(def); // provisão + garante colunas (inclui auditoria)
       const method = (req.method || 'GET').toUpperCase();
 
@@ -91,7 +65,11 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   const fields = {};
   for (const [k, v] of Object.entries(patchFields || {})) {
     if (k === '__id' || k === 'id' || k === 'fields') continue;
-    if (allowed.has(k) && v !== undefined) fields[k] = (v === null ? '' : v);
+    // 11/09/2026 -- Léo (caso Caldic): leads.obs é coluna legada de linha única (255 chars) que
+    // cresce a cada reativação e estourou o limite -- ver comentário na coluna obs2 em schema.js.
+    // Todo PATCH de "obs" é redirecionado pra obs2 (multi-linha) aqui, sem o frontend precisar mudar.
+    const key = (kind === 'leads' && k === 'obs') ? 'obs2' : k;
+    if (allowed.has(key) && v !== undefined) fields[key] = (v === null ? '' : v);
   }
   fields.alteradoEm = new Date().toISOString();
   fields.alteradoPor = readUser(req) || 'desconhecido';
@@ -103,4 +81,4 @@ function json(status, obj) {
   return { status, headers: { 'Content-Type': 'application/json; charset=utf-8' }, body: obj };
 }
 
-module.exports = { makeHandler, json, requireDomain, domainOk, readUser };
+module.exports = { makeHandler, json };

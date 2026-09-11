@@ -27,7 +27,8 @@ const LISTS = {
       { name: 'status', type: 'text' },
       { name: 'telefone', type: 'text' },      // contato (LP/eventos)
       { name: 'email', type: 'text' },         // contato (LP/eventos)
-      { name: 'obs', type: 'text' },           // observações livres
+      { name: 'obs', type: 'text' },           // observações livres -- LEGADO, ver obs2 abaixo: continua
+      // na whitelist só pra não perder o histórico já gravado nela; nenhum PATCH novo grava mais aqui.
       // 31/08/2026 — `long:true` = coluna SharePoint criada/migrada como texto MULTI-LINHA, sem o
       // limite de 255 caracteres do texto de linha única padrão. Achado depois que o Léo reportou
       // "Falha ao salvar — revertido" ao mexer 2x em sub-etapa: historicoJson (JSON, cresce a cada
@@ -113,6 +114,19 @@ const LISTS = {
       // automaticamente. fupSeq guarda o número do FUP atual (1, 2, 3...) — incrementado toda vez
       // que o usuário escolhe "Revisar" no prompt que aparece ao concluir uma tarefa de FUP.
       { name: 'fupSeq', type: 'number' },
+      // 11/09/2026 -- Léo (caso Caldic): `obs` nasceu coluna de texto de LINHA ÚNICA (limite de 255
+      // chars) e cresce sozinha a cada reativação -- _dadosReativacao() (frontend) concatena uma
+      // nota nova em cima do que já tinha toda vez que uma oportunidade é reativada -- além do texto
+      // livre que o usuário digita no drawer. Caldic foi usada repetidamente como cobaia dos testes
+      // de reativação (ver comentários de 08/09 acima) e foi a primeira a estourar os 255 chars: o
+      // PATCH inteiro (não só o obs) passou a ser rejeitado pelo Graph/SharePoint, revertido em
+      // silêncio no Cockpit ("Falha ao salvar — revertido"), sem indicar qual campo era o culpado --
+      // mesmíssimo padrão que já tinha quebrado historicoJson e tarefasJson antes. Mesma solução das
+      // duas vezes anteriores (ver aviso em graph.js: migrar uma coluna JÁ existente pra multi-linha
+      // não é confiável) -- campo NOVO, que já nasce multi-linha. api/_shared/schema.js
+      // (toFields/fromFields) e crud.js (doUpdate) redirecionam toda leitura/escrita de "obs" pra cá
+      // por baixo dos panos -- o frontend continua só lendo/escrevendo `l.obs`, sem precisar mudar.
+      { name: 'obs2', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
@@ -221,48 +235,6 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
-  // --- Sino de notificações (10/09/2026): aprovação de leads detectados em e-mail/Teams por
-  // palavra-chave (Léo pediu um jeito de aprovar/atualizar/ignorar o que o scan encontra, em vez
-  // de criar direto) + changelog automático de deploys ("novidades do sistema"). Mesma lista serve
-  // os dois casos (campo `tipo` distingue); o sino no frontend filtra por `tipo` pra montar as
-  // duas abas (Aprovações / Novidades do sistema) sem precisar de duas listas no SharePoint.
-  notificacoes: {
-    displayName: 'Notificacoes_Comercial',
-    titleFrom: 'titulo',
-    columns: [
-      { name: 'tipo', type: 'text' },              // 'aprovacao' | 'sistema'
-      { name: 'status', type: 'text' },             // aprovacao: pendente/aprovado/ignorado | sistema: lida/''
-      { name: 'titulo', type: 'text' },
-      { name: 'detalhe', type: 'text', long: true },// resumo/trecho do e-mail-Teams, ou corpo da novidade
-      { name: 'origem', type: 'text' },             // 'email' | 'teams' | 'sistema'
-      { name: 'origemLink', type: 'text' },         // deep link pro e-mail/mensagem original (webLink Graph)
-      { name: 'palavraChave', type: 'text' },       // qual termo da lista bateu (proposta/cotação/BID/...)
-      { name: 'remetente', type: 'text' },
-      { name: 'dataOrigem', type: 'text' },         // ISO — data do e-mail/mensagem original
-      { name: 'empresaSugerida', type: 'text' },    // nome da empresa candidata (heurística do scan)
-      { name: 'empresaId', type: 'text' },          // preenchido quando o scan já casou c/ Empresas_Comercial
-      { name: 'contatoSugeridoNome', type: 'text' },
-      { name: 'contatoSugeridoSobrenome', type: 'text' },
-      { name: 'contatoSugeridoEmail', type: 'text' },
-      { name: 'contatoSugeridoTelefone', type: 'text' },
-      // 11/09/2026 -- Léo (regra do funil): a varredura tem que dizer se o que achou ainda é só um
-      // LEAD (sem reunião marcada, sem escopo, sem proposta) ou já é uma OPORTUNIDADE (reunião
-      // marcada, negociação em andamento, ou reativação de um histórico anterior). Em QUALQUER dos
-      // dois casos a Empresa/Contato(s) têm que ser conferidos/cadastrados primeiro; só a
-      // OPORTUNIDADE abre card na coluna Oportunidade do Kanban -- o Lead fica só com Empresa/Contato
-      // registrados, pra alguém decidir depois se avança (mesmo espírito do "LEAD começa vazio" que
-      // já valia pro Kanban). `contatosExtraJson` carrega os demais contatos vistos em cópia no
-      // e-mail/thread (além do principal, que continua nos campos contatoSugerido*), pra também
-      // cadastrar os cc'ds -- cada item: {nome,sobrenome,email,telefone}.
-      { name: 'classificacao', type: 'text' },        // 'lead' | 'oportunidade'
-      { name: 'empresaTarget', type: 'text' },        // 'SIM' | 'NÃO' -- heurística do scan p/ marcar a Empresa como TARGET
-      { name: 'contatosExtraJson', type: 'text', long: true },
-      { name: 'leadIdCriado', type: 'text' },        // rastreabilidade: id do lead criado ao aprovar
-      { name: 'criadoEm', type: 'text' },            // ISO — quando a notificação foi gerada
-      { name: 'alteradoEm', type: 'text' },
-      { name: 'alteradoPor', type: 'text' },
-    ],
-  },
 };
 
 function toFields(kind, rec) {
@@ -271,9 +243,14 @@ function toFields(kind, rec) {
   const titleVal = rec[def.titleFrom];
   fields.Title = (titleVal == null || titleVal === '') ? '(sem titulo)' : String(titleVal);
   for (const col of def.columns) {
-    const v = rec[col.name];
+    let name = col.name;
+    // 11/09/2026 -- ver comentário na coluna obs2 (leads, acima): `obs` é campo lógico só no
+    // frontend/registro de entrada -- nunca mais grava na coluna legada de linha única, sempre
+    // redireciona pra obs2 (multi-linha) por baixo dos panos.
+    if (kind === 'leads' && name === 'obs') continue;
+    let v = (kind === 'leads' && name === 'obs2') ? rec.obs : rec[name];
     if (v === null || v === undefined) continue; // omite nulos (Graph rejeita null em Number)
-    fields[col.name] = v;
+    fields[name] = v;
   }
   return fields;
 }
@@ -284,6 +261,12 @@ function fromFields(kind, fields) {
   for (const col of def.columns) {
     const v = fields[col.name];
     out[col.name] = (v === undefined) ? null : v;
+  }
+  if (kind === 'leads') {
+    // 11/09/2026 -- expõe obs2 (novo, multi-linha) sempre como `obs` pro resto do sistema, caindo
+    // pra obs (legado) só pra registros antigos que nunca migraram -- ver comentário na coluna.
+    out.obs = (out.obs2 !== null && out.obs2 !== '') ? out.obs2 : out.obs;
+    delete out.obs2;
   }
   return out;
 }
