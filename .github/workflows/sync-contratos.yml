@@ -1,0 +1,48 @@
+name: Sincroniza snapshot de contratos (Renovações)
+
+# 14/09/2026 -- Léo: "Scan de renovações" diário (Claude) precisa ler o status atual da aba
+# Renovações (statusRenovacao por contrato) para cruzar com e-mail/Teams -- mas, pelo mesmo motivo
+# do scan-notificacoes.yml, a sessão de nuvem que roda o scan não tem acesso de rede direto ao
+# domínio do Cockpit. Este workflow roda 1x/dia num runner do GitHub (sem essa restrição), busca
+# GET /api/contratos (rota anônima) e grava um snapshot na branch scan-queue -- de onde o scan
+# diário lê via git pull. Não mexe na branch main (evita disparar o deploy.yml por um dado que
+# muda todo dia).
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 09:00 UTC = 06:00 America/Sao_Paulo -- roda antes do Scan de renovacoes (11:45 UTC)
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: scan-queue
+      - name: Buscar contratos atuais e gravar snapshot
+        run: |
+          set -e
+          mkdir -p renovacoes-data
+          HTTP_STATUS=$(curl -sS "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}")
+          if [ "$HTTP_STATUS" != "200" ]; then
+            echo "GET /api/contratos falhou (HTTP $HTTP_STATUS) -- mantendo snapshot anterior"
+            exit 1
+          fi
+          python3 -c "import json; json.load(open('renovacoes-data/contratos-atual.json'))"
+      - name: Commitar snapshot (se mudou)
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet -- renovacoes-data/contratos-atual.json; then
+            echo "sem mudanças -- nada a commitar"
+            exit 0
+          fi
+          git add renovacoes-data/contratos-atual.json
+          git commit -m "Snapshot diário de contratos (auto, $(date -u +%Y-%m-%d))"
+          git push origin scan-queue
+
