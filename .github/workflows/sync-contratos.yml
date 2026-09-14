@@ -4,14 +4,15 @@ name: Sincroniza snapshot de contratos (Renovações)
 # Renovações (statusRenovacao por contrato) para cruzar com e-mail/Teams -- mas, pelo mesmo motivo
 # do scan-notificacoes.yml, a sessão de nuvem que roda o scan não tem acesso de rede direto ao
 # domínio do Cockpit. Este workflow roda 1x/dia num runner do GitHub (sem essa restrição), busca
-# GET /api/contratos (rota anônima) e grava um snapshot na branch scan-queue -- de onde o scan
-# diário lê via git pull. Não mexe na branch main (evita disparar o deploy.yml por um dado que
-# muda todo dia).
+# GET /api/contratos-sync e grava um snapshot na branch scan-queue -- de onde o scan diário lê via
+# git pull. Não mexe na branch main (evita disparar o deploy.yml por um dado que muda todo dia).
 #
-# 14/09/2026 -- fix: run #2 falhou com JSONDecodeError mesmo com HTTP 200 (provavelmente
-# redirecionado p/ uma pagina de login/auth, ja que o runner nao tem sessao autenticada no
-# dominio do Cockpit, diferente do navegador do Leo). Adiciona diagnostico (tamanho + inicio do
-# corpo da resposta) nos logs pra confirmar a causa antes de decidir a proxima correcao.
+# 14/09/2026 -- fix: GET /api/contratos exige login Microsoft (AAD) na própria plataforma do
+# Cockpit (staticwebapp.config.json: "/api/*" -> allowedRoles authenticated), por isso falhava
+# aqui (o runner não tem sessão). Criada rota dedicada /api/contratos-sync, anônima na plataforma
+# mas protegida por um token secreto próprio (header X-Sync-Token, comparado no código contra a
+# app setting CONTRATOS_SYNC_TOKEN) -- só leitura, nunca grava nada. Token guardado como secret do
+# GitHub (CONTRATOS_SYNC_TOKEN), nunca aparece em texto no código nem nos logs.
 
 on:
   schedule:
@@ -29,20 +30,20 @@ jobs:
         with:
           ref: scan-queue
       - name: Buscar contratos atuais e gravar snapshot
+        env:
+          SYNC_TOKEN: ${{ secrets.CONTRATOS_SYNC_TOKEN }}
         run: |
           set -e
           mkdir -p renovacoes-data
-          HTTP_STATUS=$(curl -sS -L "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}" -D renovacoes-data/headers.txt)
+          HTTP_STATUS=$(curl -sS -L "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos-sync" -H "X-Sync-Token: $SYNC_TOKEN" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}")
           echo "HTTP status final (apos redirects): $HTTP_STATUS"
-          echo "--- Headers da resposta ---"
-          cat renovacoes-data/headers.txt
           echo "--- Tamanho do arquivo baixado ---"
           wc -c renovacoes-data/contratos-atual.json
-          echo "--- Primeiros 500 caracteres do corpo ---"
-          head -c 500 renovacoes-data/contratos-atual.json
-          echo ""
           if [ "$HTTP_STATUS" != "200" ]; then
-            echo "GET /api/contratos falhou (HTTP $HTTP_STATUS) -- mantendo snapshot anterior"
+            echo "--- Primeiros 500 caracteres do corpo (erro) ---"
+            head -c 500 renovacoes-data/contratos-atual.json
+            echo ""
+            echo "GET /api/contratos-sync falhou (HTTP $HTTP_STATUS) -- mantendo snapshot anterior"
             exit 1
           fi
           python3 -c "import json; json.load(open('renovacoes-data/contratos-atual.json'))"
