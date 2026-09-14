@@ -7,12 +7,17 @@ name: Sincroniza snapshot de contratos (Renovações)
 # GET /api/contratos-sync e grava um snapshot na branch scan-queue -- de onde o scan diário lê via
 # git pull. Não mexe na branch main (evita disparar o deploy.yml por um dado que muda todo dia).
 #
-# 14/09/2026 -- fix: GET /api/contratos exige login Microsoft (AAD) na própria plataforma do
+# 14/09/2026 -- fix 1: GET /api/contratos exige login Microsoft (AAD) na própria plataforma do
 # Cockpit (staticwebapp.config.json: "/api/*" -> allowedRoles authenticated), por isso falhava
 # aqui (o runner não tem sessão). Criada rota dedicada /api/contratos-sync, anônima na plataforma
 # mas protegida por um token secreto próprio (header X-Sync-Token, comparado no código contra a
 # app setting CONTRATOS_SYNC_TOKEN) -- só leitura, nunca grava nada. Token guardado como secret do
 # GitHub (CONTRATOS_SYNC_TOKEN), nunca aparece em texto no código nem nos logs.
+#
+# 14/09/2026 -- fix 2: run #4 passou no download/parse mas não commitou nada -- "git diff --quiet"
+# só compara arquivos JÁ rastreados pelo git; como este era o primeiro snapshot (arquivo novo,
+# nunca commitado), o git não considerou isso uma "mudança" e o commit foi pulado silenciosamente.
+# Trocado por "git status --porcelain", que cobre tanto arquivo novo (untracked) quanto modificado.
 
 on:
   schedule:
@@ -52,7 +57,7 @@ jobs:
           set -e
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          if git diff --quiet -- renovacoes-data/contratos-atual.json; then
+          if [ -z "$(git status --porcelain -- renovacoes-data/contratos-atual.json)" ]; then
             echo "sem mudanças -- nada a commitar"
             exit 0
           fi
