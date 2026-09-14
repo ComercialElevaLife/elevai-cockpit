@@ -12,7 +12,6 @@ on:
   schedule:
     - cron: '0 9 * * *'   # 09:00 UTC = 06:00 America/Sao_Paulo -- roda antes do Scan de renovacoes (11:45 UTC)
   workflow_dispatch: {}
-
 permissions:
   contents: write
 
@@ -27,7 +26,7 @@ jobs:
         run: |
           set -e
           mkdir -p renovacoes-data
-          HTTP_STATUS=$(curl -sS "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}")
+          HTTP_STATUS=$(curl -sS -L "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}")
           if [ "$HTTP_STATUS" != "200" ]; then
             echo "GET /api/contratos falhou (HTTP $HTTP_STATUS) -- mantendo snapshot anterior"
             exit 1
@@ -45,4 +44,3 @@ jobs:
           git add renovacoes-data/contratos-atual.json
           git commit -m "Snapshot diário de contratos (auto, $(date -u +%Y-%m-%d))"
           git push origin scan-queue
-
