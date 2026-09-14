@@ -7,11 +7,17 @@ name: Sincroniza snapshot de contratos (Renovações)
 # GET /api/contratos (rota anônima) e grava um snapshot na branch scan-queue -- de onde o scan
 # diário lê via git pull. Não mexe na branch main (evita disparar o deploy.yml por um dado que
 # muda todo dia).
+#
+# 14/09/2026 -- fix: run #2 falhou com JSONDecodeError mesmo com HTTP 200 (provavelmente
+# redirecionado p/ uma pagina de login/auth, ja que o runner nao tem sessao autenticada no
+# dominio do Cockpit, diferente do navegador do Leo). Adiciona diagnostico (tamanho + inicio do
+# corpo da resposta) nos logs pra confirmar a causa antes de decidir a proxima correcao.
 
 on:
   schedule:
     - cron: '0 9 * * *'   # 09:00 UTC = 06:00 America/Sao_Paulo -- roda antes do Scan de renovacoes (11:45 UTC)
   workflow_dispatch: {}
+
 permissions:
   contents: write
 
@@ -26,7 +32,15 @@ jobs:
         run: |
           set -e
           mkdir -p renovacoes-data
-          HTTP_STATUS=$(curl -sS -L "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}")
+          HTTP_STATUS=$(curl -sS -L "https://red-mushroom-08695330f.7.azurestaticapps.net/api/contratos" -o renovacoes-data/contratos-atual.json --max-time 30 -w "%{http_code}" -D renovacoes-data/headers.txt)
+          echo "HTTP status final (apos redirects): $HTTP_STATUS"
+          echo "--- Headers da resposta ---"
+          cat renovacoes-data/headers.txt
+          echo "--- Tamanho do arquivo baixado ---"
+          wc -c renovacoes-data/contratos-atual.json
+          echo "--- Primeiros 500 caracteres do corpo ---"
+          head -c 500 renovacoes-data/contratos-atual.json
+          echo ""
           if [ "$HTTP_STATUS" != "200" ]; then
             echo "GET /api/contratos falhou (HTTP $HTTP_STATUS) -- mantendo snapshot anterior"
             exit 1
