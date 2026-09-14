@@ -7,6 +7,7 @@
     { "route": "/lp.html", "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/lead-publico", "methods": ["POST"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/notificacoes", "methods": ["POST", "PATCH"], "allowedRoles": ["anonymous", "authenticated"] },
+    { "route": "/api/contratos-sync", "methods": ["GET"], "allowedRoles": ["anonymous", "authenticated"] },
     { "route": "/api/*", "allowedRoles": ["authenticated"] },
     { "route": "/*", "allowedRoles": ["authenticated"] }
   ],
