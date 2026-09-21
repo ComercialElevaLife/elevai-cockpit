@@ -150,6 +150,11 @@ const LISTS = {
       // SharePoint mutilava pra _x006f_bs3N a cada tentativa). Removida daqui ate a
       // correcao definitiva com nome verificado.
       // { name: 'obs3', type: 'text', long: true },
+      // 21/09/2026 -- CORRECAO DEFINITIVA (Leo/Claude): coluna real, nome escolhido SEM
+      // digito no final (obs2/obs3 caiam no bug de mutilacao do StaticName do SharePoint --
+      // ver comentarios acima). Confirmado direto via /api/diag que o SharePoint aceitou este
+      // nome exatamente como pedido, sem mutilar. Esta e a coluna viva agora.
+      { name: 'observacoesLead', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
@@ -313,7 +318,7 @@ function toFields(kind, rec) {
     // frontend/registro de entrada -- nunca mais grava na coluna obs2 (que parou de ser
     // reconhecida pelo Graph), sempre redireciona pra obs3 por baixo dos panos.
     if (kind === 'leads' && name === 'obs') continue;
-    let v = (kind === 'leads' && name === 'obs3') ? rec.obs : rec[name];
+    let v = (kind === 'leads' && name === 'observacoesLead') ? rec.obs : rec[name];
     if (v === null || v === undefined) continue; // omite nulos (Graph rejeita null em Number)
     fields[name] = v;
   }
@@ -330,10 +335,11 @@ function fromFields(kind, fields) {
   if (kind === 'leads') {
     // 21/09/2026 -- obs3 é a coluna viva agora (ver comentário dela acima); obs2 e obs (legado)
     // ficam só como fallback de LEITURA, nessa ordem, pra não perder nada gravado antes de hoje.
-    out.obs = (out.obs3 !== null && out.obs3 !== '') ? out.obs3
-      : (out.obs2 !== null && out.obs2 !== '') ? out.obs2
+    out.obs = (out.observacoesLead !== null && out.observacoesLead !== undefined && out.observacoesLead !== '') ? out.observacoesLead
+      : (out.obs3 !== null && out.obs3 !== undefined && out.obs3 !== '') ? out.obs3
+      : (out.obs2 !== null && out.obs2 !== undefined && out.obs2 !== '') ? out.obs2
       : out.obs;
-    delete out.obs2; delete out.obs3;
+    delete out.obs2; delete out.obs3; delete out.observacoesLead;
   }
   return out;
 }

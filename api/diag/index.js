@@ -53,31 +53,12 @@ module.exports = async function (context, req) {
         } catch (e) {
           out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
         }
-        // 21/09/2026 -- diagnostico temporario (Leo/Claude): a listagem paginada confirmou que
-        // obs2/obs3 NAO aparecem entre as 276 colunas reais -- ensureColumns roda em toda
-        // requisicao (ver crud.js) e deveria ter criado obs3 ha muito tempo, mas nunca criou.
-        // Aqui a gente faz o MESMO POST que ensureColumns faz (ver _colBody em graph.js) só que
-        // direto e capturando o erro/resposta completa do Graph, pra achar o motivo real (permissao,
-        // limite de colunas da lista, corpo invalido, etc.) em vez de só saber que "não é reconhecida".
-        try {
-          const body = { name: 'obs3', text: { allowMultipleLines: true } };
-          const created = await g.graph('POST', `/sites/${out.siteId}/lists/${id}/columns`, body);
-          out.lists[def.displayName].teste_criar_obs3 = { ok: true, id: created.id, name: created.name, text: created.text };
-        } catch (e) {
-          out.lists[def.displayName].teste_criar_obs3 = { ok: false, status: e.status, body: e.body, message: String(e.message || e) };
-        }
-        // 21/09/2026 -- diagnostico temporario (Leo/Claude): 145 colunas fantasma ja criadas (ver
-        // colunas_fantasma acima) -- ensureColumns tentava recriar obs2/obs3 em toda requisicao e o
-        // SharePoint gerava um nome novo a cada vez em vez de dar 409. Testando aqui um nome SEM
-        // digito no final (suspeita: nome curto+digito no final e o gatilho do bug de geracao de
-        // StaticName do SharePoint), pra achar um nome que ele aceite exatamente como pedido.
-        try {
-          const body2 = { name: 'observacoesLead', text: { allowMultipleLines: true } };
-          const created2 = await g.graph('POST', `/sites/${out.siteId}/lists/${id}/columns`, body2);
-          out.lists[def.displayName].teste_criar_observacoesLead = { ok: true, id: created2.id, name: created2.name, text: created2.text };
-        } catch (e) {
-          out.lists[def.displayName].teste_criar_observacoesLead = { ok: false, status: e.status, body: e.body, message: String(e.message || e) };
-        }
+        // 21/09/2026 -- diagnostico temporario (Leo/Claude): CONFIRMADO e resolvido. obs2/obs3
+        // nunca existiram de verdade (SharePoint mutilava o nome interno a cada tentativa, gerando
+        // uma coluna fantasma nova por request -- ver colunas_fantasma acima). 'observacoesLead'
+        // (nome sem digito no final) foi aceito pelo SharePoint exatamente como pedido e agora e a
+        // coluna real (ver schema.js/crud.js). Testes de criacao removidos daqui pra nao continuar
+        // gerando fantasmas a cada chamada de /api/diag -- ja cumpriram o papel de diagnostico.
       }
     }
   } catch (e) {

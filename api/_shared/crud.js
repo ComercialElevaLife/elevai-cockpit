@@ -97,7 +97,10 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
     // obs3 em schema.js (mesmíssimo padrão de historicoJson/tarefasJson: Graph/SharePoint não
     // reaproveita nome interno de coluna de forma confiável). Todo PATCH de "obs" agora vai pra
     // obs3; obs2 fica só como fallback de leitura (ver fromFields em schema.js).
-    const key = (kind === 'leads' && k === 'obs') ? 'obs3' : k;
+    // 21/09/2026 -- CORRECAO DEFINITIVA: obs3 (e antes obs2) nunca existiram de fato --
+    // SharePoint mutilava o nome interno a cada tentativa de criacao (ver schema.js).
+    // observacoesLead e a coluna real confirmada via /api/diag.
+    const key = (kind === 'leads' && k === 'obs') ? 'observacoesLead' : k;
     if (allowed.has(key) && v !== undefined) fields[key] = (v === null ? '' : v);
   }
   fields.alteradoEm = new Date().toISOString();
