@@ -53,6 +53,25 @@ module.exports = async function (context, req) {
         } catch (e) {
           out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
         }
+        // 21/09/2026 -- diagnostico temporario (Leo/Claude): antes de qualquer exclusao das
+        // colunas fantasma, confirma que NENHUMA delas tem dado gravado (o app nunca escreveu
+        // nelas por nome -- so escreve/le por 'obs'/'obs2'/'obs3'/'observacoesLead' -- mas aqui a
+        // gente checa de verdade, item por item, em vez de assumir).
+        try {
+          const fantasmaNames = out.lists[def.displayName].colunas_fantasma.map(c => c.name);
+          const itens = await g.listItems(id);
+          const comDado = [];
+          for (const nome of fantasmaNames) {
+            const valores = itens
+              .map(it => it[nome])
+              .filter(v => v !== null && v !== undefined && v !== '');
+            if (valores.length > 0) comDado.push({ nome, qtd_itens_com_dado: valores.length, exemplo: valores[0] });
+          }
+          out.lists[def.displayName].fantasmas_com_dado = comDado;
+          out.lists[def.displayName].total_itens_checados = itens.length;
+        } catch (e) {
+          out.lists[def.displayName].fantasmas_com_dado_erro = String(e.message || e);
+        }
         // 21/09/2026 -- diagnostico temporario (Leo/Claude): CONFIRMADO e resolvido. obs2/obs3
         // nunca existiram de verdade (SharePoint mutilava o nome interno a cada tentativa, gerando
         // uma coluna fantasma nova por request -- ver colunas_fantasma acima). 'observacoesLead'
