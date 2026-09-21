@@ -126,7 +126,17 @@ const LISTS = {
       // não é confiável) -- campo NOVO, que já nasce multi-linha. api/_shared/schema.js
       // (toFields/fromFields) e crud.js (doUpdate) redirecionam toda leitura/escrita de "obs" pra cá
       // por baixo dos panos -- o frontend continua só lendo/escrevendo `l.obs`, sem precisar mudar.
-      { name: 'obs2', type: 'text', long: true },
+      // 21/09/2026 -- URGENTE (Leo/Claude): REMOVIDA da lista de colunas que ensureColumns
+      // tenta criar. Causa raiz achada: o SharePoint NUNCA aceitou 'obs2'/'obs3' com o nome
+      // pedido -- a cada requisicao (ensureColumns roda em toda chamada, ver crud.js) ele
+      // criava uma coluna FANTASMA nova com nome mutilado (_x006f_bs2N) em vez de dar 409,
+      // e nunca conseguia achar a que ja existia. Resultado: 145 colunas fantasma criadas e
+      // crescendo a cada acesso ao Cockpit, empurrando a lista pro limite de schema do
+      // SharePoint (~276-300 colunas) -- risco de derrubar a lista INTEIRA, nao so o campo
+      // obs. Tirar daqui para essa sangria (mais colunas fantasma) mesmo antes da correcao
+      // definitiva (nome de coluna verificado, ver observacoesLead no diag). obs2 NUNCA
+      // existiu de fato como coluna real -- nao ha dado nela pra perder.
+      // { name: 'obs2', type: 'text', long: true },
       // 21/09/2026 -- URGENTE (Léo): mesmíssimo padrão de novo -- Graph passou a rejeitar PATCH em
       // 'obs2' com "Field 'obs2' is not recognized" (confirmado direto: PATCH só com {obs2:...},
       // sem passar pelo remap de obs, mesmo erro -- não é bug de remapeamento, é a própria coluna
@@ -136,7 +146,10 @@ const LISTS = {
       // qualquer mexida nela. Correção de sempre: coluna NOVA, nunca insistir na antiga. `obs2`
       // fica órfã só como fallback de LEITURA (dado já gravado antes de hoje, ver fromFields
       // abaixo); todo PATCH novo grava em obs3 (ver doUpdate em crud.js).
-      { name: 'obs3', type: 'text', long: true },
+      // 21/09/2026 -- mesmo motivo do obs2 acima: obs3 tambem nunca existiu de fato (o
+      // SharePoint mutilava pra _x006f_bs3N a cada tentativa). Removida daqui ate a
+      // correcao definitiva com nome verificado.
+      // { name: 'obs3', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],

@@ -66,6 +66,18 @@ module.exports = async function (context, req) {
         } catch (e) {
           out.lists[def.displayName].teste_criar_obs3 = { ok: false, status: e.status, body: e.body, message: String(e.message || e) };
         }
+        // 21/09/2026 -- diagnostico temporario (Leo/Claude): 145 colunas fantasma ja criadas (ver
+        // colunas_fantasma acima) -- ensureColumns tentava recriar obs2/obs3 em toda requisicao e o
+        // SharePoint gerava um nome novo a cada vez em vez de dar 409. Testando aqui um nome SEM
+        // digito no final (suspeita: nome curto+digito no final e o gatilho do bug de geracao de
+        // StaticName do SharePoint), pra achar um nome que ele aceite exatamente como pedido.
+        try {
+          const body2 = { name: 'observacoesLead', text: { allowMultipleLines: true } };
+          const created2 = await g.graph('POST', `/sites/${out.siteId}/lists/${id}/columns`, body2);
+          out.lists[def.displayName].teste_criar_observacoesLead = { ok: true, id: created2.id, name: created2.name, text: created2.text };
+        } catch (e) {
+          out.lists[def.displayName].teste_criar_observacoesLead = { ok: false, status: e.status, body: e.body, message: String(e.message || e) };
+        }
       }
     }
   } catch (e) {
