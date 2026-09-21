@@ -48,7 +48,7 @@ module.exports = async function (context, req) {
           // quantas tentativas anteriores (obs2, obs3, ...) ja ficaram 'enterradas' assim.
           out.lists[def.displayName].colunas_fantasma = all
             .filter(c => /^_x0/i.test(c.name))
-            .map(c => ({ name: c.name, columnGroup: c.columnGroup }));
+            .map(c => ({ id: c.id, name: c.name, columnGroup: c.columnGroup }));
           out.lists[def.displayName].total_fantasmas = out.lists[def.displayName].colunas_fantasma.length;
         } catch (e) {
           out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
@@ -78,6 +78,30 @@ module.exports = async function (context, req) {
         // (nome sem digito no final) foi aceito pelo SharePoint exatamente como pedido e agora e a
         // coluna real (ver schema.js/crud.js). Testes de criacao removidos daqui pra nao continuar
         // gerando fantasmas a cada chamada de /api/diag -- ja cumpriram o papel de diagnostico.
+        // 22/09/2026 -- LIMPEZA (Leo autorizou): exclui as colunas fantasma aos poucos, em lotes
+        // pequenos (?limpar_fantasmas=1&limite=N, default 25), com log de cada exclusao, pra poder
+        // parar e avaliar se algo sair diferente do esperado. Ja confirmado antes (fantasmas_com_dado
+        // acima) que nenhuma delas tem dado -- mas o log por item aqui e a rede de seguranca real.
+        if (req.query && req.query.limpar_fantasmas) {
+          const limite = Math.max(1, Math.min(50, parseInt(req.query.limite, 10) || 25));
+          const alvo = out.lists[def.displayName].colunas_fantasma.slice(0, limite);
+          const log = [];
+          for (const col of alvo) {
+            try {
+              await g.graph('DELETE', `/sites/${out.siteId}/lists/${id}/columns/${col.id}`);
+              log.push({ id: col.id, name: col.name, ok: true });
+            } catch (e) {
+              log.push({ id: col.id, name: col.name, ok: false, status: e.status, message: String(e.message || e) });
+            }
+          }
+          out.lists[def.displayName].limpeza = {
+            tentadas: log.length,
+            sucesso: log.filter(l => l.ok).length,
+            falha: log.filter(l => !l.ok).length,
+            restantes_estimado: out.lists[def.displayName].total_fantasmas - log.filter(l => l.ok).length,
+            log,
+          };
+        }
       }
     }
   } catch (e) {
