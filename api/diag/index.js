@@ -44,6 +44,19 @@ module.exports = async function (context, req) {
         } catch (e) {
           out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
         }
+        // 21/09/2026 -- diagnostico temporario (Leo/Claude): a listagem paginada confirmou que
+        // obs2/obs3 NAO aparecem entre as 276 colunas reais -- ensureColumns roda em toda
+        // requisicao (ver crud.js) e deveria ter criado obs3 ha muito tempo, mas nunca criou.
+        // Aqui a gente faz o MESMO POST que ensureColumns faz (ver _colBody em graph.js) só que
+        // direto e capturando o erro/resposta completa do Graph, pra achar o motivo real (permissao,
+        // limite de colunas da lista, corpo invalido, etc.) em vez de só saber que "não é reconhecida".
+        try {
+          const body = { name: 'obs3', text: { allowMultipleLines: true } };
+          const created = await g.graph('POST', `/sites/${out.siteId}/lists/${id}/columns`, body);
+          out.lists[def.displayName].teste_criar_obs3 = { ok: true, id: created.id, name: created.name, text: created.text };
+        } catch (e) {
+          out.lists[def.displayName].teste_criar_obs3 = { ok: false, status: e.status, body: e.body, message: String(e.message || e) };
+        }
       }
     }
   } catch (e) {
