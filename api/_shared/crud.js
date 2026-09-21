@@ -92,9 +92,12 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   for (const [k, v] of Object.entries(patchFields || {})) {
     if (k === '__id' || k === 'id' || k === 'fields') continue;
     // 11/09/2026 -- Léo (caso Caldic): leads.obs é coluna legada de linha única (255 chars) que
-    // cresce a cada reativação e estourou o limite -- ver comentário na coluna obs2 em schema.js.
-    // Todo PATCH de "obs" é redirecionado pra obs2 (multi-linha) aqui, sem o frontend precisar mudar.
-    const key = (kind === 'leads' && k === 'obs') ? 'obs2' : k;
+    // 21/09/2026 -- URGENTE (Léo): obs2 parou de ser reconhecida pelo Graph nesse endpoint
+    // ("Field 'obs2' is not recognized"), quebrando TODO PATCH de lead -- ver comentário na coluna
+    // obs3 em schema.js (mesmíssimo padrão de historicoJson/tarefasJson: Graph/SharePoint não
+    // reaproveita nome interno de coluna de forma confiável). Todo PATCH de "obs" agora vai pra
+    // obs3; obs2 fica só como fallback de leitura (ver fromFields em schema.js).
+    const key = (kind === 'leads' && k === 'obs') ? 'obs3' : k;
     if (allowed.has(key) && v !== undefined) fields[key] = (v === null ? '' : v);
   }
   fields.alteradoEm = new Date().toISOString();
