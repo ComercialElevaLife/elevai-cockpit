@@ -19,6 +19,19 @@ module.exports = async function (context, req) {
       if (!id) { out.lists[def.displayName] = { exists: false }; continue; }
       const items = await g.listItems(id);
       out.lists[def.displayName] = { exists: true, id, count: items.length };
+      // 21/09/2026 -- diagnostico temporario (Leo/Claude): investigar "Field 'obs3' is not
+      // recognized" mesmo apos criar a coluna -- lista as colunas reais do SharePoint pra ver
+      // se obs3 existe de fato e em que formato (allowMultipleLines, readOnly, hidden etc).
+      if (kind === 'leads') {
+        try {
+          const cols = await g.graph('GET', `/sites/${out.siteId}/lists/${id}/columns?$select=id,name,text,readOnly,hidden,columnGroup`);
+          out.lists[def.displayName].colunas_obs = (cols.value || [])
+            .filter(c => /^obs/i.test(c.name))
+            .map(c => ({ name: c.name, text: c.text, readOnly: c.readOnly, hidden: c.hidden, columnGroup: c.columnGroup }));
+        } catch (e) {
+          out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
+        }
+      }
     }
   } catch (e) {
     out.ok = false; out.error = String(e.message || e); out.body = e.body;
