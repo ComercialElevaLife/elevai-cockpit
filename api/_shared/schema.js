@@ -127,6 +127,16 @@ const LISTS = {
       // (toFields/fromFields) e crud.js (doUpdate) redirecionam toda leitura/escrita de "obs" pra cá
       // por baixo dos panos -- o frontend continua só lendo/escrevendo `l.obs`, sem precisar mudar.
       { name: 'obs2', type: 'text', long: true },
+      // 21/09/2026 -- URGENTE (Léo): mesmíssimo padrão de novo -- Graph passou a rejeitar PATCH em
+      // 'obs2' com "Field 'obs2' is not recognized" (confirmado direto: PATCH só com {obs2:...},
+      // sem passar pelo remap de obs, mesmo erro -- não é bug de remapeamento, é a própria coluna
+      // que o SharePoint não reconhece mais nesse endpoint). Já é a 3ª vez nesta base
+      // (historicoJson->histEventosJson, tarefasJson->tarefasJson2, agora obs2->obs3) -- o
+      // Graph/SharePoint não é confiável reaproveitando o nome interno de uma coluna depois de
+      // qualquer mexida nela. Correção de sempre: coluna NOVA, nunca insistir na antiga. `obs2`
+      // fica órfã só como fallback de LEITURA (dado já gravado antes de hoje, ver fromFields
+      // abaixo); todo PATCH novo grava em obs3 (ver doUpdate em crud.js).
+      { name: 'obs3', type: 'text', long: true },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
@@ -286,11 +296,11 @@ function toFields(kind, rec) {
   fields.Title = (titleVal == null || titleVal === '') ? '(sem titulo)' : String(titleVal);
   for (const col of def.columns) {
     let name = col.name;
-    // 11/09/2026 -- ver comentário na coluna obs2 (leads, acima): `obs` é campo lógico só no
-    // frontend/registro de entrada -- nunca mais grava na coluna legada de linha única, sempre
-    // redireciona pra obs2 (multi-linha) por baixo dos panos.
+    // 21/09/2026 -- ver comentário na coluna obs3 (leads, acima): `obs` é campo lógico só no
+    // frontend/registro de entrada -- nunca mais grava na coluna obs2 (que parou de ser
+    // reconhecida pelo Graph), sempre redireciona pra obs3 por baixo dos panos.
     if (kind === 'leads' && name === 'obs') continue;
-    let v = (kind === 'leads' && name === 'obs2') ? rec.obs : rec[name];
+    let v = (kind === 'leads' && name === 'obs3') ? rec.obs : rec[name];
     if (v === null || v === undefined) continue; // omite nulos (Graph rejeita null em Number)
     fields[name] = v;
   }
@@ -305,10 +315,12 @@ function fromFields(kind, fields) {
     out[col.name] = (v === undefined) ? null : v;
   }
   if (kind === 'leads') {
-    // 11/09/2026 -- expõe obs2 (novo, multi-linha) sempre como `obs` pro resto do sistema, caindo
-    // pra obs (legado) só pra registros antigos que nunca migraram -- ver comentário na coluna.
-    out.obs = (out.obs2 !== null && out.obs2 !== '') ? out.obs2 : out.obs;
-    delete out.obs2;
+    // 21/09/2026 -- obs3 é a coluna viva agora (ver comentário dela acima); obs2 e obs (legado)
+    // ficam só como fallback de LEITURA, nessa ordem, pra não perder nada gravado antes de hoje.
+    out.obs = (out.obs3 !== null && out.obs3 !== '') ? out.obs3
+      : (out.obs2 !== null && out.obs2 !== '') ? out.obs2
+      : out.obs;
+    delete out.obs2; delete out.obs3;
   }
   return out;
 }
