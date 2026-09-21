@@ -41,6 +41,15 @@ module.exports = async function (context, req) {
           out.lists[def.displayName].colunas_obs = all
             .filter(c => /^obs/i.test(c.name))
             .map(c => ({ name: c.name, text: c.text, readOnly: c.readOnly, hidden: c.hidden, columnGroup: c.columnGroup }));
+          // 21/09/2026 -- diagnostico temporario (Leo/Claude): o teste_criar_obs3 revelou que o
+          // Graph aceita o POST mas RENOMEIA sozinho o nome interno quando ha colisao (ex.: pedimos
+          // 'obs3' e ele criou '_x006f_bs310' -- 'o' escapado + sufixo numerico). Aqui a gente lista
+          // TODAS as colunas 'fantasma' desse padrao (nome comeca com _x0 = char escapado) pra medir
+          // quantas tentativas anteriores (obs2, obs3, ...) ja ficaram 'enterradas' assim.
+          out.lists[def.displayName].colunas_fantasma = all
+            .filter(c => /^_x0/i.test(c.name))
+            .map(c => ({ name: c.name, columnGroup: c.columnGroup }));
+          out.lists[def.displayName].total_fantasmas = out.lists[def.displayName].colunas_fantasma.length;
         } catch (e) {
           out.lists[def.displayName].colunas_obs_erro = String(e.message || e);
         }
