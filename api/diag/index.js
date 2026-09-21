@@ -24,8 +24,21 @@ module.exports = async function (context, req) {
       // se obs3 existe de fato e em que formato (allowMultipleLines, readOnly, hidden etc).
       if (kind === 'leads') {
         try {
-          const cols = await g.graph('GET', `/sites/${out.siteId}/lists/${id}/columns?$select=id,name,text,readOnly,hidden,columnGroup`);
-          out.lists[def.displayName].colunas_obs = (cols.value || [])
+          // pagina ate o fim (@odata.nextLink) -- a 1a tentativa desse diagnostico so olhou a
+          // 1a pagina e so achou 'obs', o que pode ser paginacao escondendo obs2/obs3, nao
+          // necessariamente ausencia real.
+          let url = `/sites/${out.siteId}/lists/${id}/columns?$select=id,name,text,readOnly,hidden,columnGroup&$top=200`;
+          let all = [];
+          let pages = 0;
+          while (url) {
+            const cols = await g.graph('GET', url);
+            all = all.concat(cols.value || []);
+            url = cols['@odata.nextLink'] || null;
+            pages++;
+          }
+          out.lists[def.displayName].total_colunas = all.length;
+          out.lists[def.displayName].paginas = pages;
+          out.lists[def.displayName].colunas_obs = all
             .filter(c => /^obs/i.test(c.name))
             .map(c => ({ name: c.name, text: c.text, readOnly: c.readOnly, hidden: c.hidden, columnGroup: c.columnGroup }));
         } catch (e) {
