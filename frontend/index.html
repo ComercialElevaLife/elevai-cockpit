@@ -14,6 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
 <script src="lc116.js"></script>
 <script src="minuta.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 /* ===== SHELL ===== */
 :root{--w:#8E3B4F;--wd:#7A2F42;--wl:#A34E60;--bg:#F6EEEE;--ink:#3A2A2E;--mut:#8A7A78;--ln:#EADDE0;--ok:#2E7D5B;--warn:#C9822B;--bad:#B23A48;--card:#fff}
@@ -791,6 +792,13 @@ td .up{color:var(--ok);font-weight:700}
             <a href="#" id="emp-cancel-edit" hidden onclick="window.cancelEmpEdit&&cancelEmpEdit();q('empForm').reset();return false" style="font-size:12px;color:#8A7A78;font-weight:600">Cancelar edição</a>
           </div>
         </form>
+        <div id="emp-import-box" style="margin-top:18px;padding:14px 16px;border:1px dashed #C9A8A5;border-radius:12px;background:#FBF6F2">
+          <b style="color:#7A2F42;font-size:13px">📂 Importar cadastro em lote (planilha)</b>
+          <p style="margin:6px 0 10px;color:#8A7A78;font-size:12px">Aceita .xlsx ou .csv. Colunas reconhecidas (nomes flexíveis): Nome/Cliente, CNPJ, Razão social, Nome fantasia, Segmento, Município, UF, Endereço, etc. Só "Nome/Cliente" é obrigatório. Empresa já cadastrada (por CNPJ, ou por nome quando a linha não tem CNPJ) é ignorada automaticamente e sinalizada no resumo abaixo — nada é sobrescrito nem duplicado.</p>
+          <input type="file" id="emp-import-file" accept=".xlsx,.xls,.csv" onchange="elevaiEmpImportPick(this)" style="font-size:12px">
+          <div id="emp-import-status" style="margin-top:8px;font-size:12px;color:#8A7A78"></div>
+          <div id="emp-import-preview" style="margin-top:10px"></div>
+        </div>
         <div style="display:flex;align-items:center;gap:8px;margin-top:18px">
           <span class="meta" style="font-size:12px;color:#8A7A78;margin-right:4px">Ver como:</span>
           <button type="button" class="empview on" id="emp-view-list-btn" onclick="setEmpView('list')">📋 Lista</button>
@@ -1967,6 +1975,133 @@ async function elevaiEmp(ev){
   btn.disabled=false; return false;
 }
 window.elevaiEmp=elevaiEmp;
+/* 22/09/2026 -- Leo: upload de planilha no Cadastro de Empresas, pra importar em lote. Regra
+   travada por ele: empresa ja cadastrada eh IGNORADA (nunca sobrescreve/duplica) e SINALIZADA no
+   resumo -- nunca silenciosa. Match forte por CNPJ (14 digitos) quando a linha tem CNPJ; sem CNPJ,
+   cai pro mesmo normCli() ja usado no resto do app pra colisao de nome (ver _cmap perto da linha
+   ~1248). Preview antes de gravar (mesma regra de "mudanca irreversivel exige preview/aprovacao"
+   do restante do cadastro) -- so grava no SharePoint depois que Leo clica em Confirmar. Sem lib de
+   planilha no projeto ainda -- adicionado SheetJS (xlsx) via CDN, mesmo padrao do chart.js. */
+const EMP_IMPORT_ALIASES={
+  cliente:['nome','cliente','nomecarteira','carteira','empresa','nomeempresa'],
+  cnpj:['cnpj'],
+  razaoSocial:['razaosocial','razao'],
+  nomeFantasia:['nomefantasia','fantasia'],
+  ie:['inscricaoestadual','ie'],
+  im:['inscricaomunicipal','im'],
+  logradouro:['logradouro','endereco','rua'],
+  numero:['numero','nro'],
+  complemento:['complemento'],
+  bairro:['bairro'],
+  municipio:['municipio','cidade'],
+  uf:['uf','estado'],
+  cep:['cep'],
+  codigoIbge:['codigoibge','ibge','codibgemunicipio','codigoibgemunicipio'],
+  cnae:['cnae'],
+  regimeTributario:['regimetributario','regime'],
+  grauRisco:['graurisco','graunr4','grau'],
+  target:['etiqueta','target'],
+  segmento:['segmento'],
+  obs:['observacoes','obs','observacao']
+};
+function _empImportNormHeader(s){
+  return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+}
+function _empImportDigits(s){ return String(s||'').replace(/\D/g,''); }
+let _empImportCandidatos=null; // preenchido pelo preview, consumido pela confirmacao
+async function elevaiEmpImportPick(input){
+  const statusEl=q('emp-import-status'), prevEl=q('emp-import-preview');
+  _empImportCandidatos=null; if(prevEl)prevEl.innerHTML='';
+  const file=input.files&&input.files[0]; if(!file)return;
+  if(typeof XLSX==='undefined'){ if(statusEl)statusEl.textContent='Falha: biblioteca de leitura de planilha não carregou. Recarregue a página e tente de novo.'; return; }
+  if(statusEl)statusEl.textContent='Lendo planilha...';
+  try{
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const sheet=wb.Sheets[wb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(sheet,{defval:''});
+    if(!rows.length){ if(statusEl)statusEl.textContent='Planilha vazia ou sem linhas reconhecíveis.'; input.value=''; return; }
+    const headerMap={};
+    Object.keys(rows[0]).forEach(h=>{
+      const nh=_empImportNormHeader(h);
+      for(const campo in EMP_IMPORT_ALIASES){
+        if(EMP_IMPORT_ALIASES[campo].indexOf(nh)>=0){ headerMap[h]=campo; break; }
+      }
+    });
+    const cnpjExist=new Set(), nomeExist=new Set();
+    (STORE.empresas||[]).forEach(e=>{
+      const d=_empImportDigits(e.cnpj); if(d.length===14)cnpjExist.add(d);
+      const n1=normCli(e.cliente||''); if(n1)nomeExist.add(n1);
+      const n2=normCli(e.razaoSocial||''); if(n2)nomeExist.add(n2);
+    });
+    const novas=[], duplicadas=[], invalidas=[];
+    rows.forEach((row,idx)=>{
+      const rec={};
+      Object.keys(row).forEach(h=>{ const campo=headerMap[h]; if(campo)rec[campo]=String(row[h]==null?'':row[h]).trim(); });
+      if(!rec.cliente){ invalidas.push({linha:idx+2,motivo:'sem Nome/Cliente'}); return; }
+      const cnpjD=_empImportDigits(rec.cnpj);
+      const alvo=String(rec.target||'').toUpperCase();
+      rec.target=(alvo.indexOf('TARGET')>=0&&alvo.indexOf('NÃO')<0&&alvo.indexOf('NAO')<0)?'TARGET':'NÃO TARGET';
+      let dup=false, motivo='';
+      if(cnpjD.length===14){
+        if(cnpjExist.has(cnpjD)){ dup=true; motivo='CNPJ já cadastrado'; }
+      } else {
+        const n1=normCli(rec.cliente), n2=normCli(rec.razaoSocial||'');
+        if((n1&&nomeExist.has(n1))||(n2&&nomeExist.has(n2))){ dup=true; motivo='nome já cadastrado (sem CNPJ na planilha p/ conferir com certeza)'; }
+      }
+      if(dup){ duplicadas.push({rec:rec,motivo:motivo}); return; }
+      if(cnpjD.length===14)cnpjExist.add(cnpjD);
+      const n1b=normCli(rec.cliente); if(n1b)nomeExist.add(n1b);
+      novas.push(rec);
+    });
+    _empImportCandidatos=novas;
+    let h='';
+    h+='<div style="font-size:12px;color:#3A2A2E;margin-bottom:8px"><b>'+rows.length+'</b> linha(s) lida(s) — <b style="color:#2E7D5B">'+novas.length+' nova(s)</b> para importar, <b style="color:#C9822B">'+duplicadas.length+' já cadastrada(s)</b> (ignoradas), '+invalidas.length+' inválida(s).</div>';
+    if(duplicadas.length){
+      h+='<details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:12px;color:#C9822B;font-weight:700">⚠ Já cadastradas — ignoradas ('+duplicadas.length+')</summary><div style="font-size:11.5px;color:#8A7A78;padding:6px 0 0 12px">'
+        +duplicadas.map(d=>esc(d.rec.cliente)+' <span style="color:#B7A6A4">— '+esc(d.motivo)+'</span>').join('<br>')+'</div></details>';
+    }
+    if(invalidas.length){
+      h+='<details style="margin-bottom:8px"><summary style="cursor:pointer;font-size:12px;color:#B23A48;font-weight:700">✕ Inválidas ('+invalidas.length+')</summary><div style="font-size:11.5px;color:#8A7A78;padding:6px 0 0 12px">'
+        +invalidas.map(d=>'linha '+d.linha+' — '+esc(d.motivo)).join('<br>')+'</div></details>';
+    }
+    if(novas.length){
+      h+='<details open style="margin-bottom:10px"><summary style="cursor:pointer;font-size:12px;color:#2E7D5B;font-weight:700">✓ Novas — serão importadas ('+novas.length+')</summary><div style="font-size:11.5px;color:#8A7A78;padding:6px 0 0 12px">'
+        +novas.map(r=>esc(r.cliente)+(r.cnpj?' <span style="color:#B7A6A4">— '+esc(r.cnpj)+'</span>':'')).join('<br>')+'</div></details>';
+      h+='<button type="button" onclick="elevaiEmpImportConfirm()" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:9px 18px;font-weight:600;cursor:pointer;font-size:12.5px">Confirmar importação de '+novas.length+' empresa(s)</button>';
+    } else {
+      h+='<span style="font-size:12px;color:#8A7A78">Nada novo para importar.</span>';
+    }
+    if(prevEl)prevEl.innerHTML=h;
+    if(statusEl)statusEl.textContent='';
+  }catch(e){
+    if(statusEl)statusEl.textContent='Falha ao ler a planilha: '+e.message;
+  }
+}
+window.elevaiEmpImportPick=elevaiEmpImportPick;
+async function elevaiEmpImportConfirm(){
+  const novas=_empImportCandidatos; if(!novas||!novas.length)return;
+  const statusEl=q('emp-import-status'), prevEl=q('emp-import-preview');
+  let ok=0, falhas=[];
+  for(let i=0;i<novas.length;i++){
+    if(statusEl)statusEl.textContent='Importando '+(i+1)+'/'+novas.length+' — '+novas[i].cliente+'...';
+    try{
+      const r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(novas[i])});
+      const j=await r.json().catch(()=>({}));
+      if(r.ok&&j.ok){ ok++; ensureItemInStore('empresas', j.item); }
+      else falhas.push(novas[i].cliente+' ('+(j.error||('HTTP '+r.status))+')');
+    }catch(e){ falhas.push(novas[i].cliente+' (falha de rede: '+e.message+')'); }
+  }
+  _empImportCandidatos=null;
+  await reloadData();
+  try{ fillEmpresaDatalist(); renderEmpRecentes(); }catch(e){}
+  const resumo=ok+' empresa(s) importada(s).'+(falhas.length?' '+falhas.length+' falharam: '+falhas.join('; '):'');
+  if(statusEl)statusEl.textContent=resumo;
+  if(prevEl)prevEl.innerHTML='';
+  const fEl=q('emp-import-file'); if(fEl)fEl.value='';
+  toast(resumo);
+}
+window.elevaiEmpImportConfirm=elevaiEmpImportConfirm;
 /* Carrega uma empresa existente de volta no formulario para edicao (reaproveita o mesmo form/POST,
    que ja roteia pra atualizacao quando o payload traz __id — ver crud.js doUpdate). */
 function editEmpresa(id){
@@ -3415,6 +3550,28 @@ function render(){
         <div class="row r3"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>`:''}</div>
       </div>`;
   };
+  /* 22/09/2026 -- Leo: coluna Reativacao passa para o lado esquerdo, antes de LEAD (era a
+     ultima coluna renderizada, depois de SIDE_COLS). Mesmo bloco de antes, so movido pra cima
+     do COLS.forEach -- usa _cardHtml/tasks ja definidos acima, sem mudanca de logica. */
+  let totalInativas=0;
+  if(showInativas){
+    const inativasItems=(STORE.leads||[]).filter(l=>{
+      try{ return inRange(l)&&passDims(l,true)&&l.inativo==='SIM'; }catch(e){ return l.inativo==='SIM'; }
+    }).map(_mapLead);
+    /* essas nunca passaram pelo crmRender()->tasks={} original (só LEADS entra lá), então sem isso
+       _nextTask()/contagem de tarefas do card ficariam sempre vazias pras inativadas */
+    inativasItems.forEach(l=>{ if(l.tarefasJson&&!(l.id in tasks)){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
+    totalInativas=inativasItems.length;
+    const sum=inativasItems.reduce((a,l)=>a+(l.valor||0),0);
+    const isCollR=collapsedCols.has('__reativacao');
+    const sortedInativas=_sortItems(inativasItems,'__reativacao');
+    h+=`<div class="col reativacao${isCollR?' collapsed':''}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="dropInativar(event,this)">
+      <h2><span class="col-name">🗄 REATIVAÇÃO</span><span>${inativasItems.length}</span><button type="button" class="col-toggle" title="${isCollR?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'__reativacao')">${isCollR?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml('__reativacao')}</div><div class="drop">`;
+    if(!inativasItems.length){ h+='<div class="meta" style="padding:10px;text-align:center">Nenhuma inativada no período selecionado.</div>'; }
+    sortedInativas.forEach(l=>{ h+=_cardHtml(l); });
+    h+='</div></div>';
+  }
+
   COLS.forEach(([name,cls])=>{
     const items=_sortItems(data.filter(l=>l.status===name),name);
     const sum=items.reduce((a,l)=>a+(l.valor||0),0);
@@ -3446,24 +3603,6 @@ function render(){
      Arrastar PRA DENTRO (dropInativar) inativa e congela o status de origem, igual ao botão do
      drawer. "Respeitar os filtros sempre precisa prevalecer" (Léo) — por isso lê STORE.leads com
      os MESMOS inRange()/passDims() do compute() global, não a base toda sem filtro. */
-  let totalInativas=0;
-  if(showInativas){
-    const inativasItems=(STORE.leads||[]).filter(l=>{
-      try{ return inRange(l)&&passDims(l,true)&&l.inativo==='SIM'; }catch(e){ return l.inativo==='SIM'; }
-    }).map(_mapLead);
-    /* essas nunca passaram pelo crmRender()->tasks={} original (só LEADS entra lá), então sem isso
-       _nextTask()/contagem de tarefas do card ficariam sempre vazias pras inativadas */
-    inativasItems.forEach(l=>{ if(l.tarefasJson&&!(l.id in tasks)){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
-    totalInativas=inativasItems.length;
-    const sum=inativasItems.reduce((a,l)=>a+(l.valor||0),0);
-    const isCollR=collapsedCols.has('__reativacao');
-    const sortedInativas=_sortItems(inativasItems,'__reativacao');
-    h+=`<div class="col reativacao${isCollR?' collapsed':''}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="dropInativar(event,this)">
-      <h2><span class="col-name">🗄 REATIVAÇÃO</span><span>${inativasItems.length}</span><button type="button" class="col-toggle" title="${isCollR?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'__reativacao')">${isCollR?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml('__reativacao')}</div><div class="drop">`;
-    if(!inativasItems.length){ h+='<div class="meta" style="padding:10px;text-align:center">Nenhuma inativada no período selecionado.</div>'; }
-    sortedInativas.forEach(l=>{ h+=_cardHtml(l); });
-    h+='</div></div>';
-  }
   try{
     var iBtn=el('crm-inativas-btn'); if(iBtn){ iBtn.textContent='🗄 Reativação'+(totalInativas?' ('+totalInativas+')':''); iBtn.classList.toggle('on',showInativas); }
     if(brd)brd.classList.toggle('has-reativacao',showInativas);
