@@ -1207,7 +1207,19 @@ function weeksInMonth(y,m){
 function periodoRange(){
   if(F.preset==='custom') return {de:q('mm-de').value||'2024-01-01', ate:q('mm-ate').value||'2026-12-31'};
   if(F.preset==='90'){const r=new Date();const d0=new Date(r);d0.setDate(d0.getDate()-90);return {de:d0.toISOString().slice(0,10),ate:r.toISOString().slice(0,10)};}
-  if(F.preset==='all') return {de:'2024-01-01',ate:'2026-12-31'};
+  /* 22/09/2026 -- Leo: filtro 'Todo o periodo'/'Historico' nao estava trazendo tudo --
+     achado o motivo: aqui devolvia um intervalo FIXO (2024-01-01..2026-12-31) em vez de
+     'sem limite'. Isso batia em 2 lugares: 1) registro com dt fora dessa janela (ex.: dado
+     historico anterior a 2024, ou algo lancado com data futura em 2027) ficava de fora; 2)
+     pior -- inRange() (~linha 1304) trata dt VAZIO como 'fora do filtro' QUANDO F.de/F.ate
+     estao setados (`if(!d) return false`), entao registro sem data de entrada tambem sumia
+     do Kanban/Painel/Tarefas com 'Todo o periodo' ligado, que e o oposto do esperado. Fix:
+     devolver de/ate VAZIOS pra 'all' -- inRange() ja trata (!F.de&&!F.ate) como 'sem filtro,
+     passa tudo' (era exatamente o padrao usado pelo preset 'custom' quando os campos estao
+     vazios). O Painel (renderActive(), linha ~1370) ja tinha fallback pro range 2024-2026
+     só pra desenhar o eixo do grafico (`F.de||'2024-01-01'`) -- fica intacto, so a FILTRAGEM
+     de dados que deixa de excluir coisa por engano. */
+  if(F.preset==='all') return {de:'',ate:''};
   const y=+F.ano||new Date().getFullYear();
   if(!F.mes) return {de:y+'-01-01',ate:y+'-12-31'};
   const mNum=+F.mes;
