@@ -25,6 +25,16 @@ const LISTS = {
       { name: 'dias', type: 'number' },       // int | null
       { name: 'tc', type: 'text' },
       { name: 'status', type: 'text' },
+      // 24/09/2026 -- Léo: reestruturação Reativar/Pausada -- Pausada vira a coluna "dormindo" e
+      // Reativar vira uma coluna mestre ativa (status real, ao lado de LEAD), formando dois funis
+      // paralelos (lead novo x lead reativado). origemFunil marca a ORIGEM do lead pra sempre
+      // ('NOVO' na criação, 'REATIVADO' na 1a vez que sai de PAUSADA/PERDIDA -- ver _efeitosStatus
+      // no frontend), diferente de `status` (que muda a cada etapa do funil) -- alimenta a quebra
+      // "veio de lead novo x reativação" no Painel na hora da venda. Nome sem dígito no final de
+      // propósito (ver aviso em observacoesLead/obs3 acima: SharePoint mutila StaticName de nomes
+      // terminados em dígito, gerando coluna fantasma a cada request) -- conferir via /api/diag
+      // depois de publicar que foi criada exatamente com este nome, sem mutilação.
+      { name: 'origemFunil', type: 'text' },
       { name: 'telefone', type: 'text' },      // contato (LP/eventos)
       { name: 'email', type: 'text' },         // contato (LP/eventos)
       { name: 'obs', type: 'text' },           // observações livres -- LEGADO, ver obs2 abaixo: continua

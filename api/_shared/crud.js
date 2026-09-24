@@ -56,6 +56,13 @@ function makeHandler(kind) {
         const rec = req.body || {};
         // POST com __id/id = atualização (mesmo efeito do PATCH), senão cria
         if (rec.__id || rec.id) { return await doUpdate(context, req, kind, listId, rec.__id || rec.id, rec.fields || rec); }
+        // 24/09/2026 -- Léo: reestruturação Reativar/Pausada -- todo lead novo nasce com
+        // origemFunil='NOVO' por padrão (frontend nunca manda esse campo na criação); vira
+        // 'REATIVADO' depois, só quando sai de PAUSADA/PERDIDA pela 1a vez (ver _efeitosStatus
+        // no frontend, que grava por PATCH). Default aqui em vez de nos 3 pontos que criam lead
+        // no frontend (elevaiCad/_criarOportunidadeDeEmpresa/opSalvar) -- um lugar só, sem risco
+        // de esquecer algum.
+        if (kind === 'leads' && !rec.origemFunil) rec.origemFunil = 'NOVO';
         const created = await g.addItem(listId, toFields(kind, rec));
         context.res = json(201, { ok: true, kind, id: created.id, item: Object.assign({ __id: created.id }, fromFields(kind, created.fields || {})) });
         return;
