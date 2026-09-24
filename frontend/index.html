@@ -222,11 +222,11 @@ td .up{color:var(--ok);font-weight:700}
 #view-crm .card.inativo{opacity:.6;background:#FAF6F3}
 #view-crm .card .emp .ina{font-size:10.5px;margin-left:3px}
 #view-crm #crm-compact-btn.on,#view-crm #crm-inativas-btn.on{background:var(--wine);color:#fff}
-/* 25/08/2026 — coluna 🗄 REATIVAÇÃO (Léo: "inativo virar uma coluna, com transparência"), opt-in
-   via botão. Translúcida/tracejada de propósito — sinaliza visualmente que não é uma etapa real do
-   funil, é só um estacionamento de backlog ao lado das 5 colunas de status. */
-#view-crm .board .col.reativacao{opacity:.7;background:repeating-linear-gradient(135deg,#FBF3F1,#FBF3F1 10px,#F5E9E7 10px,#F5E9E7 20px);border:1px dashed #C9A8A5}
-#view-crm .board .col.reativacao h2{color:#8A7A78}
+/* 24/09/2026 — Léo (reunião c/ Rafael): coluna deixa de ser "translúcida/tracejada" -- visão
+   igual às demais colunas do Kanban, sem transparência, sem tracejado. Renomeada pra
+   "🗄 REATIVAR (LEAD)" (ver h2 em render(), mais abaixo). Continua sendo um estacionamento de
+   backlog fora das 5 colunas de status de verdade (não é um `st-*`), só que agora sem sinalização
+   visual diferenciada -- antes: opacity:.7 + fundo listrado + borda tracejada (removido). */
 /* 09/09/2026 — .board virou flex (era grid) pra permitir colunas minimizadas (ver .col.collapsed
    mais acima) — com flex, a 6ª coluna (Reativação) some/aparece sozinha, sem precisar de uma
    regra .has-reativacao à parte pra redefinir o número de colunas do grid. */
@@ -3036,6 +3036,12 @@ window.PAINEL={render:paRender};
 <script>
 (function(){
 const COLS=[["LEAD","st-n"],["OPORTUNIDADE","st-op"],["EM NEGOCIAÇÃO","st-m"],["PAUSADA","st-pause"]];
+/* 24/09/2026 -- Léo (reuniao c/ Rafael): rotulo exibido no CABECALHO do Kanban pra "LEAD" vira
+   "LEAD NOVO" -- so o texto mostrado; qualquer comparacao com status ('LEAD', filtros, score,
+   dropdown de edicao de status no drawer, _kindLabel etc.) continua usando a string real "LEAD",
+   sem migrar dado nenhum. Se Léo quiser esse rotulo tambem no dropdown/outras telas, e so estender
+   o uso de COL_LABELS ali. */
+const COL_LABELS={'LEAD':'LEAD NOVO'};
 /* 09/09/2026 — Léo (reunião c/ Rafael): "a ordem agora é lead, oportunidade, em negociação,
    pausada, e aí os botões vendida, perdida e reativação" -- VENDIDA/PERDIDA saem de COLS e viram
    SIDE_COLS (colunas recuadas/minimizadas por padrão, ver collapsedCols default mais abaixo),
@@ -3578,7 +3584,7 @@ function render(){
     const isCollR=collapsedCols.has('__reativacao');
     const sortedInativas=_sortItems(inativasItems,'__reativacao');
     h+=`<div class="col reativacao${isCollR?' collapsed':''}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="dropInativar(event,this)">
-      <h2><span class="col-name">🗄 REATIVAÇÃO</span><span>${inativasItems.length}</span><button type="button" class="col-toggle" title="${isCollR?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'__reativacao')">${isCollR?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml('__reativacao')}</div><div class="drop">`;
+      <h2><span class="col-name">🗄 REATIVAR (LEAD)</span><span>${inativasItems.length}</span><button type="button" class="col-toggle" title="${isCollR?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'__reativacao')">${isCollR?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml('__reativacao')}</div><div class="drop">`;
     if(!inativasItems.length){ h+='<div class="meta" style="padding:10px;text-align:center">Nenhuma inativada no período selecionado.</div>'; }
     sortedInativas.forEach(l=>{ h+=_cardHtml(l); });
     h+='</div></div>';
@@ -3588,8 +3594,11 @@ function render(){
     const items=_sortItems(data.filter(l=>l.status===name),name);
     const sum=items.reduce((a,l)=>a+(l.valor||0),0);
     const isColl=collapsedCols.has(name);
+    /* 24/09/2026 -- Léo (reuniao c/ Rafael): cabecalho da coluna LEAD passa a mostrar "LEAD NOVO"
+       -- so o ROTULO visual (COL_LABELS), o valor gravado (`name`, usado no filtro/drop/toggle/
+       dropdown de status) continua "LEAD" de verdade, sem mudar nada no dado/SharePoint. */
     h+=`<div class="col ${cls}${isColl?' collapsed':''}" ondragover="dover(event,this)" ondragleave="this.classList.remove('over')" ondrop="drop(event,'${name}',this)">
-      <h2><span class="col-name">${name}</span><span>${items.length}</span><button type="button" class="col-toggle" title="${isColl?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'${name}')">${isColl?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml(name)}</div><div class="drop">`;
+      <h2><span class="col-name">${COL_LABELS[name]||name}</span><span>${items.length}</span><button type="button" class="col-toggle" title="${isColl?'Ver detalhes':'Minimizar'}" onclick="toggleColCollapse(event,'${name}')">${isColl?'+':'−'}</button></h2><div class="sum">${brl(sum)}${_sortSelectHtml(name)}</div><div class="drop">`;
     items.forEach(l=>{ h+=_cardHtml(l); });
     h+='</div></div>';
   });
@@ -3616,7 +3625,7 @@ function render(){
      drawer. "Respeitar os filtros sempre precisa prevalecer" (Léo) — por isso lê STORE.leads com
      os MESMOS inRange()/passDims() do compute() global, não a base toda sem filtro. */
   try{
-    var iBtn=el('crm-inativas-btn'); if(iBtn){ iBtn.textContent='🗄 Reativação'+(totalInativas?' ('+totalInativas+')':''); iBtn.classList.toggle('on',showInativas); }
+    var iBtn=el('crm-inativas-btn'); if(iBtn){ iBtn.textContent='🗄 Reativar (Lead)'+(totalInativas?' ('+totalInativas+')':''); iBtn.classList.toggle('on',showInativas); }
     if(brd)brd.classList.toggle('has-reativacao',showInativas);
   }catch(e){}
   el('board').innerHTML=h;
