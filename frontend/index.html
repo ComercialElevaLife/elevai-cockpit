@@ -406,6 +406,7 @@ td .up{color:var(--ok);font-weight:700}
             <button class="subitem" data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
             <button class="subitem" data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
             <button class="subitem" data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
+            <button class="subitem" data-v="propostas"><span class="ic">📄</span><span class="lbl">Propostas</span></button>
             <div class="navgroup" id="navgroup-cadastro">
               <button class="subitem" data-v="cadastro"><span class="ic">➕</span><span class="lbl">Cadastro</span><span class="caret">▸</span></button>
               <div class="subnav" id="subnav-cadastro">
@@ -927,6 +928,20 @@ td .up{color:var(--ok);font-weight:700}
     </div>
     </div>
   </div>
+  </section>
+
+  <section class="view" id="view-propostas" hidden>
+    <!-- 05/10/2026 -- Léo: tela de Propostas (calculadoras de precificação -> proposta editável em PDF).
+         Página própria (propostas.html) embutida por iframe da mesma origem, para não mexer no resto do Cockpit. -->
+    <div class="wrap" style="max-width:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+        <h2 style="margin:0;font-size:16px">📄 Propostas</h2>
+        <a href="propostas.html" target="_blank" rel="noopener" class="clr" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Abrir em nova aba</a>
+      </div>
+      <div style="position:relative;width:100%;height:82vh;min-height:560px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff">
+        <iframe src="propostas.html" title="Propostas" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
+      </div>
+    </div>
   </section>
 
   <section class="view" id="view-op-implant" hidden>
@@ -2442,8 +2457,8 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 /* ---- navegacao + binds ---- */
 /* 08/09/2026 — Marketing e o resto de Operações saíram do Cockpit (fora do escopo de Novas
    Receitas — ver motor-novas-receitas.md). Só Implantação de Serviços ficou, como acesso rápido. */
-const NOVAS_VIEWS=['op-implant'];
-const NOVOS_TITULOS={'op-implant':'Implantação de Serviços'};
+const NOVAS_VIEWS=['op-implant','propostas'];
+const NOVOS_TITULOS={'op-implant':'Implantação de Serviços','propostas':'Propostas'};
 function toggleTopGroup(id){
   ['receitas','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
