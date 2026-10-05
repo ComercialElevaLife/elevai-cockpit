@@ -931,16 +931,11 @@ td .up{color:var(--ok);font-weight:700}
   </section>
 
   <section class="view" id="view-propostas" hidden>
-    <!-- 05/10/2026 -- Léo: tela de Propostas (calculadoras de precificação -> proposta editável em PDF).
-         Página própria (propostas.html) embutida por iframe da mesma origem, para não mexer no resto do Cockpit. -->
+    <!-- 05/10/2026 -- Léo: módulo Propostas (calculadoras -> proposta editável -> SharePoint).
+         Nativo: propostas-module.js monta a tela em Shadow DOM (CSS isolado do resto do Cockpit),
+         carregado sob demanda na 1a abertura. propostas.html segue existindo como página avulsa. -->
     <div class="wrap" style="max-width:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap">
-        <h2 style="margin:0;font-size:16px">📄 Propostas</h2>
-        <a href="propostas.html" target="_blank" rel="noopener" class="clr" style="text-decoration:none;display:inline-flex;align-items:center;gap:6px">↗ Abrir em nova aba</a>
-      </div>
-      <div style="position:relative;width:100%;height:82vh;min-height:560px;border:1px solid var(--ln);border-radius:14px;overflow:hidden;background:#fff">
-        <iframe src="propostas.html" title="Propostas" style="width:100%;height:100%;border:0" loading="lazy"></iframe>
-      </div>
+      <div id="prop-host"></div>
     </div>
   </section>
 
@@ -2471,11 +2466,20 @@ function toggleSubGroup(id){
   const el=q('navgroup-'+id); if(el) el.classList.toggle('open');
 }
 window.toggleSubGroup=toggleSubGroup;
+function mountPropostas(){
+  var h=q('prop-host'); if(!h||h.dataset.m) return; h.dataset.m='1';
+  function go(){ window.PropostasModule.mount(h); }
+  if(window.PropostasModule) return go();
+  var sc=document.createElement('script'); sc.src='propostas-module.js'; sc.onload=go;
+  sc.onerror=function(){ h.dataset.m=''; h.textContent='Não foi possível carregar o módulo Propostas.'; };
+  document.head.appendChild(sc);
+}
 function bindNav(){
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.nav button[data-v]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     const v=b.dataset.v; ACTIVE=v;
     ['painel','crm','renov','qual','tarefas','cadastro',...NOVAS_VIEWS].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
+    if(v==='propostas'){ mountPropostas(); setTimeout(function(){ if(window.PropostasModule) window.PropostasModule.refit(); },60); }
     q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro',...NOVOS_TITULOS}[v];
     q('fltbar').hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
     var filtrosGrp=q('navgroup-filtros');

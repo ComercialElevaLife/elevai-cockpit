@@ -143,7 +143,7 @@ var DAYS={1:[2],2:[1,3],3:[0,2,4],4:[0,1,3,4],5:[0,1,2,3,4]};
 var DN=['Seg','Ter','Qua','Qui','Sex'];
 
 /* ===== opções ===== */
-var ergoOpts=[{ch:16,sen:'PL',regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1},{ch:24,sen:'PL',regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}];
+var ergoOpts=[{ch:16,sen:'PL',regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Difícil acesso',qtd:1},{ch:24,sen:'PL',regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Difícil acesso',qtd:1}];
 var glOpts=[{hdia:2,freq:2,regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1},{hdia:2,freq:3,regime:'CLT',loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}];
 
 function sel(id,opts,val,extra){return '<select data-k="'+id+'" '+(extra||'')+'>'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'"'+(String(v)===String(val)?' selected':'')+'>'+l+'</option>';}).join('')+'</select>';}
