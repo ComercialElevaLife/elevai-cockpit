@@ -236,7 +236,7 @@ function conditions(ctx){
   var cards=[];
   var base=function(extra){return [['Pagamento',ctx.pag+' dias'],['Implantação','Até '+ctx.imp+' dias após o aceite formal'],['Impostos','Inclusos, com nota fiscal']].concat(extra||[]);};
   if(ctx.ergo) cards.push(['Gestão de Ergonomia',base((ctx.ref?[['Refeição','Por conta da contratante, nos casos aplicáveis (jornada acima de 6 h)']]:[]).concat(ctx.codErgo?[['Código do serviço',ctx.codErgo]]:[]))]);
-  if(ctx.nr1on) cards.push(['Diagnóstico NR-1',base([['Valor','Único, por projeto']])]);
+  if(ctx.nr1on) cards.push(['Diagnóstico NR-1',base([['Valor','Único, por projeto']].concat(ctx.codErgo?[['Código do serviço',ctx.codErgo]]:[]))]);
   if(ctx.gl) cards.push(['Programa de Ginástica Laboral',base(ctx.codGL?[['Código do serviço',ctx.codGL]]:[])]);
   var cs=cards.map(function(c){return '<div class="opt"><div class="h"><div class="o">CONDIÇÕES</div><div class="t">'+c[0]+'</div></div><div class="b">'+c[1].map(function(r){return '<div class="row"><span>'+r[0]+'</span><b style="max-width:62%;text-align:right">'+r[1]+'</b></div>';}).join('')+'</div></div>';}).join('');
   var n=cards.length;
