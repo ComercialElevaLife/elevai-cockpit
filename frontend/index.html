@@ -1,6 +1,6 @@
 <!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>ElevAI — Cockpit Comercial</title>
+<title>S.I.G.E. — Novas Receitas</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#7A2F42">
 <link rel="icon" href="/icons/favicon-32.png" sizes="32x32" type="image/png">
@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="ElevAI Cockpit">
+<meta name="apple-mobile-web-app-title" content="S.I.G.E. Novas Receitas">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&family=Montserrat+Alternates:wght@600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1"></script>
@@ -25,6 +25,14 @@ body{margin:0;font-family:Montserrat,system-ui,sans-serif;color:var(--ink);backg
 /* sidebar */
 .side{width:236px;flex:0 0 236px;background:linear-gradient(180deg,var(--wd),var(--w));color:#fff;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
 .brand{padding:22px 20px 14px}
+.modsw{display:flex;flex-direction:column;gap:4px;padding:0 12px 10px}
+.modsw a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;opacity:.75;border:1px solid rgba(255,255,255,.18)}
+.modsw a:hover{opacity:1;background:rgba(255,255,255,.1)}
+.modsw a.on{opacity:1;background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.4)}
+.modsw .ab{display:none;font-size:10px;font-weight:800;letter-spacing:.5px}
+.side.mini .modsw{padding:0 6px 10px}.side.mini .modsw .tx{display:none}.side.mini .modsw .ab{display:inline;margin:0 auto}
+@media(max-width:768px){.modsw{flex-direction:row;padding:0 6px}.modsw a{white-space:nowrap;padding:6px 8px}.side.mini .modsw .tx{display:inline}.side.mini .modsw .ab{display:none}}
+
 .brand h1{font-family:'Montserrat Alternates';font-size:26px;margin:0;letter-spacing:.5px}
 .brand small{opacity:.85;font-size:11px;letter-spacing:2px;text-transform:uppercase}
 .nav{padding:10px 12px;display:flex;flex-direction:column;gap:4px}
@@ -361,14 +369,20 @@ td .up{color:var(--ok);font-weight:700}
     var DOM='@elevalife.com.br';
     if(email.length>DOM.length && email.slice(-DOM.length)===DOM){ gate.classList.add('ok'); return; }
     document.getElementById('ag-ttl').textContent='Acesso restrito';
-    document.getElementById('ag-msg').textContent='O Cockpit ElevaLife é restrito a contas @elevalife.com.br. Você entrou como '+(cp.userDetails||'uma conta não autorizada')+'.';
+    document.getElementById('ag-msg').textContent='O S.I.G.E. · Novas Receitas (ElevaLife) é restrito a contas @elevalife.com.br. Você entrou como '+(cp.userDetails||'uma conta não autorizada')+'.';
     document.getElementById('ag-out').hidden=false;
   }).catch(function(){ document.getElementById('access-gate').classList.add('ok'); });
 })();
 </script>
 <div class="app">
 <aside class="side mini">
-  <div class="brand"><div class="brandtxt"><h1>ElevAI</h1><small>Cockpit ElevaLife</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <div class="brand"><div class="brandtxt"><h1>S.I.G.E.</h1><small>Novas Receitas</small></div><button class="side-toggle" id="side-toggle" title="Recolher/expandir menu" onclick="toggleSide()">☰</button></div>
+  <!-- 05/10/2026 — S.I.G.E. (Sistema Integrado Gestão ElevaLife): um sistema, dois módulos. Seletor de módulo
+       Novas Receitas (este) | Ergonomia (sige-ergo). Fase 3 (login unificado) vai esconder Novas Receitas de quem não é Administrador. -->
+  <div class="modsw" role="navigation" aria-label="Módulos do S.I.G.E.">
+    <a class="on" href="https://sige-novasreceitas.elevalife.com.br/" title="Novas Receitas"><span class="ab">NR</span><span class="tx">Novas Receitas</span></a>
+    <a href="https://sige-ergo.elevalife.com.br/" title="Ergonomia"><span class="ab">ER</span><span class="tx">Ergonomia</span></a>
+  </div>
   <!-- 20/08/2026 — ElevAI deixa de ser só o comercial: novo nível de menu acima (Novas Receitas /
        Operações). Dentro de Novas Receitas ficam dois sub-grupos: Comercial (tudo que já existia) e
        Marketing (novo). Operações também é novo. Marketing e Operações entram por enquanto como
@@ -2422,7 +2436,7 @@ async function reloadData(){
 /* ---- automacao (Teams webhook) ---- */
 function saveWh(){setTeamsWebhook(q('cfg-url').value.trim());setFlowCfg(q('cfg-flow').value.trim(),q('cfg-cal').value.trim(),q('cfg-trig-venda').checked);setNutCfg(q('cfg-nut-on').checked,q('cfg-nut-to').value.trim());setModoTeste(q('cfg-modo-teste').checked);q('ov3').classList.remove('on');alert('Automação salva.'+(q('cfg-modo-teste').checked?' (Modo teste LIGADO — avisos reais silenciados.)':''));}
 async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.getTeamsWebhook()){alert('Cole a URL primeiro.');return;}
-  const ok=await postCard('\U0001f514 Teste ElevAI',[{title:'Origem',value:'Cockpit Comercial'},{title:'Status',value:'conexão ativa'}],'Se este cartão apareceu no canal COMERCIAL/VENDAS, a automação está conectada.');
+  const ok=await postCard('\U0001f514 Teste ElevAI',[{title:'Origem',value:'S.I.G.E. · Novas Receitas'},{title:'Status',value:'conexão ativa'}],'Se este cartão apareceu no canal COMERCIAL/VENDAS, a automação está conectada.');
   alert(ok?'Enviado. Confira o canal no Teams.':'Não foi possível enviar (verifique a URL).');}
 
 /* ---- navegacao + binds ---- */
