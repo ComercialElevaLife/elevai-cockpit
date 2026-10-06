@@ -435,7 +435,7 @@ var leadsCache=null, leadsBusy=false;
 function eMsg(t,err){var m=$('e-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function juntaE(a){return a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:(a[0]||'');}
 function servTexto(){var s=[];if($('s-ergo').checked)s.push('Gestão de Ergonomia');if($('s-nr1').checked)s.push('Diagnóstico NR-1');if($('s-gl').checked)s.push('Ginástica Laboral');svcNomes().forEach(function(n){s.push(n);});return juntaE(s)||'serviços';}
-function servKanban(){var s=[];if($('s-ergo').checked)s.push('ERGO');if($('s-nr1').checked)s.push('NR-1');if($('s-gl').checked)s.push('GL');svcKan().forEach(function(n){s.push(n);});return s.join('; ');}
+function servKanban(){var s=[];if($('s-ergo').checked||$('s-nr1').checked)s.push('ERGO');if($('s-gl').checked)s.push('GL');svcKan().forEach(function(n){s.push(n);});return s.join('; ');}
 function preencherTpl(t){
   return t.replace(/\{\{EMPRESA\}\}/g,$('f-cliente').value||'sua empresa').replace(/\{\{SERVICO\}\}/g,servTexto())
     .replace(/\{\{CONTATO\}\}/g,($('e-contato').value||'').split(' ')[0]||'tudo bem').replace(/\{\{VALIDADE\}\}/g,$('c-val').value||'30').replace(/\{\{RESUMO\}\}/g,resumoTexto());
