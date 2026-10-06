@@ -109,12 +109,20 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
   <div class="ui-sec"><h3>Prazos e condições</h3>
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
-    <div class="ui-row"><div><label>Código · Ergonomia/NR-1</label><input id="c-cod-ergo" value="08.02.01"></div><div><label>Código · GL</label><input id="c-cod-gl" value="04.08.02"></div></div>
-    <label>Descrição do código · Ergonomia/NR-1</label><input id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza">
-    <label>Descrição do código · GL</label><input id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia">
-    <div class="ui-row"><div><label>Código · Fisioterapia</label><input id="c-cod-fisio" value="04.08.02"></div><div><label>Código · Massoterapia</label><input id="c-cod-masso" value="04.09"></div></div>
-    <div class="ui-row"><div><label>Código · Enfermagem</label><input id="c-cod-enf" value="04.06"></div><div><label>Código · Medicina</label><input id="c-cod-med" value="04.01"></div></div>
-    <div class="ui-hint">Códigos dos serviços de saúde (LC 116): confirmar com o fiscal antes de enviar.</div>
+    <div class="ui-hint" style="margin-top:6px"><b>Código do serviço (LC 116)</b> — digite o serviço (ex.: fisioterapia) ou o código e escolha na lista; o código e a descrição são preenchidos. Confirme com o fiscal antes de enviar.</div>
+    <label>Código · Ergonomia / NR-1</label><input id="c-cod-ergo" list="dl-cod" autocomplete="off" value="08.02.01" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-ergo"></div>
+    <input id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza" aria-label="Descrição do código · Ergonomia / NR-1" style="margin-top:4px">
+    <label>Código · Ginástica Laboral</label><input id="c-cod-gl" list="dl-cod" autocomplete="off" value="04.08.02" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-gl"></div>
+    <input id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia" aria-label="Descrição do código · Ginástica Laboral" style="margin-top:4px">
+    <label>Código · Fisioterapia</label><input id="c-cod-fisio" list="dl-cod" autocomplete="off" value="04.08.02" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-fisio"></div>
+    <input id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia" aria-label="Descrição do código · Fisioterapia" style="margin-top:4px">
+    <label>Código · Massoterapia</label><input id="c-cod-masso" list="dl-cod" autocomplete="off" value="04.09" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-masso"></div>
+    <input id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental" aria-label="Descrição do código · Massoterapia" style="margin-top:4px">
+    <label>Código · Enfermagem do Trabalho</label><input id="c-cod-enf" list="dl-cod" autocomplete="off" value="04.06" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-enf"></div>
+    <input id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares" aria-label="Descrição do código · Enfermagem do Trabalho" style="margin-top:4px">
+    <label>Código · Medicina do Trabalho</label><input id="c-cod-med" list="dl-cod" autocomplete="off" value="04.01" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-med"></div>
+    <input id="c-obs-med" value="Medicina e biomedicina" aria-label="Descrição do código · Medicina do Trabalho" style="margin-top:4px">
+    <datalist id="dl-cod"></datalist>
     <label>CNPJ e razão social (GL)</label><input id="c-cnpj-gl" value="15.447.255/0001-74 · ELEVALIFE SAÚDE E EDUCAÇÃO LTDA">
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
@@ -339,7 +347,7 @@ function condSaude(ctx){
   var ks=SVC_KEYS.filter(svcOn);if(!ks.length)return null;
   var cn=(ctx.cnpjGL||'').split(' · ');
   var rowsB=[['Início dos serviços','Até '+ctx.imp+' dias após a assinatura do contrato e/ou aprovação do pedido','--'],['Condição de pagamento',ctx.pag+' dias','--'],['Paramétrica de reajuste',ctx.reaj,'--'],['Tempo de mobilização',ctx.imp+' dias','--'],['Impostos','Inclusos, com emissão de nota fiscal','--'],['Validade da proposta',ctx.val+' dias corridos','--']];
-  ks.forEach(function(k){rowsB.push(['Código do serviço · '+SVC[k].nome,$(COD_SVC[k]).value,DESC_SVC[k]]);});
+  ks.forEach(function(k){rowsB.push(['Código do serviço · '+SVC[k].nome,$(COD_SVC[k]).value,($('c-obs-'+k).value||DESC_SVC[k])]);});
   if(cn[0])rowsB.push(['CNPJ',cn[0],cn.slice(1).join(' · ')||'--']);
   var tb=condTable(rowsB);if(rowsB.length>9)tb=tb.replace(/padding:17px 16px/g,'padding:'+(rowsB.length>11?6:8)+'px 16px').replace(/font-size:14\.5px/g,'font-size:13.5px').replace(/margin-top:18px/,'margin-top:10px');
   return pageWrap(head('Condições comerciais','Prazos e condições'+((ctx.ergo||ctx.nr1on||ctx.gl)?' · Serviços de saúde':''),'','Condições')+tb+foot(ctx));
@@ -357,6 +365,48 @@ function showNr1(){var c=nr1Calc();$('n-total').textContent='Total '+BRL(c.total
 function svcToggle(){$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
 ['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med'].forEach(function(id){$(id).onchange=svcToggle;});
 SVC_KEYS.forEach(renderSvc);
+
+
+/* ===== Código de serviço (LC 116): lista suspensa digitável com sugestão ===== */
+var COD_SUG=[['08.02.01','Ergonomia / NR-1 · AEP, AET, diagnóstico psicossocial','Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza'],['04.08.02','Ginástica Laboral · Fisioterapia','Terapia ocupacional, fisioterapia e fonoaudiologia'],['04.09','Massoterapia · Quick Massage','Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental'],['04.06','Enfermagem do Trabalho','Enfermagem, inclusive serviços auxiliares'],['04.01','Medicina do Trabalho','Medicina e biomedicina'],['04.16','Psicologia','Psicologia'],['17.09','Perícias, laudos e exames técnicos','Perícias, laudos, exames técnicos e análises técnicas']];
+var COD_ALL=null;
+function pad2(n){n=String(n);return n.length<2?'0'+n:n;}
+function codAll(){
+  if(COD_ALL)return COD_ALL;
+  var a=COD_SUG.map(function(x){return {c:x[0],l:x[1],d:x[2]};});
+  (window.LC116||[]).forEach(function(x){var c=pad2(String(x[0]).split('.')[0])+'.'+String(x[0]).split('.')[1];if(!a.some(function(y){return y.c.indexOf(c)===0&&y.d===x[1];}))a.push({c:c,l:'LC 116 · item '+x[0],d:x[1]});});
+  COD_ALL=a;return a;
+}
+function codNorm(t){return String(t||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9. ]/g,' ').replace(/\s+/g,' ').trim();}
+function codBusca(t){
+  var q=codNorm(t);if(!q)return null;var all=codAll(),i;
+  for(i=0;i<all.length;i++)if(codNorm(all[i].c)===q)return all[i];
+  for(i=0;i<all.length;i++)if(codNorm(all[i].c).indexOf(q)===0)return all[i];
+  var ws=q.split(' ');
+  for(i=0;i<all.length;i++){var h=codNorm(all[i].l+' '+all[i].d+' '+all[i].c);if(ws.every(function(w){return h.indexOf(w)>=0;}))return all[i];}
+  return null;
+}
+function codInit(){
+  var dl=$('dl-cod');if(!dl)return;
+  dl.innerHTML=codAll().map(function(x){return '<option value="'+x.c+' — '+x.d.replace(/"/g,'&quot;')+'" label="'+x.l.replace(/"/g,'&quot;')+'"></option>';}).join('');
+  ['ergo','gl','fisio','masso','enf','med'].forEach(function(k){
+    var inp=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!inp)return;
+    function aplicar(x,v){inp.value=x.c;obs.value=x.d;hint.textContent='✓ '+x.c+' — '+x.d;}
+    inp.addEventListener('input',function(){
+      var v=inp.value;
+      if(v.indexOf(' — ')>0){var c=v.split(' — ')[0].trim(),x=codBusca(c);if(x){aplicar({c:c,d:v.split(' — ').slice(1).join(' — ').trim()});return;}}
+      var m=codBusca(v);hint.textContent=m?'Sugestão: '+m.c+' — '+m.d:(v?'Sem sugestão — o texto digitado será usado como código.':'');
+    });
+    inp.addEventListener('change',function(){
+      var v=inp.value;if(!v)return;
+      if(v.indexOf(' — ')>0)return;
+      var m=v.match(/^\s*(\d{1,2})\.(\d{2})(\.\d+)?\s*$/);
+      if(m){var base=pad2(m[1])+'.'+m[2],x=codBusca(base);inp.value=base+(m[3]||'');if(x&&(!obs.value||m[3]===undefined))obs.value=x.d;hint.textContent=x?'✓ '+inp.value+' — '+x.d:'';return;}
+      var b=codBusca(v);if(b)aplicar(b);
+    });
+  });
+}
+codInit();
 
 /* ===== geração das lâminas ===== */
 var T=window.PROP_TPL;
@@ -468,7 +518,7 @@ $('btn-print').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
-var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
+var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
 function spMsg(t,err){var m=$('sp-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function getState(){
   var campos={};FIELD_IDS.forEach(function(id){var e=$(id);campos[id]=e.type==='checkbox'?e.checked:e.value;});
