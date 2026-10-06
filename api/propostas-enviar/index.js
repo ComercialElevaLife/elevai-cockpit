@@ -47,6 +47,8 @@ function montarHtml(corpo, temAssin) {
 function addr(a){ return { emailAddress: { address: String(a).trim() } }; }
 function lista(v){ return String(Array.isArray(v) ? v.join(',') : (v || '')).split(/[;,\s]+/).map(s => s.trim()).filter(s => s.indexOf('@') > 0); }
 function hojeISO(){ return new Date().toISOString().slice(0, 10); }
+const CONS_POR_EMAIL = { 'leonardo@elevalife.com.br': 'LS', 'joao@elevalife.com.br': 'JB', 'rafael@elevalife.com.br': 'RP', 'clara@elevalife.com.br': 'MKT', 'contato@elevalife.com.br': 'COM' };
+function consDoUsuario(user, informado){ return CONS_POR_EMAIL[String(user || '').toLowerCase()] || (['LS','JB','RP','MKT','COM','OPER'].includes(String(informado || '')) ? informado : nomeDoEmail(user)); }
 function nomeDoEmail(e){ const p = String(e || '').split('@')[0].split('.')[0]; return p ? p.charAt(0).toUpperCase() + p.slice(1) : ''; }
 
 async function enviar(remetente, msg) {
@@ -161,7 +163,7 @@ async function atualizarKanban(lead, b, user) {
     y: d.getFullYear(), m: d.getMonth() + 1, dt: hoje,
     nome: String(lead.nome || '').trim(), cliente: String(lead.cliente || '').trim(),
     unidade: String(lead.unidade || '').trim(), fonte: String(lead.fonte || 'Proposta SIGE'),
-    cons: String(lead.cons || nomeDoEmail(user)), serv, prop: 'SIM', valor, tipo: String(lead.tipo || 'N/A'),
+    cons: consDoUsuario(user, lead.cons), serv, prop: 'SIM', valor, tipo: String(lead.tipo || 'N/A'),
     envio: hoje, status: 'EM NEGOCIAÇÃO', subEtapa: 'Proposta', origemFunil: 'NOVO',
     email: lista(b.para)[0] || '',
     histEventosJson: histAppend('[]', 'Oportunidade criada pelo envio de proposta · ' + texto, por),
