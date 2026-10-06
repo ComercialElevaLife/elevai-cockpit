@@ -16,6 +16,34 @@ const MAX_PDF = 3 * 1024 * 1024; // sendMail aceita anexo inline até ~3 MB
 
 function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function nl2br(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
+const fs = require('fs');
+const path = require('path');
+let ASSIN_B64 = null;
+function assinaturaB64(){ if (ASSIN_B64 === null) { try { ASSIN_B64 = fs.readFileSync(path.join(__dirname, 'assinatura.jpg')).toString('base64'); } catch (e) { ASSIN_B64 = ''; } } return ASSIN_B64; }
+
+// Layout no padrão dos e-mails do S.I.G.E. (faixa vinho, corpo com borda suave), com a assinatura padrão ElevaLife.
+function montarHtml(corpo, temAssin) {
+  const blocos = String(corpo || '').replace(/\r/g, '').split(/\n{2,}/).map(b => b.trim()).filter(Boolean);
+  const P = 'font-size:14.5px;line-height:1.65;margin:0 0 14px;color:#2a1a1a';
+  const html = blocos.map(b => {
+    const ls = b.split('\n');
+    const itens = ls.filter(l => /^\s*[•\-\*]\s+/.test(l));
+    if (itens.length && itens.length === ls.length) {
+      return '<ul style="font-size:14.5px;line-height:1.65;margin:0 0 14px;padding-left:20px;color:#2a1a1a">' +
+        itens.map(l => '<li style="margin:0 0 6px">' + esc(l.replace(/^\s*[•\-\*]\s+/, '')) + '</li>').join('') + '</ul>';
+    }
+    return '<p style="' + P + '">' + ls.map(esc).join('<br>') + '</p>';
+  }).join('');
+  const assin = temAssin
+    ? '<div style="margin-top:22px;padding-top:16px;border-top:1px solid #e5d9d9"><p style="font-size:14.5px;margin:0 0 10px;color:#2a1a1a">Atenciosamente,</p>' +
+      '<img src="cid:assinatura-elevalife" alt="Leonardo Scaccabarozzi | Executivo de Novos Negócios | ElevaLife" width="560" style="display:block;width:100%;max-width:560px;height:auto;border:0">' +
+      '<p style="font-size:12.5px;color:#7a6a6a;margin:10px 0 0">Siga nossas redes sociais: <a href="https://www.linkedin.com/in/leonardo-santana-scaccabarozzi-b39767169" style="color:#8b3a42">LinkedIn</a></p></div>'
+    : '';
+  return '<div style="font-family:Segoe UI,Arial,sans-serif;max-width:640px;margin:0 auto;color:#2a1a1a">' +
+    '<div style="background:#5c1a2b;color:#fff;padding:20px 24px;border-radius:10px 10px 0 0"><div style="font-weight:700;font-size:18px">ElevaLife</div>' +
+    '<div style="font-size:12px;opacity:.85">15 anos elevando pessoas e resultados</div></div>' +
+    '<div style="border:1px solid #e5d9d9;border-top:none;border-radius:0 0 10px 10px;padding:24px">' + html + assin + '</div></div>';
+}
 function addr(a){ return { emailAddress: { address: String(a).trim() } }; }
 function lista(v){ return String(Array.isArray(v) ? v.join(',') : (v || '')).split(/[;,\s]+/).map(s => s.trim()).filter(s => s.indexOf('@') > 0); }
 function hojeISO(){ return new Date().toISOString().slice(0, 10); }
@@ -46,7 +74,8 @@ module.exports = async function (context, req) {
     const cc = Array.from(new Set(CC_FIXO.concat(lista(b.cc)).map(s => s.toLowerCase())))
       .filter(a => !paraSet.has(a) && a !== user);
 
-    const corpoHtml = b.corpoHtml ? String(b.corpoHtml) : nl2br(b.corpo || '');
+    const assinB64 = assinaturaB64();
+    const corpoHtml = montarHtml(b.corpo || '', !!assinB64);
     const nomePdf = String(b.pdfNome || 'Proposta ElevaLife.pdf').replace(/[\\/:*?"<>|]/g, '-');
     const mk = (replyTo) => {
       const m = {
@@ -55,7 +84,8 @@ module.exports = async function (context, req) {
           body: { contentType: 'HTML', content: corpoHtml },
           toRecipients: para.map(addr),
           ccRecipients: cc.map(addr),
-          attachments: [{ '@odata.type': '#microsoft.graph.fileAttachment', name: nomePdf, contentType: 'application/pdf', contentBytes: String(b.pdfBase64) }],
+          attachments: [{ '@odata.type': '#microsoft.graph.fileAttachment', name: nomePdf, contentType: 'application/pdf', contentBytes: String(b.pdfBase64) }]
+            .concat(assinB64 ? [{ '@odata.type': '#microsoft.graph.fileAttachment', name: 'assinatura-elevalife.jpg', contentType: 'image/jpeg', contentBytes: assinB64, isInline: true, contentId: 'assinatura-elevalife' }] : []),
         },
         saveToSentItems: true,
       };

@@ -111,7 +111,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <label>CC adicional</label><input id="e-cc" placeholder="Fixos: leonardo@ e rafael@">
     <label>Assunto</label><input id="e-assunto">
     <label>Mensagem</label><textarea id="e-corpo" rows="11"></textarea>
-    <label>Assinatura</label><textarea id="e-assin" rows="3"></textarea>
+    <label>Assinatura</label><textarea id="e-assin" rows="2" readonly style="opacity:.75"></textarea>
     <label>PDF da proposta (anexo)</label>
     <div class="ui-hint">Usa o arquivo escolhido em “Anexar o PDF final”, acima (até 3 MB).</div>
     <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="e-tpl" type="button">Restaurar modelo</button><button class="ui-btn" id="e-send" type="button">Enviar proposta</button></div>
@@ -384,20 +384,28 @@ var today=new Date();$('f-data').value=today.getFullYear()+'-'+String(today.getM
 renderErgo();renderGL();showNr1();svcToggle();
 /* ===== Envio por e-mail + Kanban ===== */
 var TPL_ASSUNTO='Proposta ElevaLife | {{EMPRESA}} | {{SERVICO}}';
-var TPL_CORPO='Olá, {{CONTATO}}, tudo bem?\n\nConforme conversamos, segue em anexo a proposta técnica e comercial de {{SERVICO}} para a {{EMPRESA}}.\n\nA proposta reúne o escopo, a equipe envolvida, a rotina de atendimento, os indicadores de acompanhamento e as condições comerciais. Ela tem validade de {{VALIDADE}} dias corridos.\n\nFico à disposição para conversarmos e ajustar o que for necessário à rotina de vocês.';
-var TPL_ASSIN='Atenciosamente,\nLeonardo Scaccabarozzi | Executivo de novos negócios\nleonardo@elevalife.com.br | (11) 97260-4027\nwww.elevalife.com.br';
+var TPL_CORPO='Olá, {{CONTATO}}, tudo bem?\n\nConforme conversamos, enviamos em anexo a proposta técnica e comercial de {{SERVICO}} para a {{EMPRESA}}.\n\nEm resumo, a proposta contempla:\n\n{{RESUMO}}\n\nA proposta tem validade de {{VALIDADE}} dias corridos.\n\nAgradecemos a oportunidade de apresentar nosso trabalho e a atenção dedicada ao nosso time. Ficamos à disposição para esclarecer dúvidas e ajustar o que for necessário à rotina de vocês.';
+var TPL_ASSIN='Assinatura padrão ElevaLife (Leonardo Scaccabarozzi · Executivo de Novos Negócios) incluída automaticamente.';
+function resumoTexto(){
+  var r=[];
+  if($('s-ergo').checked)r.push('• Gestão de Ergonomia: especialista em ergonomia dedicado à rotina da unidade, com AEP/AET, planos de ação e acompanhamento dos casos;');
+  if($('s-nr1').checked)r.push('• Diagnóstico NR-1 (fatores psicossociais): levantamento, análise e relatório para subsidiar a gestão dos riscos psicossociais no PGR;');
+  if($('s-gl').checked)r.push('• Ginástica Laboral: sessões de 10 a 15 minutos conduzidas por professor de educação física, nas frequências semanais descritas na proposta;');
+  r.push('• Relatórios, indicadores de acompanhamento e condições comerciais, detalhados no documento anexo.');
+  return r.join('\n');
+}
 var leadsCache=null, leadsBusy=false;
 function eMsg(t,err){var m=$('e-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function servTexto(){var s=[];if($('s-ergo').checked)s.push('Gestão de Ergonomia');if($('s-nr1').checked)s.push('Diagnóstico NR-1');if($('s-gl').checked)s.push('Ginástica Laboral');return s.join(' e ')||'serviços';}
 function servKanban(){var s=[];if($('s-ergo').checked)s.push('ERGO');if($('s-nr1').checked)s.push('NR-1');if($('s-gl').checked)s.push('GL');return s.join(' + ');}
 function preencherTpl(t){
   return t.replace(/\{\{EMPRESA\}\}/g,$('f-cliente').value||'sua empresa').replace(/\{\{SERVICO\}\}/g,servTexto())
-    .replace(/\{\{CONTATO\}\}/g,($('e-contato').value||'').split(' ')[0]||'tudo bem').replace(/\{\{VALIDADE\}\}/g,$('c-val').value||'30');
+    .replace(/\{\{CONTATO\}\}/g,($('e-contato').value||'').split(' ')[0]||'tudo bem').replace(/\{\{VALIDADE\}\}/g,$('c-val').value||'30').replace(/\{\{RESUMO\}\}/g,resumoTexto());
 }
 function aplicarModelo(){
   $('e-assunto').value=preencherTpl(TPL_ASSUNTO);
   $('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');
-  if(!$('e-assin').value)$('e-assin').value=TPL_ASSIN;
+  $('e-assin').value=TPL_ASSIN;
   if(!$('e-serv').value)$('e-serv').value=servKanban();
   sugerirValor();
 }
@@ -456,8 +464,7 @@ $('e-send').onclick=function(){
   var lid=$('e-lead').value;
   if(!lid){eMsg('Escolha a oportunidade no Kanban (ou “Criar nova”).',true);return;}
   if(!$('e-assunto').value){aplicarModelo();}
-  var assin=$('e-assin').value;
-  var corpo=$('e-corpo').value+'\n\n'+assin;
+  var corpo=$('e-corpo').value;
   eMsg('Enviando…');$('e-send').disabled=true;
   var rd=new FileReader();rd.onload=function(){
     var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:f.name,pdfBase64:String(rd.result).split(',')[1],
@@ -474,8 +481,6 @@ $('e-send').onclick=function(){
       }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
   };rd.readAsDataURL(f);
 };
-try{var sg=localStorage.getItem('prop-assin');if(sg)$('e-assin').value=sg;}catch(e){}
-$('e-assin').addEventListener('change',function(){try{localStorage.setItem('prop-assin',$('e-assin').value);}catch(e){}});
 aplicarModelo();
 if($('f-cliente').value)listarOportunidades();
 
