@@ -102,6 +102,21 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="btn-pdf" type="button">Enviar PDF ao SharePoint</button></div>
     <div class="ui-hint" id="sp-msg" style="margin-top:8px"></div>
   </div>
+  <div class="ui-sec" id="box-mail"><h3>Enviar por e-mail</h3>
+    <label>Oportunidade no Kanban</label>
+    <select id="e-lead"><option value="">Digite o cliente acima…</option></select>
+    <div class="ui-row"><div><label>Contato (nome)</label><input id="e-contato" placeholder="Nome do contato"></div><div><label>Serviço (Kanban)</label><input id="e-serv" placeholder="Ex.: ERGO + NR-1"></div></div>
+    <div class="ui-row3"><div><label>Valor mensal (R$)</label><input id="e-vmes" type="number" step="0.01"></div><div><label>Meses</label><input id="e-meses" type="number" value="12" min="1"></div><div><label>Valor total (R$)</label><input id="e-vtot" type="number" step="0.01"></div></div>
+    <label>Para (separe com vírgula)</label><input id="e-para" placeholder="nome@empresa.com.br">
+    <label>CC adicional</label><input id="e-cc" placeholder="Fixos: leonardo@ e rafael@">
+    <label>Assunto</label><input id="e-assunto">
+    <label>Mensagem</label><textarea id="e-corpo" rows="11"></textarea>
+    <label>Assinatura</label><textarea id="e-assin" rows="3"></textarea>
+    <label>PDF da proposta (anexo)</label>
+    <div class="ui-hint">Usa o arquivo escolhido em “Anexar o PDF final”, acima (até 3 MB).</div>
+    <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="e-tpl" type="button">Restaurar modelo</button><button class="ui-btn" id="e-send" type="button">Enviar proposta</button></div>
+    <div class="ui-hint" id="e-msg" style="margin-top:8px"></div>
+  </div>
   <div class="ui-hint">Gerar de novo refaz todas as páginas e descarta edições manuais. Para o PDF, use “Imprimir / PDF”, escolha “Salvar como PDF” e depois anexe o arquivo acima. “Salvar proposta” guarda a versão editável.</div>
 </aside>
 
@@ -301,7 +316,7 @@ $('btn-print').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
-var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref'];
+var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
 function spMsg(t,err){var m=$('sp-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function getState(){
   var campos={};FIELD_IDS.forEach(function(id){var e=$(id);campos[id]=e.type==='checkbox'?e.checked:e.value;});
@@ -367,6 +382,103 @@ $('ov-x').onclick=function(){$('ov').style.display='none';};
 /* init */
 var today=new Date();$('f-data').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
 renderErgo();renderGL();showNr1();svcToggle();
+/* ===== Envio por e-mail + Kanban ===== */
+var TPL_ASSUNTO='Proposta ElevaLife | {{EMPRESA}} | {{SERVICO}}';
+var TPL_CORPO='Olá, {{CONTATO}}, tudo bem?\n\nConforme conversamos, segue em anexo a proposta técnica e comercial de {{SERVICO}} para a {{EMPRESA}}.\n\nA proposta reúne o escopo, a equipe envolvida, a rotina de atendimento, os indicadores de acompanhamento e as condições comerciais. Ela tem validade de {{VALIDADE}} dias corridos.\n\nFico à disposição para conversarmos e ajustar o que for necessário à rotina de vocês.';
+var TPL_ASSIN='Atenciosamente,\nLeonardo Scaccabarozzi | Executivo de novos negócios\nleonardo@elevalife.com.br | (11) 97260-4027\nwww.elevalife.com.br';
+var leadsCache=null, leadsBusy=false;
+function eMsg(t,err){var m=$('e-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
+function servTexto(){var s=[];if($('s-ergo').checked)s.push('Gestão de Ergonomia');if($('s-nr1').checked)s.push('Diagnóstico NR-1');if($('s-gl').checked)s.push('Ginástica Laboral');return s.join(' e ')||'serviços';}
+function servKanban(){var s=[];if($('s-ergo').checked)s.push('ERGO');if($('s-nr1').checked)s.push('NR-1');if($('s-gl').checked)s.push('GL');return s.join(' + ');}
+function preencherTpl(t){
+  return t.replace(/\{\{EMPRESA\}\}/g,$('f-cliente').value||'sua empresa').replace(/\{\{SERVICO\}\}/g,servTexto())
+    .replace(/\{\{CONTATO\}\}/g,($('e-contato').value||'').split(' ')[0]||'tudo bem').replace(/\{\{VALIDADE\}\}/g,$('c-val').value||'30');
+}
+function aplicarModelo(){
+  $('e-assunto').value=preencherTpl(TPL_ASSUNTO);
+  $('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');
+  if(!$('e-assin').value)$('e-assin').value=TPL_ASSIN;
+  if(!$('e-serv').value)$('e-serv').value=servKanban();
+  sugerirValor();
+}
+function sugerirValor(){
+  if($('e-vmes').value)return;
+  var v=null;
+  if($('s-ergo').checked&&ergoOpts.length){v=(priceErgo(ergoOpts[0])||0)*ergoOpts[0].qtd;}
+  else if($('s-gl').checked&&glOpts.length){v=(priceGL(glOpts[0])||0)*glOpts[0].qtd;}
+  if(v){$('e-vmes').value=r2(v);totalizar();}
+}
+function totalizar(){var m=parseFloat($('e-vmes').value),n=parseInt($('e-meses').value,10);if(m&&n)$('e-vtot').value=r2(m*n);}
+$('e-vmes').oninput=totalizar;$('e-meses').oninput=totalizar;
+$('e-tpl').onclick=function(){$('e-assunto').value='';$('e-corpo').value='';aplicarModelo();eMsg('Modelo restaurado.');};
+
+function norm(s){return String(s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();}
+function carregarLeads(cb){
+  if(leadsCache)return cb();
+  if(leadsBusy)return;leadsBusy=true;
+  fetch('/api/leads',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){
+    leadsCache=(j&&j.items)||[];leadsBusy=false;cb();
+  }).catch(function(){leadsBusy=false;eMsg('Não foi possível carregar as oportunidades do Kanban.',true);});
+}
+var ATIVOS={'LEAD':1,'OPORTUNIDADE':1,'EM NEGOCIAÇÃO':1,'REATIVAR':1};
+function listarOportunidades(){
+  var q=norm($('f-cliente').value),sel=$('e-lead'),antes=sel.value;
+  if(!q){sel.innerHTML='<option value="">Digite o cliente acima…</option>';return;}
+  carregarLeads(function(){
+    var achados=leadsCache.filter(function(l){return ATIVOS[String(l.status||'').toUpperCase()]&&norm(l.cliente).indexOf(q)>=0;});
+    var o='<option value="">'+(achados.length?'Selecione a oportunidade…':'Nenhuma ativa — será criada uma nova')+'</option>';
+    achados.forEach(function(l){o+='<option value="'+l.__id+'">'+esc(l.cliente||'')+' · '+esc(l.nome||'sem contato')+' · '+esc(l.status||'')+(l.subEtapa?' / '+esc(l.subEtapa):'')+(l.serv?' · '+esc(l.serv):'')+'</option>';});
+    o+='<option value="__novo">➕ Criar nova oportunidade</option>';
+    sel.innerHTML=o;
+    if(antes&&sel.querySelector('option[value="'+antes+'"]'))sel.value=antes;
+    else if(achados.length===1)sel.value=achados[0].__id;
+    else if(!achados.length)sel.value='__novo';
+    sel.onchange();
+  });
+}
+function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+$('e-lead').onchange=function(){
+  var id=$('e-lead').value;if(!id||id==='__novo'||!leadsCache)return;
+  var l=leadsCache.filter(function(x){return String(x.__id)===id;})[0];if(!l)return;
+  if(l.nome&&!$('e-contato').value)$('e-contato').value=l.nome;
+  if(l.email&&!$('e-para').value)$('e-para').value=l.email;
+  if(l.serv&&!$('e-serv').value)$('e-serv').value=l.serv;
+  aplicarModelo();
+};
+var tmr=null;
+$('f-cliente').addEventListener('input',function(){clearTimeout(tmr);tmr=setTimeout(function(){listarOportunidades();},400);});
+$('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)aplicarModelo();else{$('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');}});
+$('e-send').onclick=function(){
+  var f=$('f-pdf').files[0];
+  if(!$('e-para').value.trim()){eMsg('Informe o e-mail do destinatário.',true);return;}
+  if(!f){eMsg('Escolha o PDF final em “Anexar o PDF final” (acima).',true);return;}
+  if(f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
+  var lid=$('e-lead').value;
+  if(!lid){eMsg('Escolha a oportunidade no Kanban (ou “Criar nova”).',true);return;}
+  if(!$('e-assunto').value){aplicarModelo();}
+  var assin=$('e-assin').value;
+  var corpo=$('e-corpo').value+'\n\n'+assin;
+  eMsg('Enviando…');$('e-send').disabled=true;
+  var rd=new FileReader();rd.onload=function(){
+    var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:f.name,pdfBase64:String(rd.result).split(',')[1],
+      lead:{id:(lid==='__novo'?'':lid),cliente:$('f-cliente').value,nome:$('e-contato').value,serv:$('e-serv').value,valorMensal:parseFloat($('e-vmes').value)||0,numMeses:parseInt($('e-meses').value,10)||0,valor:parseFloat($('e-vtot').value)||0}};
+    fetch('/api/propostas-enviar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});})
+      .then(function(j){
+        $('e-send').disabled=false;
+        if(!j.ok){eMsg('Não enviado: '+(j.error||'erro'),true);return;}
+        var k=j.kanban||{};
+        var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
+        t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
+        eMsg(t,!k.ok);leadsCache=null;
+      }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
+  };rd.readAsDataURL(f);
+};
+try{var sg=localStorage.getItem('prop-assin');if(sg)$('e-assin').value=sg;}catch(e){}
+$('e-assin').addEventListener('change',function(){try{localStorage.setItem('prop-assin',$('e-assin').value);}catch(e){}});
+aplicarModelo();
+if($('f-cliente').value)listarOportunidades();
+
 })();
 </script>
 </body>
