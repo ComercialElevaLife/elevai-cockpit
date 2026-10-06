@@ -106,6 +106,11 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div id="med-opts"></div>
   </div>
 
+  <div class="ui-sec" id="box-imgs"><h3>Imagens de exemplo (opcional)</h3>
+    <label>Tela do sistema de agendamento (Fisio e Masso)</label><input id="img-agenda" type="file" accept="image/*">
+    <label>Imagem de indicadores (substitui os gráficos de exemplo)</label><input id="img-ind" type="file" accept="image/*">
+    <div class="ui-hint">Sem imagem anexada, as lâminas usam telas e gráficos ilustrativos no padrão Eleva. A imagem vale só para esta proposta e não é salva no SharePoint.</div>
+  </div>
   <div class="ui-sec"><h3>Prazos e condições</h3>
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
@@ -303,11 +308,11 @@ var DESC_SVC={fisio:'Terapia ocupacional, fisioterapia e fonoaudiologia',masso:'
 var IC={heart:'<path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 000-7.8z"/>',run:'<circle cx="14" cy="4.5" r="2"/><path d="M5 22l4-6 3 2 2-5-3-2 1-4 4 3 3 1M9 12l-3 1"/>',layers:'<path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/>',check:'<path d="M5 12l5 5L20 7"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21v-1a6 6 0 0112 0v1"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14a5 5 0 015 5v2"/>',chart:'<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',clip:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>'};
 function ic(n,cls){return '<div class="ic '+(cls||'')+'"><svg viewBox="0 0 24 24">'+IC[n]+'</svg></div>';}
 var CONT={
- fisio:{eb:'Fisioterapia corporativa',title:'Atendimento fisioterapêutico no ambiente de trabalho',lead:'Profissional de fisioterapia na unidade, com foco na prevenção e no cuidado das queixas osteomusculares.',
-  pil:[['heart','Avaliação e atendimento','Avaliação individual e atendimentos conforme a agenda combinada com a contratante.'],['run','Orientação e prevenção','Orientações de postura, autocuidado e exercícios para a rotina de trabalho.'],['layers','Integração com a ergonomia','Troca de informações com a ergonomia e o SESMT, preservando o sigilo das informações de saúde.']],
+ fisio:{eb:'Fisioterapia corporativa',title:'Atendimento fisioterapêutico no ambiente de trabalho',lead:'A intervenção fisioterapêutica permite avaliar o equilíbrio osteomuscular e postural, tratar queixas clínicas e prevenir lesões relacionadas ao trabalho.',
+  pil:[['heart','Avaliação cinético-postural','Avaliação completa, com classificação do risco osteomuscular e identificação da gravidade da queixa.'],['run','Tratamento e reabilitação','Cinesioterapia, eletroterapia e terapias manuais, conforme a necessidade de cada caso.'],['layers','Nexo e integração com a saúde ocupacional','Análise de possível nexo com a atividade exercida, sinalizada à equipe médica, com sigilo das informações de saúde.']],
   ind:[['users','Atendimentos realizados','Por período, área e profissional'],['search','Queixas por região corporal','Distribuição das queixas atendidas'],['chart','Evolução dos casos','Acompanhamento dos colaboradores em atendimento'],['target','Encaminhamentos','Casos direcionados à ergonomia e ao SESMT']]},
- masso:{eb:'Massoterapia',title:'Massagem no ambiente de trabalho',lead:'Sessões de massagem, de forma recorrente ou em ações pontuais, no formato e na agenda definidos com a contratante.',
-  pil:[['heart','Quick massage','Sessões curtas, em local definido com a contratante, para pausas de bem-estar.'],['cal','Agenda combinada','Dias e horários alinhados à rotina das áreas atendidas.'],['check','Ações pontuais','Diárias para campanhas, eventos internos e datas de saúde.']],
+ masso:{eb:'Massoterapia',title:'Massagem no ambiente de trabalho',lead:'A Quick Massage é uma técnica de massagem aplicada para reduzir a tensão muscular e promover a sensação de relaxamento físico e mental.',
+  pil:[['heart','Cadeira própria','O colaborador fica em posição confortável e o massoterapeuta trabalha, principalmente, as regiões cervical, dorsal, ombros e membros superiores.'],['cal','Agendamento por link','Enviamos à empresa um link personalizado com os horários de atendimento disponíveis.'],['check','Recorrente ou pontual','Atendimento em dias fixos da semana ou diárias para campanhas, eventos internos e datas de saúde.']],
   ind:[['users','Sessões realizadas','Realizadas frente às previstas'],['chart','Participação','Colaboradores atendidos por período'],['heart','Percepção dos participantes','Retorno coletado ao longo do programa'],['cal','Aderência à agenda','Cumprimento dos dias e horários combinados']]},
  enf:{eb:'Enfermagem do Trabalho',title:'Enfermagem na unidade, com rotina definida',lead:'Profissional de enfermagem presente na unidade, em apoio ao SESMT e ao cuidado com a saúde dos colaboradores.',
   pil:[['heart','Atendimento na unidade','Atendimentos de enfermagem, primeiros cuidados e orientações aos colaboradores.'],['clip','Apoio ao SESMT','Registros, controle de documentos de saúde e apoio às rotinas do serviço médico.'],['target','Ações de saúde','Campanhas e orientações de prevenção, conforme calendário combinado com a contratante.']],
@@ -329,20 +334,110 @@ function svcRows(k,o){
   if(k==='enf')return [['Profissional',qtxt(q,o.prof.toLowerCase(),o.prof.toLowerCase()+'s')+', nível '+NIV[o.sen]],['Turno',o.turno],['Carga semanal',o.ch+' h'],['Regime','CLT']];
   return [['Profissional',qtxt(q,'médico do trabalho','médicos do trabalho')+', nível '+NIV[o.sen]],['Turno',o.turno],['Carga semanal',o.ch+' h'],['Regime',o.regime]];
 }
+/* ---- novas lâminas: time envolvido, indicadores com gráficos, sistema de agendamento ---- */
+var IMGS={agenda:'',ind:''};
+var TEAM={
+ fisio:[['João Barbosa','Diretor de Op.'],['Dhanilo Cruz','Líder de área'],['Fisioterapeuta','Atendimento na unidade']],
+ masso:[['João Barbosa','Diretor de Op.'],['Cristiano Goulart','Líder de área'],['Massoterapeuta','Atendimento na unidade']],
+ enf:[['João Barbosa','Diretor de Op.'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Equipe de Enfermagem','Atendimento na unidade']],
+ med:[['João Barbosa','Diretor de Op.'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Médico do Trabalho','Atendimento na unidade']]};
+function iniciais(n){var p=n.replace(/^Dra?\.\s*/,'').split(' ').filter(Boolean);return (p[0][0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
+function teamSlide(k,ctx,tag){
+  var T=TEAM[k],n=T.length;
+  var cards=T.map(function(x,i){
+    var pessoa=i<n-1;
+    var av=pessoa?'<div style="width:86px;height:86px;border-radius:50%;background:linear-gradient(135deg,var(--deep),var(--w));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;margin:0 auto 16px">'+iniciais(x[0])+'</div>':'<div style="width:86px;height:86px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">'+ic('users')+'</div>';
+    return '<div style="flex:1;background:var(--bg);border-radius:20px;padding:30px 16px;text-align:center">'+av+'<div style="font-family:MA,M;font-weight:700;font-size:19px;color:var(--deep);line-height:1.25">'+x[0]+'</div><div style="font-size:14px;color:#5b4a4d;margin-top:6px">'+x[1]+'</div></div>';
+  });
+  var seta='<div style="display:flex;align-items:center;color:var(--mid);font-size:30px;font-weight:800;padding:0 6px">›</div>';
+  return pageWrap(head('Time envolvido','Quem acompanha o serviço','',tag)+'<div style="display:flex;align-items:stretch;margin-top:40px">'+cards.join(seta)+'</div>'+foot(ctx));
+}
+/* gráficos simples em SVG (exemplos ilustrativos) */
+function svgBarsG(cats,series,w,h){
+  var mx=0;series.forEach(function(s){s.v.forEach(function(v){if(v>mx)mx=v;});});mx=Math.ceil(mx*1.1);
+  var pl=34,pb=26,pt=8,iw=w-pl-8,ih=h-pb-pt,gw=iw/cats.length,bw=Math.min(26,(gw-12)/series.length),o='';
+  for(var g=0;g<=4;g++){var y=pt+ih-ih*g/4;o+='<line x1="'+pl+'" x2="'+(w-8)+'" y1="'+y+'" y2="'+y+'" stroke="#E7D8D9"/><text x="'+(pl-6)+'" y="'+(y+4)+'" font-size="11" text-anchor="end" fill="#8A7A78">'+Math.round(mx*g/4)+'</text>';}
+  cats.forEach(function(c,i){var x0=pl+gw*i+(gw-bw*series.length)/2;series.forEach(function(s,j){var bh=ih*s.v[i]/mx;o+='<rect x="'+(x0+bw*j)+'" y="'+(pt+ih-bh)+'" width="'+(bw-3)+'" height="'+bh+'" rx="3" fill="'+s.c+'"/>';});o+='<text x="'+(pl+gw*i+gw/2)+'" y="'+(h-8)+'" font-size="12" text-anchor="middle" fill="#5b4a4d">'+c+'</text>';});
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%">'+o+'</svg>';
+}
+function svgHBars(items,w,h,suf){
+  var mx=0;items.forEach(function(x){if(x[1]>mx)mx=x[1];});var rh=h/items.length,o='',lw=170;
+  items.forEach(function(x,i){var y=i*rh+4,bw=(w-lw-52)*x[1]/mx;o+='<text x="0" y="'+(y+rh/2+3)+'" font-size="13" fill="#5b4a4d">'+x[0]+'</text><rect x="'+lw+'" y="'+y+'" width="'+bw+'" height="'+(rh-12)+'" rx="5" fill="'+(i===0?'#8B3A42':'#C99AA0')+'"/><text x="'+(lw+bw+8)+'" y="'+(y+rh/2+3)+'" font-size="13" font-weight="700" fill="#5E2A30">'+x[1]+(suf||'')+'</text>';});
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%">'+o+'</svg>';
+}
+function leg(series){return '<div style="display:flex;gap:16px;font-size:12px;color:#5b4a4d;margin-bottom:4px">'+series.map(function(s){return '<span style="display:inline-flex;align-items:center;gap:6px"><i style="width:12px;height:12px;border-radius:3px;background:'+s.c+';display:inline-block"></i>'+s.n+'</span>';}).join('')+'</div>';}
+function boxChart(tit,inner){return '<div style="flex:1;background:#fff;border:2px solid var(--ln);border-radius:18px;padding:18px 22px"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">'+tit+'</div>'+inner+'</div>';}
+function kpiBox(v,l){return '<div class="stat" style="padding:18px 12px"><div class="v" style="font-size:36px">'+v+'</div><div class="l">'+l+'</div></div>';}
+var MES=['Jan','Fev','Mar','Abr','Mai','Jun'];
+function indExemplos(k,ctx,tag){
+  if(IMGS.ind) return pageWrap(head('Exemplos de indicadores','Como os resultados são apresentados','',tag)+'<div style="margin-top:14px;text-align:center"><img src="'+IMGS.ind+'" style="max-width:100%;max-height:470px;border-radius:12px;border:2px solid var(--ln)"></div><p class="note">Exemplo de apresentação mensal.</p>'+foot(ctx));
+  var A='#C99AA0',B='#A34E56',C='#5E2A30',body='';
+  if(k==='fisio'){
+    var se=[{n:'Disponível',c:A,v:[120,120,120,120,120,120]},{n:'Agendado',c:B,v:[96,104,110,108,112,115]},{n:'Realizado',c:C,v:[88,97,104,101,107,110]}];
+    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('TAXA DE ATENDIMENTO · DISPONÍVEL × AGENDADO × REALIZADO',leg(se)+svgBarsG(MES,se,520,250))+boxChart('QUEIXAS POR REGIÃO CORPORAL',svgHBars([['Lombar',34],['Cervical',26],['Ombro',21],['Punho e mão',14],['Joelho',9],['Outras',6]],460,262,'%'))+'</div>';
+  }else if(k==='masso'){
+    var sm=[{n:'Previstas',c:A,v:[78,78,78,78,78,78]},{n:'Realizadas',c:C,v:[74,76,77,75,78,77]}];
+    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('SESSÕES PREVISTAS × REALIZADAS',leg(sm)+svgBarsG(MES,sm,520,250))+boxChart('TAXA DE ADESÃO POR ÁREA',svgHBars([['Produção',82],['Administrativo',74],['Logística',68],['Manutenção',61],['Qualidade',57]],460,262,'%'))+'</div>';
+  }else if(k==='enf'){
+    var se2=[{n:'Atendimentos',c:C,v:[142,155,149,160,152,158]},{n:'Ocorrências',c:A,v:[18,22,15,19,14,16]}];
+    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('ATENDIMENTOS E OCORRÊNCIAS POR MÊS',leg(se2)+svgBarsG(MES,se2,520,250))+boxChart('ATENDIMENTOS POR TIPO',svgHBars([['Monitoramento',38],['Curativos',24],['Medicação',18],['Orientação',12],['Outros',8]],460,262,'%'))+'</div>';
+  }else{
+    var sd=[{n:'Consultas',c:C,v:[64,70,66,72,68,71]},{n:'Documentos emitidos',c:A,v:[88,95,90,101,94,98]}];
+    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('CONSULTAS E DOCUMENTOS EMITIDOS POR MÊS',leg(sd)+svgBarsG(MES,sd,520,250))+boxChart('CONSULTAS POR TIPO',svgHBars([['Periódico',41],['Retorno ao trabalho',22],['Admissional',16],['Clínica ocupacional',13],['Demissional',8]],460,262,'%'))+'</div>';
+  }
+  return pageWrap(head('Exemplos de indicadores','Como os resultados são apresentados','',tag)+body+'<p class="note">Exemplo ilustrativo de apresentação mensal, com dados fictícios. Os indicadores reais são definidos em conjunto com '+ctx.cliente+'.</p>'+foot(ctx));
+}
+function qrSvg(){
+  var o='',f=function(x,y){return '<rect x="'+x+'" y="'+y+'" width="42" height="42" fill="#5E2A30"/><rect x="'+(x+7)+'" y="'+(y+7)+'" width="28" height="28" fill="#fff"/><rect x="'+(x+14)+'" y="'+(y+14)+'" width="14" height="14" fill="#5E2A30"/>';};
+  o+=f(6,6)+f(112,6)+f(6,112);
+  var seed=7;for(var i=0;i<150;i++){seed=(seed*9301+49297)%233280;var cx=Math.floor(seed/233280*20),cy=Math.floor(((seed*7)%233280)/233280*20);var x=6+cx*7,y=6+cy*7;if((x<56&&y<56)||(x>100&&y<56)||(x<56&&y>100))continue;o+='<rect x="'+x+'" y="'+y+'" width="6" height="6" fill="#5E2A30"/>';}
+  return '<svg viewBox="0 0 160 160" width="150" height="150" style="background:#fff;border-radius:10px;padding:8px">'+o+'</svg>';
+}
+function agendaMock(){
+  var dias=['Seg','Ter','Qua','Qui','Sex'],hs=['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00'];
+  var est=[[2,2,1,0,1],[2,1,2,1,0],[1,2,2,2,1],[0,1,2,1,2],[1,0,1,2,1],[2,1,0,2,2],[1,2,1,0,1],[0,1,2,1,0]];
+  var cor=['#F3E3E4','#C99AA0','#8B3A42'],lab=['Disponível','Agendado','Realizado'];
+  var g='<div style="display:grid;grid-template-columns:54px repeat(5,1fr);gap:4px;font-size:11px">'+'<div></div>'+dias.map(function(d){return '<div style="text-align:center;font-weight:800;color:var(--mid);padding:4px 0">'+d+'</div>';}).join('');
+  hs.forEach(function(h,r){g+='<div style="color:#8A7A78;padding-top:6px">'+h+'</div>';est[r].forEach(function(e){g+='<div style="height:26px;border-radius:6px;background:'+cor[e]+'"></div>';});});
+  g+='</div>';
+  var leg2='<div style="display:flex;gap:14px;font-size:11px;color:#5b4a4d;margin-top:10px">'+lab.map(function(l,i){return '<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:11px;height:11px;border-radius:3px;background:'+cor[i]+';display:inline-block;border:1px solid #E7D8D9"></i>'+l+'</span>';}).join('')+'</div>';
+  return '<div style="background:#fff;border:2px solid var(--ln);border-radius:16px;overflow:hidden"><div style="background:var(--deep);color:#fff;padding:9px 16px;font-size:12px;font-weight:700;display:flex;justify-content:space-between"><span>Agenda semanal</span><span style="color:#EBD9DB">Exemplo ilustrativo</span></div><div style="padding:14px 16px">'+g+leg2+'</div></div>';
+}
+function agendaSlide(k,ctx,tag){
+  var txt=k==='masso'?'Para os agendamentos, disponibilizamos nosso sistema interno. Enviamos um link personalizado para a empresa, onde ficam disponíveis os horários de atendimento, e o profissional responsável organiza a agenda e comunica os participantes.':'Para os agendamentos, disponibilizamos nosso sistema interno, no qual o profissional responsável organiza a agenda e comunica os pacientes.';
+  var txt2='O sistema permite acompanhar a taxa de atendimento (disponível × agendado × realizado), com maior controle do processo.';
+  var left=IMGS.agenda?'<img src="'+IMGS.agenda+'" style="width:100%;max-height:430px;object-fit:contain;border-radius:14px;border:2px solid var(--ln)">':agendaMock();
+  return pageWrap(head('Sistema de agendamentos','Organização e controle da agenda','',tag)+'<div style="display:flex;gap:30px;margin-top:20px;align-items:flex-start"><div style="flex:1.35">'+left+'</div><div style="flex:1"><p style="font-size:15px;line-height:1.55;color:#3a2a2c;margin:0 0 12px">'+txt+'</p><p style="font-size:15px;line-height:1.55;color:#3a2a2c;margin:0 0 18px">'+txt2+'</p><div style="display:flex;align-items:center;gap:16px;background:var(--bg);border-radius:16px;padding:14px 18px">'+qrSvg()+'<div style="font-size:13px;color:#5b4a4d;line-height:1.4"><b style="color:var(--deep)">QR code de exemplo</b><br>Acesso à agenda pelo celular</div></div></div></div>'+foot(ctx));
+}
 function svcSlides(k,ctx){
   var C=CONT[k],S=SVC[k],opts=OPTS[k],tag='Proposta · '+S.nome,out=[];
-  out.push(pageWrap(head(C.eb,C.title,C.lead,tag)+'<div class="grid g3" style="margin-top:30px">'+C.pil.map(function(x){return '<div class="tile" style="flex-direction:column;align-items:flex-start">'+ic(x[0])+'<div><b>'+x[1]+'</b><span>'+x[2]+'</span></div></div>';}).join('')+'</div>'+
-    '<div class="arrowrow" style="margin-top:44px"><div class="chev"><b>1</b><span>Alinhamento<br><small style="font-weight:500">agenda e local</small></span></div><div class="chev"><b>2</b><span>Início da rotina<br><small style="font-weight:500">na unidade</small></span></div><div class="chev"><b>3</b><span>Acompanhamento<br><small style="font-weight:500">indicadores e ajustes</small></span></div></div>'+foot(ctx)));
+  var FLOW={fisio:[['Avaliação','cinético-postural'],['Tratamento','reabilitação clínica'],['Monitoramento','indicadores mensais'],['Melhoria contínua','plano de ação']],
+    masso:[['Agendamento','link e agenda'],['Atendimento','execução diária'],['Indicadores','adesão e satisfação'],['Melhoria contínua','plano de ação']],
+    enf:[['Alinhamento','rotina e protocolos'],['Início da rotina','na unidade'],['Acompanhamento','indicadores e ajustes']],
+    med:[['Alinhamento','PCMSO e agenda'],['Início da rotina','na unidade'],['Acompanhamento','indicadores e ajustes']]}[k];
+  var chev=FLOW.map(function(f,i){return '<div class="chev"><b>'+(i+1)+'</b><span>'+f[0]+'<br><small style="font-weight:500">'+f[1]+'</small></span></div>';}).join('');
+  out.push(pageWrap(head(C.eb,C.title,C.lead,tag)+'<div class="grid g3" style="margin-top:30px">'+C.pil.map(function(x){return '<div class="tile" style="flex-direction:column;align-items:flex-start">'+ic(x[0])+'<div><b>'+x[1]+'</b><span>'+x[2]+'</span></div></div>';}).join('')+'</div><div class="arrowrow" style="margin-top:44px">'+chev+'</div>'+foot(ctx)));
+  out.push(teamSlide(k,ctx,tag));
   var cards=opts.map(function(o,i){return infoCard('OPÇÃO '+(i+1),(k==='masso'?(o.modo==='Pontual'?'Ação pontual':'Atendimento recorrente'):(k==='enf'?o.prof:S.nome)),svcRows(k,o));}).join('');
-  out.push(pageWrap(head('Quem atua e quando','Equipe e rotina de atendimento','',tag)+'<div class="grid" style="margin-top:20px;'+gridCols(opts.length)+'">'+cards+'</div><p class="note">Dias e horários a definir em conjunto com '+ctx.cliente+'.</p>'+foot(ctx)));
+  var nota='Dias e horários a definir em conjunto com '+ctx.cliente+'.';
+  if(k==='masso'){var q=opts.some(function(o){return o.modo==='Pontual'?o.tipo==='Quick Massage':true;});nota+='<br>Quick Massage: agendamento de 3 massagens por hora, com cerca de 15 minutos cada'+(q?', até 26 massagens por massoterapeuta por diária':'')+'. Intervalos de 30 minutos no meio da manhã e da tarde e 1 hora para refeição.';}
+  out.push(pageWrap(head('Quem atua e quando','Equipe e rotina de atendimento','',tag)+'<div class="grid" style="margin-top:20px;'+gridCols(opts.length)+'">'+cards+'</div><p class="note">'+nota+'</p>'+foot(ctx)));
   out.push(pageWrap(head('Indicadores e relatórios','Como acompanhamos o serviço','',tag)+'<div style="display:flex;gap:28px;margin-top:20px"><div style="flex:1.2"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:10px">INDICADORES</div><div style="display:flex;flex-direction:column;gap:10px">'+tiles(C.ind,true)+'</div></div><div style="flex:1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:10px">RELATÓRIOS</div><div style="display:flex;flex-direction:column;gap:10px">'+tiles(REP_COMUM,true)+'</div></div></div>'+foot(ctx)));
+  out.push(indExemplos(k,ctx,tag));
+  if(k==='fisio'||k==='masso')out.push(agendaSlide(k,ctx,tag));
   var ic2=opts.map(function(o,i){
     var p=S.price(o),rows=svcRows(k,o).slice(0,3),unit=(k==='masso'&&o.modo==='Pontual')?'no período':'/ mês',anual=(k==='masso'&&o.modo==='Pontual')?'':BRL(p*12);
     if(k==='enf'||k==='med'){var c=calcEM(o,k==='med');rows=rows.concat([['Hora extra','diurna '+BRL(c.heD)+' · noturna '+BRL(c.heN)]]);}
     return investCard2('OPÇÃO '+(i+1),(k==='masso'?(o.modo==='Pontual'?'Ação pontual':'Atendimento recorrente'):(k==='enf'?o.prof:S.nome)),rows,BRL(p||0),unit,anual);}).join('');
-  out.push(pageWrap(head('Investimento · '+S.nome,'Opções de atendimento','',tag)+'<div class="grid" style="margin-top:22px;'+gridCols(opts.length)+'">'+ic2+'</div><p class="note">Valores com impostos inclusos e emissão de nota fiscal.'+((k==='enf'||k==='med')?'<br>Horas extras cobradas à parte, quando solicitadas, conforme valores acima.':'')+'</p>'+foot(ctx)));
+  var nInv='Valores com impostos inclusos e emissão de nota fiscal.';
+  if(k==='enf'||k==='med')nInv+='<br>Horas extras cobradas à parte, quando solicitadas, conforme valores acima.';
+  if(k==='fisio')nInv+='<br>Estrutura e insumos fornecidos pela ElevaLife: equipamentos e materiais de cinesioterapia e aparelhos de eletroterapia (TENS e ultrassom). Responsabilidade da contratante: infraestrutura básica (mesa, cadeira e maca).';
+  if(k==='masso'||k==='enf'||k==='med')nInv+='<br>Refeições a cargo da contratante.';
+  out.push(pageWrap(head('Investimento · '+S.nome,'Opções de atendimento','',tag)+'<div class="grid" style="margin-top:22px;'+gridCols(opts.length)+'">'+ic2+'</div><p class="note">'+nInv+'</p>'+foot(ctx)));
   return out;
 }
+
+['agenda','ind'].forEach(function(k){var el=$('img-'+k);if(!el)return;el.onchange=function(){var f=el.files&&el.files[0];if(!f){IMGS[k]='';return;}if(f.size>2500000){alert('Imagem acima de 2,5 MB. Reduza o tamanho.');el.value='';IMGS[k]='';return;}var r=new FileReader();r.onload=function(){IMGS[k]=String(r.result||'');};r.readAsDataURL(f);};});
 function condSaude(ctx){
   var ks=SVC_KEYS.filter(svcOn);if(!ks.length)return null;
   var cn=(ctx.cnpjGL||'').split(' · ');
