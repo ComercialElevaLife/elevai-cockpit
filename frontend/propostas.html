@@ -352,7 +352,7 @@ function qProf(q){q=q||1;return q+(q>1?' profissionais':' profissional');}
 function profItems(k,ctx){
   var arr=[];
   if(k==='ergo')arr=ergoOpts.map(function(o){return {ini:'E',nome:'Especialista em Ergonomia',cargo:qProf(o.qtd)+' · nível '+NIV[o.sen]};});
-  else if(k==='gl')arr=glOpts.map(function(o){return {ini:'O',nome:'Orientador de Atividades Físicas',cargo:qProf(o.qtd)+' · alocado'+(o.qtd>1?'s':''),sub:ctx.glLocal};});
+  else if(k==='gl')arr=glOpts.map(function(o){return {ini:'O',nome:'Professor de Ginástica Laboral',cargo:qProf(o.qtd)+' · alocado'+(o.qtd>1?'s':''),sub:ctx.glLocal};});
   else arr=OPTS[k].map(function(o){
     var nome=k==='fisio'?'Fisioterapeuta':(k==='masso'?'Massoterapeuta':(k==='enf'?o.prof:'Médico do Trabalho'));
     return {ini:nome.charAt(0).toUpperCase(),nome:nome,cargo:qProf(o.qtd)+(o.sen?' · nível '+NIV[o.sen]:'')};});
@@ -662,12 +662,12 @@ function ergoInvest(ctx){
   return pageWrap(head('Investimento · Gestão de Ergonomia','Opções de presença','',ctx.tagE)+'<div class="grid" style="margin-top:22px;'+gridCols(ergoOpts.length)+'">'+cards+'</div><p class="note">Valores mensais, com impostos inclusos e emissão de nota fiscal.'+(ctx.ref?'<br>Refeição não inclusa: fica a cargo da contratante nos casos aplicáveis (jornada acima de 6 horas).':'')+'</p>'+foot(ctx));
 }
 function glVisits(ctx){
-  var cards=glOpts.map(function(o,i){return visitCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),o.freq,o.hdia,hlabel(o.freq*o.hdia)+' h/semana',(o.qtd>1?o.qtd+' professores':'1 professor')+' de ginástica laboral',ctx);}).join('');
+  var cards=glOpts.map(function(o,i){return visitCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),o.freq,o.hdia,hlabel(o.freq*o.hdia)+' h/semana',(o.qtd>1?o.qtd+' Professores':'1 Professor')+' de Ginástica Laboral',ctx);}).join('');
   return pageWrap(head('Quem atua e quando','Rotina de aulas na sede','',ctx.tagG)+'<div class="grid" style="margin-top:20px;'+gridCols(glOpts.length)+'">'+cards+'</div><p class="note">Coordenação técnica inclusa.</p>'+foot(ctx));
 }
 function glInvest(ctx){
   var cards=glOpts.map(function(o,i){var p=(priceGL(o)||0)*o.qtd;
-    return investCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),[['Profissional',(o.qtd>1?o.qtd+' professores':'1 professor')+' de ginástica laboral'],['Frequência',o.freq+(o.freq>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.hdia)+' h'],['Local',ctx.glLocal],['Coordenação técnica','Inclusa']],BRL(p),BRL(p*12));}).join('');
+    return investCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),[['Profissional',(o.qtd>1?o.qtd+' Professores':'1 Professor')+' de Ginástica Laboral'],['Frequência',o.freq+(o.freq>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.hdia)+' h'],['Local',ctx.glLocal],['Coordenação técnica','Inclusa']],BRL(p),BRL(p*12));}).join('');
   return pageWrap(head('Investimento · Ginástica Laboral','Opções de frequência','',ctx.tagG)+'<div class="grid" style="margin-top:22px;'+gridCols(glOpts.length)+'">'+cards+'</div><p class="note">Valores mensais, com impostos inclusos e emissão de nota fiscal.</p>'+foot(ctx));
 }
 function nr1Invest(ctx){
@@ -812,7 +812,7 @@ function resumoTexto(){
   var r=[];
   if($('s-ergo').checked)r.push('• Gestão de Ergonomia: especialista em ergonomia dedicado à rotina da unidade, com AEP/AET, planos de ação e acompanhamento dos casos;');
   if($('s-nr1').checked)r.push('• Diagnóstico NR-1 (fatores psicossociais): levantamento, análise e relatório para subsidiar a gestão dos riscos psicossociais no PGR;');
-  if($('s-gl').checked)r.push('• Ginástica Laboral: sessões de 10 a 15 minutos conduzidas por professor de educação física, nas frequências semanais descritas na proposta;');
+  if($('s-gl').checked)r.push('• Ginástica Laboral: sessões de 10 a 15 minutos conduzidas por Professor de Ginástica Laboral, nas frequências semanais descritas na proposta;');
   var RS={fisio:'• Fisioterapia: profissional de fisioterapia na unidade, com avaliação, atendimentos e orientações de prevenção, conforme a agenda combinada;',masso:'• Massoterapia: sessões de massagem no ambiente de trabalho, de forma recorrente ou em ações pontuais, conforme a agenda combinada;',enf:'• Enfermagem do Trabalho: profissional de enfermagem na unidade, em apoio ao SESMT e ao cuidado com a saúde dos colaboradores;',med:'• Medicina do Trabalho: atuação médica ocupacional na unidade, conforme o PCMSO e a agenda combinada;'};
   SVC_KEYS.forEach(function(k){if(svcOn(k))r.push(RS[k]);});
   r.push('• Relatórios, indicadores de acompanhamento e condições comerciais, detalhados no documento anexo.');
