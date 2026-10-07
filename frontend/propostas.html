@@ -401,8 +401,8 @@ function indExemplos(k,ctx,tag){
     var se=[{n:'Disponível',c:A,v:[120,120,120,120,120,120]},{n:'Agendado',c:B,v:[96,104,110,108,112,115]},{n:'Realizado',c:C,v:[88,97,104,101,107,110]}];
     body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('TAXA DE ATENDIMENTO · DISPONÍVEL × AGENDADO × REALIZADO',leg(se)+svgBarsG(MES,se,520,250))+boxChart('QUEIXAS POR REGIÃO CORPORAL',svgHBars([['Lombar',34],['Cervical',26],['Ombro',21],['Punho e mão',14],['Joelho',9],['Outras',6]],460,262,'%'))+'</div>';
   }else if(k==='masso'){
-    var sm=[{n:'Previstas',c:A,v:[78,78,78,78,78,78]},{n:'Realizadas',c:C,v:[74,76,77,75,78,77]}];
-    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('SESSÕES PREVISTAS × REALIZADAS',leg(sm)+svgBarsG(MES,sm,520,250))+boxChart('TAXA DE ADESÃO POR ÁREA',svgHBars([['Produção',82],['Administrativo',74],['Logística',68],['Manutenção',61],['Qualidade',57]],460,262,'%'))+'</div>';
+    var sm=[{n:'Agenda disponível',c:A,v:[121,132,154,148,150,156]},{n:'Atendimentos realizados',c:C,v:[118,126,148,141,146,152]}],tx={n:'Taxa efetiva',c:C,v:[98,95,96,95,97,97]};
+    body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('CONTROLE DE ATENDIMENTOS · AGENDA DISPONÍVEL × REALIZADOS',leg(sm)+svgBarsG(MES,sm,520,250))+boxChart('TAXA EFETIVA DE ATENDIMENTOS (%)',svgBarsG(MES,[tx],460,262))+'</div>';
   }else if(k==='enf'){
     var se2=[{n:'Atendimentos',c:C,v:[142,155,149,160,152,158]},{n:'Ocorrências',c:A,v:[18,22,15,19,14,16]}];
     body='<div style="display:flex;gap:18px;margin-top:14px">'+boxChart('ATENDIMENTOS E OCORRÊNCIAS POR MÊS',leg(se2)+svgBarsG(MES,se2,520,250))+boxChart('ATENDIMENTOS POR TIPO',svgHBars([['Monitoramento',38],['Curativos',24],['Medicação',18],['Orientação',12],['Outros',8]],460,262,'%'))+'</div>';
@@ -412,27 +412,79 @@ function indExemplos(k,ctx,tag){
   }
   return pageWrap(head('Exemplos de indicadores','Como os resultados são apresentados','',tag)+body+'<p class="note">Exemplo ilustrativo de apresentação mensal, com dados fictícios. Os indicadores reais são definidos em conjunto com '+ctx.cliente+'.</p>'+foot(ctx));
 }
+/* ---- exemplos de indicadores: Ergonomia, NR-1 e Ginástica Laboral (padrão do painel S.I.G.E e das propostas ElevaLife) ---- */
+var KC={baixo:'#2E8B57',mod:'#D9A21B',alto:'#D63B3B',muito:'#7A3FB5',triv:'#8EC3E6',alt:'#6B3FA0'};
+function tileRow(arr,suf){
+  return '<div style="display:flex;gap:10px">'+arr.map(function(x){return '<div style="flex:1;background:var(--bg);border-left:5px solid '+x[0]+';border-radius:10px;padding:8px 10px"><div style="font-size:11px;font-weight:700;color:#5b4a4d">'+x[1]+'</div><div style="font-size:26px;font-weight:800;color:var(--deep);line-height:1.15">'+x[2]+'</div><div style="font-size:10.5px;color:#8A7A78">'+x[3]+' '+suf+'</div></div>';}).join('')+'</div>';
+}
+function svgStack(items,w){
+  var t=0;items.forEach(function(x){t+=x[1];});var o='',x0=0;
+  items.forEach(function(x){var ww=w*x[1]/t;o+='<rect x="'+x0+'" y="0" width="'+ww+'" height="30" fill="'+x[2]+'"/>'+(ww>24?'<text x="'+(x0+ww/2)+'" y="20" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">'+x[1]+'</text>':'');x0+=ww;});
+  var lg='<div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:11px;color:#5b4a4d;margin-top:8px">'+items.map(function(x){return '<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:'+x[2]+';display:inline-block"></i>'+x[0]+'</span>';}).join('')+'</div>';
+  return '<svg viewBox="0 0 '+w+' 30" width="100%" style="border-radius:7px;overflow:hidden">'+o+'</svg>'+lg;
+}
+function indRow(a,b,c,d){return '<div style="display:flex;gap:16px;margin-top:12px">'+a+b+'</div>'+(c?'<div style="display:flex;gap:16px;margin-top:12px">'+c+d+'</div>':'');}
+function indNota(ctx,extra){return '<p class="note">Exemplo ilustrativo, com dados fictícios'+(extra||'')+'. Os indicadores reais são definidos em conjunto com '+ctx.cliente+'.</p>';}
+function ergoIndSlide(ctx){
+  var AC=[['Não iniciado',18,'#8A7A78'],['Em andamento',34,'#2F6FED'],['Atrasada',9,'#D63B3B'],['Concluída com atraso',6,'#E08A1E'],['Concluída',33,'#1F9D6B']];
+  var prev={n:'Previstas',c:'#C99AA0',v:[8,10,12,9,11,10]},conc={n:'Concluídas',c:'#5E2A30',v:[6,9,11,7,10,9]};
+  return pageWrap(head('Exemplos de indicadores','Gestão de ergonomia no painel S.I.G.E','',ctx.tagE)
+   +indRow(boxChart('MAPA DE RISCO GLOBAL · POSTOS DE TRABALHO',tileRow([[KC.baixo,'Baixo',82,'41%'],[KC.mod,'Moderado',74,'37%'],[KC.alto,'Alto',36,'18%'],[KC.muito,'Muito alto',8,'4%']],'dos postos')),
+      boxChart('TOP 3 SETORES CRÍTICOS · % DOS POSTOS EM RISCO ALTO OU MUITO ALTO',svgHBars([['Montagem',38],['Embalagem',31],['Expedição',24]],500,96,'%')),
+      boxChart('PLANO DE AÇÃO · SITUAÇÃO DAS AÇÕES',svgStack(AC,500)),
+      boxChart('AÇÕES PREVISTAS × CONCLUÍDAS NO PERÍODO',leg([prev,conc])+svgBarsG(MES,[prev,conc],500,128)))
+   +indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
+}
+function nr1IndSlide(ctx){
+  var AC=[['Não iniciado',6,'#8A7A78'],['Em andamento',9,'#2F6FED'],['Atrasada',1,'#D63B3B'],['Concluída',4,'#1F9D6B']];
+  return pageWrap(head('Exemplos de indicadores','Riscos psicossociais no painel S.I.G.E','',ctx.tagN)
+   +indRow(boxChart('CLASSIFICAÇÃO DO RISCO PSICOSSOCIAL POR GRUPO HOMOGÊNEO DE EXPOSIÇÃO (GHE)',tileRow([[KC.triv,'Trivial',2,'GHE'],[KC.baixo,'Baixo',4,'GHEs'],[KC.mod,'Moderado',3,'GHEs'],[KC.alto,'Alto',1,'GHE'],[KC.alt,'Altíssimo',0,'GHE']],'')) ,'')
+   +indRow(boxChart('RESULTADO POR DIMENSÃO · % DE RESPOSTAS FAVORÁVEIS',svgHBars([['Demandas',58],['Controle',66],['Apoio da chefia',72],['Apoio dos colegas',79],['Relacionamentos',74],['Cargo',81],['Comunicação e mudanças',63]],500,170,'%')),
+      boxChart('ADESÃO À COLETA E PLANO DE AÇÃO',
+        '<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:34px;font-weight:800;color:var(--deep)">87%</span><span style="font-size:12px;color:#5b4a4d">dos colaboradores responderam (174 de 200)</span></div><div style="height:12px;border-radius:6px;background:#E7D8D9;margin:8px 0 16px"><div style="width:87%;height:100%;border-radius:6px;background:var(--w)"></div></div>'+svgStack(AC,500)))
+   +indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
+}
+function glIndSlide(ctx){
+  var A='#C99AA0',C='#5E2A30',prog={n:'Programadas',c:A,v:[120,132,128,140,136,144]},apl={n:'Aplicadas',c:C,v:[96,104,100,112,108,118]},pt={n:'% participação',c:C,v:[79,76,76,78,80,81]};
+  return pageWrap(head('Exemplos de indicadores','Resultados mensais da Ginástica Laboral','',ctx.tagG)
+   +indRow(boxChart('AULAS PROGRAMADAS × APLICADAS',leg([prog,apl])+svgBarsG(MES,[prog,apl],500,128)),
+      boxChart('% DE PARTICIPAÇÃO · META 75%',svgBarsG(MES,[pt],500,148)),
+      boxChart('ADESÃO POR SETOR',svgHBars([['Produção',82],['Administrativo',74],['Logística',68],['Manutenção',61],['Qualidade',57],['Almoxarifado',88]],500,150,'%')),
+      boxChart('CANCELAMENTO DE AULAS · MOTIVOS',svgHBars([['Alta demanda',45],['Falta de pessoas',50],['Treinamento/reunião',41],['Ausência do orientador',12],['Outros',22]],500,150)))
+   +indNota(ctx)+foot(ctx));
+}
 function qrSvg(){
   var o='',f=function(x,y){return '<rect x="'+x+'" y="'+y+'" width="42" height="42" fill="#5E2A30"/><rect x="'+(x+7)+'" y="'+(y+7)+'" width="28" height="28" fill="#fff"/><rect x="'+(x+14)+'" y="'+(y+14)+'" width="14" height="14" fill="#5E2A30"/>';};
   o+=f(6,6)+f(112,6)+f(6,112);
   var seed=7;for(var i=0;i<150;i++){seed=(seed*9301+49297)%233280;var cx=Math.floor(seed/233280*20),cy=Math.floor(((seed*7)%233280)/233280*20);var x=6+cx*7,y=6+cy*7;if((x<56&&y<56)||(x>100&&y<56)||(x<56&&y>100))continue;o+='<rect x="'+x+'" y="'+y+'" width="6" height="6" fill="#5E2A30"/>';}
   return '<svg viewBox="0 0 160 160" width="150" height="150" style="background:#fff;border-radius:10px;padding:8px">'+o+'</svg>';
 }
-function agendaMock(){
-  var dias=['Seg','Ter','Qua','Qui','Sex'],hs=['08:00','09:00','10:00','11:00','13:00','14:00','15:00','16:00'];
-  var est=[[2,2,1,0,1],[2,1,2,1,0],[1,2,2,2,1],[0,1,2,1,2],[1,0,1,2,1],[2,1,0,2,2],[1,2,1,0,1],[0,1,2,1,0]];
-  var cor=['#F3E3E4','#C99AA0','#8B3A42'],lab=['Disponível','Agendado','Realizado'];
-  var g='<div style="display:grid;grid-template-columns:54px repeat(5,1fr);gap:4px;font-size:11px">'+'<div></div>'+dias.map(function(d){return '<div style="text-align:center;font-weight:800;color:var(--mid);padding:4px 0">'+d+'</div>';}).join('');
-  hs.forEach(function(h,r){g+='<div style="color:#8A7A78;padding-top:6px">'+h+'</div>';est[r].forEach(function(e){g+='<div style="height:26px;border-radius:6px;background:'+cor[e]+'"></div>';});});
-  g+='</div>';
-  var leg2='<div style="display:flex;gap:14px;font-size:11px;color:#5b4a4d;margin-top:10px">'+lab.map(function(l,i){return '<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:11px;height:11px;border-radius:3px;background:'+cor[i]+';display:inline-block;border:1px solid #E7D8D9"></i>'+l+'</span>';}).join('')+'</div>';
-  return '<div style="background:#fff;border:2px solid var(--ln);border-radius:16px;overflow:hidden"><div style="background:var(--deep);color:#fff;padding:9px 16px;font-size:12px;font-weight:700;display:flex;justify-content:space-between"><span>Agenda semanal</span><span style="color:#EBD9DB">Exemplo ilustrativo</span></div><div style="padding:14px 16px">'+g+leg2+'</div></div>';
+function agendaMock(k,ctx){
+  var T1='#0F4C5C',T2='#2AB1C6',nome=(k==='masso'?'Quick Massage':'Fisioterapia')+' · '+ctx.cliente;
+  var hoje=new Date(),m=hoje.getMonth(),y=hoje.getFullYear(),meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+  var prim=new Date(y,m,1).getDay(),nd=new Date(y,m+1,0).getDate(),cal='',disp={},sel=0,i;
+  for(i=1;i<=nd;i++){var wd=new Date(y,m,i).getDay();if(wd>=2&&wd<=4&&i>=hoje.getDate()){disp[i]=1;if(!sel)sel=i;}}
+  ['dom.','seg.','ter.','qua.','qui.','sex.','sáb.'].forEach(function(d){cal+='<div style="font-size:10px;color:#6b5a5c;text-align:center;font-weight:700">'+d+'</div>';});
+  for(i=0;i<prim;i++)cal+='<div></div>';
+  for(i=1;i<=nd;i++){var on=disp[i],es=i===sel;cal+='<div style="text-align:center;font-size:11px;padding:4px 0;border-radius:4px;'+(es?'background:'+T1+';color:#fff;font-weight:800':(on?'color:'+T1+';font-weight:800':'color:#9a8a8c'))+'">'+i+(on&&!es?'<div style="width:3px;height:3px;border-radius:50%;background:'+T1+';margin:1px auto 0"></div>':'')+'</div>';}
+  var hs=['10:20','10:40','11:00','11:40','12:00','14:50','15:10','15:30'];
+  var slots=hs.map(function(h,j){return '<div style="border:1px solid #555;text-align:center;padding:6px 0;font-size:11px;font-weight:700;'+(j===0?'background:'+T1+';color:#fff;border-color:'+T1:'color:#222;background:#fff')+'">'+h+'</div>';}).join('');
+  return '<div style="background:#fff;border:2px solid var(--ln);border-radius:14px;overflow:hidden"><div style="background:#F3E3E4;padding:7px 14px;display:flex;gap:6px;align-items:center"><i style="width:9px;height:9px;border-radius:50%;background:#C99AA0"></i><i style="width:9px;height:9px;border-radius:50%;background:#C99AA0"></i><i style="width:9px;height:9px;border-radius:50%;background:#C99AA0"></i><span style="margin-left:10px;font-size:10px;color:#6b5a5c;background:#fff;border-radius:8px;padding:2px 12px">elevalife.com.br · agendamento</span></div>'
+   +'<div style="padding:12px 18px"><div style="font-family:MA;font-weight:700;font-size:20px;color:#1d1d1d">Agende seu serviço</div><div style="font-size:11px;color:#333;margin:3px 0 10px">Confira a disponibilidade e agende a data e o horário que forem melhores para você.</div>'
+   +'<div style="display:flex;gap:16px"><div style="flex:1.05"><div style="font-size:11px;font-weight:800;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:6px">Selecione uma data e horário</div><div style="text-align:center;font-size:11px;font-weight:700;margin-bottom:4px">‹ &nbsp;'+meses[m]+' '+y+' &nbsp;›</div><div style="display:grid;grid-template-columns:repeat(7,1fr);gap:2px">'+cal+'</div></div>'
+   +'<div style="flex:.8"><div style="font-size:10.5px;color:#333;margin:18px 0 6px">Disponibilidade para '+(sel?['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'][new Date(y,m,sel).getDay()]+', '+sel+' de '+meses[m].toLowerCase():'o dia selecionado')+'</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'+slots+'</div></div>'
+   +'<div style="flex:.7"><div style="font-size:11px;font-weight:800;border-bottom:1px solid #ccc;padding-bottom:4px;margin-bottom:8px">Detalhes do serviço</div><div style="font-size:11px;font-weight:700">'+nome+'</div><div style="font-size:10px;color:#6b5a5c;margin:3px 0 12px">Mostrar detalhes ⌄</div><div style="background:'+T2+';color:#fff;text-align:center;font-weight:800;font-size:11px;padding:8px 0">Próximo</div></div></div></div></div>';
+}
+function meusAgend(ctx,k){
+  var s=k==='masso'?'Quick Massage':'Fisioterapia';
+  function lin(d,h,st,c){return '<div style="display:flex;justify-content:space-between;align-items:center;border-top:1px solid #E7D8D9;padding:6px 0;font-size:12px"><span><b style="color:var(--deep)">'+s+'</b> · '+d+' · '+h+'</span><span style="font-size:10.5px;font-weight:800;color:'+c+'">'+st+'</span></div>';}
+  return '<div style="background:var(--bg);border-radius:14px;padding:12px 16px"><div style="font-family:MA;font-weight:700;font-size:14px;color:var(--deep)">Meus agendamentos</div><div style="display:flex;gap:18px;font-size:11.5px;margin:6px 0 4px"><span style="font-weight:800;color:var(--w);border-bottom:2px solid var(--w);padding-bottom:2px">Futuros</span><span style="color:#8A7A78">Passados</span></div>'+lin('qua., 14/10','10:20','Confirmado','#1F9D6B')+lin('qui., 22/10','14:50','Confirmado','#1F9D6B')+'<div style="font-size:10.5px;color:#6b5a5c;margin-top:4px">Cada participante consulta, altera ou cancela seu horário.</div></div>';
 }
 function agendaSlide(k,ctx,tag){
   var txt=k==='masso'?'Para os agendamentos, disponibilizamos nosso sistema interno. Enviamos um link personalizado para a empresa, onde ficam disponíveis os horários de atendimento, e o profissional responsável organiza a agenda e comunica os participantes.':'Para os agendamentos, disponibilizamos nosso sistema interno, no qual o profissional responsável organiza a agenda e comunica os pacientes.';
   var txt2='O sistema permite acompanhar a taxa de atendimento (disponível × agendado × realizado), com maior controle do processo.';
-  var left=IMGS.agenda?'<img src="'+IMGS.agenda+'" style="width:100%;max-height:430px;object-fit:contain;border-radius:14px;border:2px solid var(--ln)">':agendaMock();
-  return pageWrap(head('Sistema de agendamentos','Organização e controle da agenda','',tag)+'<div style="display:flex;gap:30px;margin-top:20px;align-items:flex-start"><div style="flex:1.35">'+left+'</div><div style="flex:1"><p style="font-size:15px;line-height:1.55;color:#3a2a2c;margin:0 0 12px">'+txt+'</p><p style="font-size:15px;line-height:1.55;color:#3a2a2c;margin:0 0 18px">'+txt2+'</p><div style="display:flex;align-items:center;gap:16px;background:var(--bg);border-radius:16px;padding:14px 18px">'+qrSvg()+'<div style="font-size:13px;color:#5b4a4d;line-height:1.4"><b style="color:var(--deep)">QR code de exemplo</b><br>Acesso à agenda pelo celular</div></div></div></div>'+foot(ctx));
+  var left=IMGS.agenda?'<img src="'+IMGS.agenda+'" style="width:100%;max-height:430px;object-fit:contain;border-radius:14px;border:2px solid var(--ln)">':agendaMock(k,ctx);
+  return pageWrap(head('Sistema de agendamentos','Organização e controle da agenda','',tag)+'<div style="display:flex;gap:28px;margin-top:14px;align-items:flex-start"><div style="flex:1.45">'+left+'</div><div style="flex:1"><p style="font-size:14px;line-height:1.5;color:#3a2a2c;margin:0 0 8px">'+txt+'</p><p style="font-size:14px;line-height:1.5;color:#3a2a2c;margin:0 0 12px">'+txt2+'</p>'+meusAgend(ctx,k)+'<div style="display:flex;align-items:center;gap:14px;margin-top:12px"><div style="transform:scale(.72);transform-origin:left center;width:108px;height:108px;flex:none">'+qrSvg()+'</div><div style="font-size:12.5px;color:#5b4a4d;line-height:1.4"><b style="color:var(--deep)">QR code de exemplo</b><br>Acesso à agenda pelo celular</div></div></div></div><p class="note">Telas ilustrativas, com dados fictícios.</p>'+foot(ctx));
 }
 function svcSlides(k,ctx){
   var C=CONT[k],S=SVC[k],opts=OPTS[k],tag='Proposta · '+S.nome,out=[];
@@ -608,10 +660,10 @@ function gerar(){
   S.push(cover,T.about,T.clients);
   if(ergo){
     var lv=ergoOpts[0]||{sen:'PL',regime:'CLT'};
-    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,T.ergo_rep,ergoInvest(ctx));
+    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,ergoIndSlide(ctx),T.ergo_rep,ergoInvest(ctx));
   }
-  if(nr1on) S.push(T.nr1,nr1Invest(ctx));
-  if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,T.gl_rep,glInvest(ctx));
+  if(nr1on) S.push(T.nr1,nr1IndSlide(ctx),nr1Invest(ctx));
+  if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,glIndSlide(ctx),T.gl_rep,glInvest(ctx));
   SVC_KEYS.forEach(function(k){if(svcOn(k))svcSlides(k,ctx).forEach(function(h){S.push(h);});});
   conditions(ctx).forEach(function(c){S.push(c);});var cs=condSaude(ctx);if(cs)S.push(cs);S.push(T.end.replace('Proposta válida por 30 dias','Proposta válida por '+($('c-val').value||30)+' dias'));
   var html=S.map(function(h,i){return fill(h,ctx).replace(/\{\{N\}\}/g,i+1);});
