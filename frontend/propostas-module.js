@@ -326,16 +326,45 @@ function ergoIndSlide(ctx){
    +boxChart('AÇÕES PREVISTAS NO PERÍODO',svgLine(['Jan','Fev','Mar','Abr','Mai','Jun'],[6,9,12,10,14,11],330,150,'#3E7B7E'))
    +'</div>'+indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
 }
+function bodyFig(side,pts){
+  var o='',cor='#EAD3D5',ln='#D9B8BC',W=function(x1,y1,x2,y2,w){return '<line x1="'+x1+'" y1="'+y1+'" x2="'+x2+'" y2="'+y2+'" stroke="'+cor+'" stroke-width="'+w+'" stroke-linecap="round"/>';};
+  o+='<ellipse cx="220" cy="40" rx="20" ry="25" fill="'+cor+'"/>'+W(220,62,220,82,16);
+  [-1,1].forEach(function(d){var x=function(v){return 220+d*v;};
+    o+=W(x(44),94,x(60),160,22)+W(x(60),160,x(68),224,16)+'<ellipse cx="'+x(70)+'" cy="240" rx="9" ry="15" fill="'+cor+'"/>'
+      +W(x(20),236,x(24),305,32)+W(x(24),305,x(24),372,21)+'<ellipse cx="'+x(24)+'" cy="386" rx="15" ry="7" fill="'+cor+'"/>';});
+  o+='<path d="M178 88 Q220 76 262 88 L254 150 Q250 190 258 236 L182 236 Q190 190 186 150 Z" fill="'+cor+'" stroke="'+ln+'" stroke-width="1"/>';
+  if(side==='costas')o+='<line x1="220" y1="84" x2="220" y2="232" stroke="'+ln+'" stroke-width="2" stroke-dasharray="4 4"/>';
+  var mx=0;pts.forEach(function(p){if(p[4]>mx)mx=p[4];});
+  pts.forEach(function(p){
+    var nome=p[0],ax=p[1],ay=p[2],lado=p[3],v=p[4],by=p[5],bx=lado==='L'?6:338,ex=lado==='L'?bx+98:bx;
+    var r=v>0?5+9*v/mx:3.5,fill=v>0?'#8B3A42':'#B8A9AA',op=v>0?(0.35+0.55*v/mx):0.9;
+    o+='<line x1="'+ax+'" y1="'+ay+'" x2="'+ex+'" y2="'+(by+16)+'" stroke="#B8A9AA" stroke-width="1" stroke-dasharray="3 3"/><circle cx="'+ax+'" cy="'+ay+'" r="'+r+'" fill="'+fill+'" opacity="'+op+'"/>'
+     +'<rect x="'+bx+'" y="'+by+'" width="98" height="32" rx="5" fill="#fff" stroke="#B8A9AA" stroke-dasharray="3 3"/><text x="'+(bx+49)+'" y="'+(by+13)+'" font-size="9.5" text-anchor="middle" fill="#8A7A78">'+nome+'</text><text x="'+(bx+49)+'" y="'+(by+27)+'" font-size="12.5" font-weight="800" text-anchor="middle" fill="#2F6B5E">'+v+' dias</text>';});
+  return '<svg viewBox="0 0 442 410" style="display:block;margin:0 auto;height:432px;width:auto;max-width:100%">'+o+'</svg>';
+}
 function ergoAbsSlide(ctx){
   var tl='<div style="display:flex;gap:10px">'+[['Colaboradores','200','média do período'],['Dias perdidos','1.240','soma de dias de afastamento'],['Taxa de frequência','54,8','casos por milhão de HHT (NBR 14280)']].map(function(x){return '<div style="flex:1;background:var(--bg);border-left:5px solid #3E7B7E;border-radius:10px;padding:8px 10px"><div style="font-size:11px;font-weight:700;color:#5b4a4d">'+x[0]+'</div><div style="font-size:26px;font-weight:800;color:var(--deep);line-height:1.15">'+x[1]+'</div><div style="font-size:10.5px;color:#8A7A78">'+x[2]+'</div></div>';}).join('')+'</div>';
-  var ps=[{n:'Taxa de frequência',c:'#3E7B7E',v:[33,18,72,83,99,37,106,42]}];
-  return pageWrap(head('Exemplos de indicadores','Absenteísmo e restritos no painel S.I.G.E','',ctx.tagE)
-   +'<div style="margin-top:12px">'+boxChart('TOTAIS DO PERÍODO · GESTÃO DE ABSENTEÍSMO',tl)+'</div>'
+  var ps={n:'Taxa de frequência',c:'#3E7B7E',v:[33,18,72,83,99,37,106,42]};
+  return pageWrap(head('Exemplos de indicadores','Gestão de absenteísmo no painel S.I.G.E','',ctx.tagE)
+   +'<div style="margin-top:12px">'+boxChart('TOTAIS DO PERÍODO',tl)+'</div>'
    +'<div style="display:flex;gap:16px;margin-top:12px">'
-   +boxChart('EVOLUÇÃO DA TAXA DE FREQUÊNCIA',svgLine(['Jan','Fev','Mar','Abr','Mai','Jun'],[50,62,71,66,58,54],330,150,'#3E7B7E'))
-   +boxChart('DIAS PERDIDOS POR REGIÃO CORPORAL',svgHBars([['Ombro',248],['Dorsal',189],['Quadril',183],['Cervical',167],['Lombar',162]],360,140))
-   +boxChart('RESTRITOS · EM ATIVIDADE COMPATÍVEL',svgDonut([['Sim',34,'#1F9D6B'],['Não',24,'#D63B3B']],150))
+   +boxChart('EVOLUÇÃO DA TAXA DE FREQUÊNCIA',svgLine(['Jan','Fev','Mar','Abr','Mai','Jun'],[50,62,71,66,58,54],330,170,'#3E7B7E'))
+   +boxChart('TAXA DE FREQUÊNCIA POR SETOR',svgBarsG(['Adm.','TI','Atend.','CD','Exped.','Mont.','Manut.','Usin.'],[ps],470,170))
    +'</div>'+indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
+}
+function ergoBodySlide(ctx){
+  var fr=[['Ombro direito',178,92,'L',212,76],['Ombro esquerdo',262,92,'R',74,76],['Cotovelo direito',160,160,'L',96,134],['Cotovelo esquerdo',280,160,'R',0,134],['Punho direito',152,224,'L',141,190],['Punho esquerdo',288,224,'R',28,190],['Mão direita',150,244,'L',118,246],['Mão esquerda',290,244,'R',45,246],['Pé direito',196,386,'L',52,362],['Pé esquerdo',244,386,'R',83,362]];
+  var co=[['Cervical',220,76,'R',156,56],['Dorsal',220,130,'R',178,116],['Lombar',220,200,'L',149,176],['Quadril direito',190,240,'L',171,232],['Quadril esquerdo',250,240,'R',0,232],['Joelho direito',196,305,'L',59,290],['Joelho esquerdo',244,305,'R',27,290],['Tornozelo direito',196,372,'L',96,356],['Tornozelo esquerdo',244,372,'R',0,356]];
+  return pageWrap(head('Exemplos de indicadores','Dias perdidos por região corporal','',ctx.tagE)
+   +'<div style="display:flex;gap:16px;margin-top:6px">'+boxChart('DIAS PERDIDOS POR REGIÃO · FRENTE',bodyFig('frente',fr))+boxChart('DIAS PERDIDOS POR REGIÃO · COSTAS',bodyFig('costas',co))+'</div>'
+   +indNota(ctx,', no formato do painel S.I.G.E (gestão de absenteísmo)')+foot(ctx));
+}
+function ergoRestSlide(ctx){
+  var fm=[['Masculino',39,'#8B3A42'],['Feminino',19,'#2F6B6E']],ac=[['Sim',34,'#1F9D6B'],['Não',24,'#D63B3B']],id={n:'Colaboradores',c:'#3E7B7E',v:[6,16,17,13,6]};
+  return pageWrap(head('Exemplos de indicadores','Gestão de restritos no painel S.I.G.E','',ctx.tagE)
+   +'<div style="display:flex;gap:16px;margin-top:10px">'+boxChart('GÊNERO',svgDonut(fm,130))+boxChart('IDADE',svgBarsG(['Até 24','25-34','35-44','45-54','55+'],[id],330,150))+boxChart('EM ATIVIDADE COMPATÍVEL',svgDonut(ac,130))+'</div>'
+   +'<div style="display:flex;gap:16px;margin-top:12px">'+boxChart('RESTRITOS POR SETOR',svgHBars([['Produção',16],['Montagem',12],['Logística',9],['Manutenção',7],['Administrativo',4]],500,115))+boxChart('RESTRIÇÃO POR TURNO',svgHBars([['1º turno',32],['2º turno',18],['3º turno',8]],500,115))+'</div>'
+   +indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
 }
 function nr1IndSlide(ctx){
   var AC=stItems([6,9,1,0,4]);
@@ -562,7 +591,7 @@ function gerar(){
   S.push(cover,T.about,T.clients);
   if(ergo){
     var lv=ergoOpts[0]||{sen:'PL',regime:'CLT'};
-    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,ergoIndSlide(ctx),ergoAbsSlide(ctx),T.ergo_rep,ergoInvest(ctx));
+    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,ergoIndSlide(ctx),ergoAbsSlide(ctx),ergoBodySlide(ctx),ergoRestSlide(ctx),T.ergo_rep,ergoInvest(ctx));
   }
   if(nr1on) S.push(T.nr1,nr1IndSlide(ctx),nr1Invest(ctx));
   if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,glIndSlide(ctx),T.gl_rep,glInvest(ctx));
