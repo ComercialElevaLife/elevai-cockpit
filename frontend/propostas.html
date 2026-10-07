@@ -106,28 +106,16 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div id="med-opts"></div>
   </div>
 
-  <div class="ui-sec" id="box-imgs"><h3>Imagens de exemplo (opcional)</h3>
-    <label>Tela do sistema de agendamento (Fisio e Masso)</label><input id="img-agenda" type="file" accept="image/*">
-    <label>Imagem de indicadores (substitui os gráficos de exemplo)</label><input id="img-ind" type="file" accept="image/*">
-    <div class="ui-hint">Sem imagem anexada, as lâminas usam telas e gráficos ilustrativos no padrão Eleva. A imagem vale só para esta proposta e não é salva no SharePoint.</div>
-  </div>
   <div class="ui-sec"><h3>Prazos e condições</h3>
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
-    <div class="ui-hint" style="margin-top:6px"><b>Código do serviço (LC 116)</b> — digite o serviço (ex.: fisioterapia) ou o código e escolha na lista; o código e a descrição são preenchidos. Confirme com o fiscal antes de enviar.</div>
-    <label>Código · Ergonomia / NR-1</label><input id="c-cod-ergo" list="dl-cod" autocomplete="off" value="08.02.01" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-ergo"></div>
-    <input id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza" aria-label="Descrição do código · Ergonomia / NR-1" style="margin-top:4px">
-    <label>Código · Ginástica Laboral</label><input id="c-cod-gl" list="dl-cod" autocomplete="off" value="04.08.02" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-gl"></div>
-    <input id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia" aria-label="Descrição do código · Ginástica Laboral" style="margin-top:4px">
-    <label>Código · Fisioterapia</label><input id="c-cod-fisio" list="dl-cod" autocomplete="off" value="04.08.02" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-fisio"></div>
-    <input id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia" aria-label="Descrição do código · Fisioterapia" style="margin-top:4px">
-    <label>Código · Massoterapia</label><input id="c-cod-masso" list="dl-cod" autocomplete="off" value="04.09" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-masso"></div>
-    <input id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental" aria-label="Descrição do código · Massoterapia" style="margin-top:4px">
-    <label>Código · Enfermagem do Trabalho</label><input id="c-cod-enf" list="dl-cod" autocomplete="off" value="04.06" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-enf"></div>
-    <input id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares" aria-label="Descrição do código · Enfermagem do Trabalho" style="margin-top:4px">
-    <label>Código · Medicina do Trabalho</label><input id="c-cod-med" list="dl-cod" autocomplete="off" value="04.01" placeholder="Digite o serviço ou o código"><div class="ui-hint" id="h-cod-med"></div>
-    <input id="c-obs-med" value="Medicina e biomedicina" aria-label="Descrição do código · Medicina do Trabalho" style="margin-top:4px">
-    <datalist id="dl-cod"></datalist>
+    <div class="ui-hint" style="margin-top:6px"><b>Código do serviço (LC 116)</b> — escolha na lista suspensa; a descrição é preenchida automaticamente. Confirme com o fiscal antes de enviar.</div>
+    <label>Código · Ergonomia / NR-1</label><select id="c-cod-ergo" data-def="08.02.01"></select><div class="ui-hint" id="h-cod-ergo"></div><input type="hidden" id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza">
+    <label>Código · Ginástica Laboral</label><select id="c-cod-gl" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-gl"></div><input type="hidden" id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia">
+    <label>Código · Fisioterapia</label><select id="c-cod-fisio" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-fisio"></div><input type="hidden" id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia">
+    <label>Código · Massoterapia</label><select id="c-cod-masso" data-def="04.09"></select><div class="ui-hint" id="h-cod-masso"></div><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental">
+    <label>Código · Enfermagem do Trabalho</label><select id="c-cod-enf" data-def="04.06"></select><div class="ui-hint" id="h-cod-enf"></div><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares">
+    <label>Código · Medicina do Trabalho</label><select id="c-cod-med" data-def="04.01"></select><div class="ui-hint" id="h-cod-med"></div><input type="hidden" id="c-obs-med" value="Medicina e biomedicina">
     <label>CNPJ e razão social (GL)</label><input id="c-cnpj-gl" value="15.447.255/0001-74 · ELEVALIFE SAÚDE E EDUCAÇÃO LTDA">
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
@@ -468,7 +456,6 @@ function svcSlides(k,ctx){
   return out;
 }
 
-['agenda','ind'].forEach(function(k){var el=$('img-'+k);if(!el)return;el.onchange=function(){var f=el.files&&el.files[0];if(!f){IMGS[k]='';return;}if(f.size>2500000){alert('Imagem acima de 2,5 MB. Reduza o tamanho.');el.value='';IMGS[k]='';return;}var r=new FileReader();r.onload=function(){IMGS[k]=String(r.result||'');};r.readAsDataURL(f);};});
 function condSaude(ctx){
   var ks=SVC_KEYS.filter(svcOn);if(!ks.length)return null;
   var cn=(ctx.cnpjGL||'').split(' · ');
@@ -513,23 +500,15 @@ function codBusca(t){
   return null;
 }
 function codInit(){
-  var dl=$('dl-cod');if(!dl)return;
-  dl.innerHTML=codAll().map(function(x){return '<option value="'+x.c+' — '+x.d.replace(/"/g,'&quot;')+'" label="'+x.l.replace(/"/g,'&quot;')+'"></option>';}).join('');
+  var all=codAll(),sug=all.filter(function(x){return COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});}),res=all.filter(function(x){return sug.indexOf(x)<0;});
+  function op(x,l){return '<option value="'+x.c+'" data-d="'+x.d.replace(/"/g,'&quot;')+'">'+x.c+' — '+l.replace(/"/g,'&quot;')+'</option>';}
+  var html='<optgroup label="Sugeridos ElevaLife">'+sug.map(function(x){return op(x,x.l);}).join('')+'</optgroup><optgroup label="Lista LC 116">'+res.map(function(x){return op(x,x.d);}).join('')+'</optgroup>';
   ['ergo','gl','fisio','masso','enf','med'].forEach(function(k){
-    var inp=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!inp)return;
-    function aplicar(x,v){inp.value=x.c;obs.value=x.d;hint.textContent='✓ '+x.c+' — '+x.d;}
-    inp.addEventListener('input',function(){
-      var v=inp.value;
-      if(v.indexOf(' — ')>0){var c=v.split(' — ')[0].trim(),x=codBusca(c);if(x){aplicar({c:c,d:v.split(' — ').slice(1).join(' — ').trim()});return;}}
-      var m=codBusca(v);hint.textContent=m?'Sugestão: '+m.c+' — '+m.d:(v?'Sem sugestão — o texto digitado será usado como código.':'');
-    });
-    inp.addEventListener('change',function(){
-      var v=inp.value;if(!v)return;
-      if(v.indexOf(' — ')>0)return;
-      var m=v.match(/^\s*(\d{1,2})\.(\d{2})(\.\d+)?\s*$/);
-      if(m){var base=pad2(m[1])+'.'+m[2],x=codBusca(base);inp.value=base+(m[3]||'');if(x&&(!obs.value||m[3]===undefined))obs.value=x.d;hint.textContent=x?'✓ '+inp.value+' — '+x.d:'';return;}
-      var b=codBusca(v);if(b)aplicar(b);
-    });
+    var sel=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!sel)return;
+    sel.innerHTML=html;var def=sel.getAttribute('data-def');if(def)sel.value=def;
+    function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';}
+    sel.addEventListener('change',function(){var o=sel.options[sel.selectedIndex];if(o)obs.value=o.getAttribute('data-d')||'';mostra();});
+    mostra();
   });
 }
 codInit();
@@ -652,7 +631,7 @@ function getState(){
   return {campos:campos,ergoOpts:ergoOpts,glOpts:glOpts,svcOpts:OPTS,slides:slides};
 }
 function setState(st){
-  FIELD_IDS.forEach(function(id){var e=$(id);if(st.campos&&st.campos[id]!=null){if(e.type==='checkbox')e.checked=!!st.campos[id];else e.value=st.campos[id];}});
+  FIELD_IDS.forEach(function(id){var e=$(id);if(st.campos&&st.campos[id]!=null){if(e.type==='checkbox')e.checked=!!st.campos[id];else{e.value=st.campos[id];if(e.tagName==='SELECT'&&e.value!==String(st.campos[id])){e.add(new Option(st.campos[id],st.campos[id]));e.value=st.campos[id];}}}});
   if(st.ergoOpts)ergoOpts=st.ergoOpts;if(st.glOpts)glOpts=st.glOpts;
   if(st.svcOpts)SVC_KEYS.forEach(function(k){if(st.svcOpts[k]&&st.svcOpts[k].length)OPTS[k]=st.svcOpts[k];});
   renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();
