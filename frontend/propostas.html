@@ -425,23 +425,50 @@ function svgStack(items,w){
 }
 function indRow(a,b,c,d){return '<div style="display:flex;gap:16px;margin-top:12px">'+a+b+'</div>'+(c?'<div style="display:flex;gap:16px;margin-top:12px">'+c+d+'</div>':'');}
 function indNota(ctx,extra){return '<p class="note">Exemplo ilustrativo, com dados fictícios'+(extra||'')+'. Os indicadores reais são definidos em conjunto com '+ctx.cliente+'.</p>';}
+function svgDonut(items,size){
+  items=items.filter(function(x){return x[1]>0;});var t=0,r=64,C=2*Math.PI*r,off=0,o='';items.forEach(function(x){t+=x[1];});
+  items.forEach(function(x){var f=x[1]/t,len=C*f;o+='<circle cx="100" cy="100" r="'+r+'" fill="none" stroke="'+x[2]+'" stroke-width="40" stroke-dasharray="'+(Math.min(len+0.8,C))+' '+C+'" stroke-dashoffset="'+(-off)+'" transform="rotate(-90 100 100)"/>';
+    if(f>=0.06){var ang=(off+len/2)/C*2*Math.PI-Math.PI/2;o+='<text x="'+(100+r*Math.cos(ang))+'" y="'+(100+r*Math.sin(ang)+4)+'" font-size="12" font-weight="700" fill="#fff" text-anchor="middle">'+Math.round(f*100)+'%</text>';}off+=len;});
+  var lg='<div style="display:flex;flex-wrap:wrap;gap:4px 12px;font-size:11px;color:#5b4a4d;justify-content:center">'+items.map(function(x){return '<span style="display:inline-flex;align-items:center;gap:5px"><i style="width:10px;height:10px;border-radius:3px;background:'+x[2]+';display:inline-block"></i>'+x[0]+' ('+x[1]+')</span>';}).join('')+'</div>';
+  return '<div style="text-align:center"><svg viewBox="0 0 200 200" width="'+size+'" height="'+size+'">'+o+'</svg></div>'+lg;
+}
+function svgLine(cats,vals,w,h,cor){
+  var mx=Math.ceil(Math.max.apply(null,vals)*1.15),pl=30,pb=24,pt=10,iw=w-pl-8,ih=h-pb-pt,pts=vals.map(function(v,i){return [pl+iw*i/(vals.length-1),pt+ih-ih*v/mx];}),o='';
+  for(var g=0;g<=4;g++){var y=pt+ih-ih*g/4;o+='<line x1="'+pl+'" x2="'+(w-8)+'" y1="'+y+'" y2="'+y+'" stroke="#E7D8D9"/><text x="'+(pl-5)+'" y="'+(y+4)+'" font-size="11" text-anchor="end" fill="#8A7A78">'+Math.round(mx*g/4)+'</text>';}
+  var d=pts.map(function(p,i){return (i?'L':'M')+p[0]+' '+p[1];}).join(' ');
+  o+='<path d="'+d+' L'+pts[pts.length-1][0]+' '+(pt+ih)+' L'+pts[0][0]+' '+(pt+ih)+' Z" fill="'+cor+'" opacity=".14"/><path d="'+d+'" fill="none" stroke="'+cor+'" stroke-width="2.5"/>';
+  pts.forEach(function(p,i){o+='<circle cx="'+p[0]+'" cy="'+p[1]+'" r="3.5" fill="'+cor+'"/><text x="'+p[0]+'" y="'+(h-6)+'" font-size="11" text-anchor="middle" fill="#5b4a4d">'+cats[i]+'</text>';});
+  return '<svg viewBox="0 0 '+w+' '+h+'" width="100%">'+o+'</svg>';
+}
+var ST_COR=[['Não iniciado','#8A7A78'],['Em andamento','#2F6FED'],['Atrasada','#D63B3B'],['Concluída com atraso','#E08A1E'],['Concluída','#1F9D6B']];
+function stItems(v){return ST_COR.map(function(c,i){return [c[0],v[i],c[1]];});}
 function ergoIndSlide(ctx){
-  var AC=[['Não iniciado',18,'#8A7A78'],['Em andamento',34,'#2F6FED'],['Atrasada',9,'#D63B3B'],['Concluída com atraso',6,'#E08A1E'],['Concluída',33,'#1F9D6B']];
-  var prev={n:'Previstas',c:'#C99AA0',v:[8,10,12,9,11,10]},conc={n:'Concluídas',c:'#5E2A30',v:[6,9,11,7,10,9]};
-  return pageWrap(head('Exemplos de indicadores','Gestão de ergonomia no painel S.I.G.E','',ctx.tagE)
-   +indRow(boxChart('MAPA DE RISCO GLOBAL · POSTOS DE TRABALHO',tileRow([[KC.baixo,'Baixo',82,'41%'],[KC.mod,'Moderado',74,'37%'],[KC.alto,'Alto',36,'18%'],[KC.muito,'Muito alto',8,'4%']],'dos postos')),
-      boxChart('TOP 3 SETORES CRÍTICOS · % DOS POSTOS EM RISCO ALTO OU MUITO ALTO',svgHBars([['Montagem',38],['Embalagem',31],['Expedição',24]],500,96,'%')),
-      boxChart('PLANO DE AÇÃO · SITUAÇÃO DAS AÇÕES',svgStack(AC,500)),
-      boxChart('AÇÕES PREVISTAS × CONCLUÍDAS NO PERÍODO',leg([prev,conc])+svgBarsG(MES,[prev,conc],500,128)))
-   +indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
+  return pageWrap(head('Exemplos de indicadores','Gestão de risco no painel S.I.G.E','',ctx.tagE)
+   +'<div style="margin-top:12px">'+boxChart('MAPA DE RISCO GLOBAL · POSTOS DE TRABALHO',tileRow([[KC.baixo,'Baixo',82,'41%'],[KC.mod,'Moderado',74,'37%'],[KC.alto,'Alto',36,'18%'],[KC.muito,'Muito alto',8,'4%']],'dos postos'))+'</div>'
+   +'<div style="display:flex;gap:16px;margin-top:12px">'
+   +boxChart('TOP 3 SETORES CRÍTICOS',svgHBars([['Montagem',100],['Embalagem',88],['Expedição',75]],360,120,'%'))
+   +boxChart('PLANO DE AÇÃO · GLOBAL',svgDonut(stItems([30,26,18,8,42]),150))
+   +boxChart('AÇÕES PREVISTAS NO PERÍODO',svgLine(['Jan','Fev','Mar','Abr','Mai','Jun'],[6,9,12,10,14,11],330,150,'#3E7B7E'))
+   +'</div>'+indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
+}
+function ergoAbsSlide(ctx){
+  var tl='<div style="display:flex;gap:10px">'+[['Colaboradores','200','média do período'],['Dias perdidos','1.240','soma de dias de afastamento'],['Taxa de frequência','54,8','casos por milhão de HHT (NBR 14280)']].map(function(x){return '<div style="flex:1;background:var(--bg);border-left:5px solid #3E7B7E;border-radius:10px;padding:8px 10px"><div style="font-size:11px;font-weight:700;color:#5b4a4d">'+x[0]+'</div><div style="font-size:26px;font-weight:800;color:var(--deep);line-height:1.15">'+x[1]+'</div><div style="font-size:10.5px;color:#8A7A78">'+x[2]+'</div></div>';}).join('')+'</div>';
+  var ps=[{n:'Taxa de frequência',c:'#3E7B7E',v:[33,18,72,83,99,37,106,42]}];
+  return pageWrap(head('Exemplos de indicadores','Absenteísmo e restritos no painel S.I.G.E','',ctx.tagE)
+   +'<div style="margin-top:12px">'+boxChart('TOTAIS DO PERÍODO · GESTÃO DE ABSENTEÍSMO',tl)+'</div>'
+   +'<div style="display:flex;gap:16px;margin-top:12px">'
+   +boxChart('EVOLUÇÃO DA TAXA DE FREQUÊNCIA',svgLine(['Jan','Fev','Mar','Abr','Mai','Jun'],[50,62,71,66,58,54],330,150,'#3E7B7E'))
+   +boxChart('DIAS PERDIDOS POR REGIÃO CORPORAL',svgHBars([['Ombro',248],['Dorsal',189],['Quadril',183],['Cervical',167],['Lombar',162]],360,140))
+   +boxChart('RESTRITOS · EM ATIVIDADE COMPATÍVEL',svgDonut([['Sim',34,'#1F9D6B'],['Não',24,'#D63B3B']],150))
+   +'</div>'+indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
 }
 function nr1IndSlide(ctx){
-  var AC=[['Não iniciado',6,'#8A7A78'],['Em andamento',9,'#2F6FED'],['Atrasada',1,'#D63B3B'],['Concluída',4,'#1F9D6B']];
+  var AC=stItems([6,9,1,0,4]);
   return pageWrap(head('Exemplos de indicadores','Riscos psicossociais no painel S.I.G.E','',ctx.tagN)
    +indRow(boxChart('CLASSIFICAÇÃO DO RISCO PSICOSSOCIAL POR GRUPO HOMOGÊNEO DE EXPOSIÇÃO (GHE)',tileRow([[KC.triv,'Trivial',2,'GHE'],[KC.baixo,'Baixo',4,'GHEs'],[KC.mod,'Moderado',3,'GHEs'],[KC.alto,'Alto',1,'GHE'],[KC.alt,'Altíssimo',0,'GHE']],'')) ,'')
    +indRow(boxChart('RESULTADO POR DIMENSÃO · % DE RESPOSTAS FAVORÁVEIS',svgHBars([['Demandas',58],['Controle',66],['Apoio da chefia',72],['Apoio dos colegas',79],['Relacionamentos',74],['Cargo',81],['Comunicação e mudanças',63]],500,170,'%')),
       boxChart('ADESÃO À COLETA E PLANO DE AÇÃO',
-        '<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:34px;font-weight:800;color:var(--deep)">87%</span><span style="font-size:12px;color:#5b4a4d">dos colaboradores responderam (174 de 200)</span></div><div style="height:12px;border-radius:6px;background:#E7D8D9;margin:8px 0 16px"><div style="width:87%;height:100%;border-radius:6px;background:var(--w)"></div></div>'+svgStack(AC,500)))
+        '<div style="display:flex;align-items:baseline;gap:10px"><span style="font-size:34px;font-weight:800;color:var(--deep)">87%</span><span style="font-size:12px;color:#5b4a4d">dos colaboradores responderam (174 de 200)</span></div><div style="height:12px;border-radius:6px;background:#E7D8D9;margin:8px 0 16px"><div style="width:87%;height:100%;border-radius:6px;background:var(--w)"></div></div>'+svgDonut(AC,120)))
    +indNota(ctx,', no formato do painel S.I.G.E')+foot(ctx));
 }
 function glIndSlide(ctx){
@@ -660,7 +687,7 @@ function gerar(){
   S.push(cover,T.about,T.clients);
   if(ergo){
     var lv=ergoOpts[0]||{sen:'PL',regime:'CLT'};
-    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,ergoIndSlide(ctx),T.ergo_rep,ergoInvest(ctx));
+    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,ergoIndSlide(ctx),ergoAbsSlide(ctx),T.ergo_rep,ergoInvest(ctx));
   }
   if(nr1on) S.push(T.nr1,nr1IndSlide(ctx),nr1Invest(ctx));
   if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,glIndSlide(ctx),T.gl_rep,glInvest(ctx));
