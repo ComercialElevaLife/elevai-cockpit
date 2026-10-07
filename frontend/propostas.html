@@ -110,12 +110,18 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
     <div class="ui-hint" style="margin-top:6px"><b>Código do serviço (LC 116)</b> — escolha na lista suspensa; a descrição é preenchida automaticamente. Confirme com o fiscal antes de enviar.</div>
-    <label>Código · Ergonomia / NR-1</label><select id="c-cod-ergo" data-def="08.02.01"></select><div class="ui-hint" id="h-cod-ergo"></div><input type="hidden" id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza">
-    <label>Código · Ginástica Laboral</label><select id="c-cod-gl" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-gl"></div><input type="hidden" id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia">
-    <label>Código · Fisioterapia</label><select id="c-cod-fisio" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-fisio"></div><input type="hidden" id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia">
-    <label>Código · Massoterapia</label><select id="c-cod-masso" data-def="04.09"></select><div class="ui-hint" id="h-cod-masso"></div><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental">
-    <label>Código · Enfermagem do Trabalho</label><select id="c-cod-enf" data-def="04.06"></select><div class="ui-hint" id="h-cod-enf"></div><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares">
-    <label>Código · Medicina do Trabalho</label><select id="c-cod-med" data-def="04.01"></select><div class="ui-hint" id="h-cod-med"></div><input type="hidden" id="c-obs-med" value="Medicina e biomedicina">
+    <div id="cg-ergo">
+    <label>Código · Ergonomia / NR-1</label><select id="c-cod-ergo" data-def="08.02.01"></select><div class="ui-hint" id="h-cod-ergo"></div><input type="hidden" id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza"></div>
+    <div id="cg-gl">
+    <label>Código · Ginástica Laboral</label><select id="c-cod-gl" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-gl"></div><input type="hidden" id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
+    <div id="cg-fisio">
+    <label>Código · Fisioterapia</label><select id="c-cod-fisio" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-fisio"></div><input type="hidden" id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
+    <div id="cg-masso">
+    <label>Código · Massoterapia</label><select id="c-cod-masso" data-def="04.09"></select><div class="ui-hint" id="h-cod-masso"></div><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental"></div>
+    <div id="cg-enf">
+    <label>Código · Enfermagem do Trabalho</label><select id="c-cod-enf" data-def="04.06"></select><div class="ui-hint" id="h-cod-enf"></div><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares"></div>
+    <div id="cg-med">
+    <label>Código · Medicina do Trabalho</label><select id="c-cod-med" data-def="04.01"></select><div class="ui-hint" id="h-cod-med"></div><input type="hidden" id="c-obs-med" value="Medicina e biomedicina"></div>
     <label>CNPJ e razão social (GL)</label><input id="c-cnpj-gl" value="15.447.255/0001-74 · ELEVALIFE SAÚDE E EDUCAÇÃO LTDA">
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
@@ -475,7 +481,7 @@ function nr1Calc(){
 function showNr1(){var c=nr1Calc();$('n-total').textContent='Total '+BRL(c.total)+'  ·  Etapa 3 '+BRL(c.e3);}
 ['n-vidas','n-vh','n-e1','n-e2','n-reu','n-min'].forEach(function(id){$(id).oninput=showNr1;});
 
-function svcToggle(){$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
+function svcToggle(){$('cg-ergo').style.display=($('s-ergo').checked||$('s-nr1').checked)?'':'none';$('cg-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$('cg-'+k).style.display=svcOn(k)?'':'none';});$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
 ['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med'].forEach(function(id){$(id).onchange=svcToggle;});
 SVC_KEYS.forEach(renderSvc);
 
