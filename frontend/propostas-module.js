@@ -4,8 +4,8 @@
 'use strict';
 var FONTS="@font-face{font-family:M;font-weight:400;src:url(propostas-assets/fonts/montserrat-latin-400-normal.woff2)}@font-face{font-family:M;font-weight:600;src:url(propostas-assets/fonts/montserrat-latin-600-normal.woff2)}@font-face{font-family:M;font-weight:700;src:url(propostas-assets/fonts/montserrat-latin-700-normal.woff2)}@font-face{font-family:M;font-weight:800;src:url(propostas-assets/fonts/montserrat-latin-800-normal.woff2)}@font-face{font-family:MA;font-weight:700;src:url(propostas-assets/fonts/montserrat-alternates-latin-700-normal.woff2)}";
 var CSS_SLIDES="\n\n\n\n\n\n@page{size:1280px 720px;margin:0}\n:host{--w:#8B3A42;--deep:#5E2A30;--mid:#A34E56;--soft:#C99AA0;--pale:#F3E3E4;--bg:#F5EFEA;--ink:#3D2E30;--mut:#8A7A78;--ln:#E7D8D9;--teal:#3E7B7E}\n*{box-sizing:border-box;margin:0;padding:0}\n.ui-root{font-family:M,sans-serif;color:var(--ink);-webkit-print-color-adjust:exact;print-color-adjust:exact}\n.pg{width:1280px;height:720px;position:relative;overflow:hidden;page-break-after:always;background:#fff;padding:56px 72px}\n.pg:last-child{page-break-after:auto}\nh1,h2,h3{font-family:MA,M,sans-serif;font-weight:700}\n.top{position:absolute;left:0;right:0;top:0;height:10px;background:linear-gradient(90deg,var(--deep),var(--w) 60%,var(--soft))}\n.tagp{position:absolute;right:72px;top:30px;font-size:10.5px;font-weight:700;letter-spacing:1.5px;color:var(--mid);text-transform:uppercase}\n.foot{position:absolute;left:72px;right:72px;bottom:22px;display:flex;justify-content:space-between;font-size:10.5px;color:var(--mut);border-top:1px solid var(--ln);padding-top:9px}\n.eyebrow{font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--mid);margin-bottom:6px}\nh2{font-size:34px;color:var(--deep);margin-bottom:8px;line-height:1.15}\n.lead{font-size:17px;line-height:1.55;color:#5b4a4d;max-width:900px}\n.cover{background:linear-gradient(135deg,var(--deep),#7A3139 55%,var(--w));color:#fff;padding:0}\n.cover .logo{position:absolute;left:72px;top:56px;height:92px}\n.cover .tt{position:absolute;left:72px;top:215px;width:820px}\n.cover .k{font-size:14px;letter-spacing:3px;font-weight:700;color:#EBD9DB;margin-bottom:18px}\n.cover h1{font-size:54px;line-height:1.08;margin-bottom:20px}\n.cover .tag{font-size:16px;font-weight:600;color:#EBD9DB;letter-spacing:1px}\n.cover .for{position:absolute;left:72px;bottom:60px;font-size:15px;line-height:1.7}\n.cover .for b{font-size:26px;font-family:MA,M}\n.deco{position:absolute;right:-120px;bottom:-140px;width:560px;height:560px;border-radius:50%;border:70px solid rgba(255,255,255,.06)}\n.deco2{position:absolute;right:120px;bottom:-60px;width:260px;height:260px;border-radius:50%;background:rgba(255,255,255,.05)}\n.seal{position:absolute;right:80px;top:64px;width:150px;height:150px;border-radius:50%;border:2px solid rgba(255,255,255,.75);display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(255,255,255,.07)}\n.seal .n{font-size:58px;font-weight:800;line-height:1}.seal .a{font-size:14px;font-weight:700;letter-spacing:3px;text-transform:uppercase}.seal .s{font-size:9px;letter-spacing:1px;margin-top:4px;color:#EBD9DB}\n.ic{width:56px;height:56px;border-radius:50%;background:var(--w);display:flex;align-items:center;justify-content:center;flex:0 0 auto}\n.ic svg{width:28px;height:28px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}\n.ic.sm{width:48px;height:48px}.ic.sm svg{width:24px;height:24px}\n.ic.lt{background:var(--pale)}.ic.lt svg{stroke:var(--w)}\n.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}\n.stat{background:var(--deep);color:#fff;border-radius:16px;padding:28px 14px;text-align:center}\n.stat .v{font-size:44px;font-weight:800}.stat .l{font-size:14px;color:#EBD9DB;margin-top:2px}\n.box{background:var(--bg);border-radius:16px;padding:18px 20px}\n.box h3{font-size:18px;color:var(--deep);margin-bottom:6px}.box p{font-size:15px;line-height:1.55}\n.grid{display:grid;gap:18px}.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}.g5{grid-template-columns:repeat(5,1fr)}.g6{grid-template-columns:repeat(3,1fr)}\n.tile{background:var(--bg);border-radius:18px;padding:26px 24px;display:flex;gap:16px;align-items:center}\n.tile b{display:block;font-size:17px;color:var(--deep);margin-bottom:2px;font-family:MA,M}.tile span{font-size:14px;line-height:1.45;color:#5b4a4d}\n.arrowrow{display:flex;align-items:stretch;gap:0}\n.chev{flex:1;background:var(--w);color:#fff;padding:30px 24px 30px 34px;position:relative;clip-path:polygon(0 0,calc(100% - 22px) 0,100% 50%,calc(100% - 22px) 100%,0 100%,22px 50%);margin-right:-10px}\n.chev:first-child{clip-path:polygon(0 0,calc(100% - 22px) 0,100% 50%,calc(100% - 22px) 100%,0 100%);padding-left:24px}\n.chev:nth-child(2){background:var(--mid)}.chev:nth-child(3){background:#7A3139}.chev:nth-child(4){background:var(--soft);color:var(--deep)}.chev:nth-child(5){background:var(--deep)}\n.chev b{display:block;font-size:34px;font-weight:800;line-height:1}.chev span{font-size:15px;font-weight:600;line-height:1.3;display:block;margin-top:6px}\n.opt{background:#fff;border:2px solid var(--ln);border-radius:20px;overflow:hidden}\n.opt .h{background:linear-gradient(120deg,var(--deep),var(--w));color:#fff;padding:18px 26px}\n.opt .h .o{font-size:12px;letter-spacing:2px;font-weight:700;color:#EBD9DB}.opt .h .t{font-family:MA;font-size:24px;margin-top:3px}\n.opt .b{padding:30px 32px}\n.price{font-size:48px;font-weight:800;color:var(--deep);line-height:1}.price small{font-size:15px;font-weight:600;color:var(--mut)}\n.row{display:flex;justify-content:space-between;font-size:15px;padding:13px 0;border-bottom:1px solid var(--ln)}.row span:first-child{color:var(--mut)}\n.note{font-size:12.5px;color:var(--mut);line-height:1.5;margin-top:14px}\n.end{background:linear-gradient(135deg,var(--deep),var(--w));color:#fff}\n.end h2{color:#fff;font-size:50px}\n.big{font-size:84px;font-weight:800;color:var(--deep);line-height:1}\n.wk{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:10px}\n.wk div{border-radius:10px;padding:16px 0;text-align:center;font-size:14px;font-weight:700;background:#F0E8E8;color:#b9a9ab}\n.wk div.on{background:var(--w);color:#fff}.wk div i{display:block;font-style:normal;font-size:12px;font-weight:600;margin-top:1px;opacity:.9}\n";
-var CSS_UI="\n/* UI da tela (prefixo ui-) \u2014 o CSS das l\u00e2minas vem de propostas.css */\n:host{display:block;--ui-bg:#F7F2EE}\n\n.ui-root{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;color:#3D2E30}\n.ui-wrap{display:grid;grid-template-columns:372px 1fr;height:calc(100vh - 150px);min-height:620px;border-radius:14px;overflow:hidden;border:1px solid #E7D8D9}\n.ui-side{overflow:auto;background:#fff;border-right:1px solid #E7D8D9;padding:16px 16px 40px}\n.ui-main{overflow:auto;padding:16px 20px 60px}\n.ui-side h1{font-size:17px;color:#5E2A30;margin-bottom:2px}\n.ui-side .sub{font-size:11.5px;color:#8A7A78;margin-bottom:12px}\n.ui-sec{border:1px solid #E7D8D9;border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#FFFCFB}\n.ui-sec>h3{font-size:12.5px;color:#8B3A42;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}\n.ui-sec label{display:block;font-size:11px;color:#8A7A78;margin:6px 0 2px}\n.ui-sec input,.ui-sec select,.ui-sec textarea{width:100%;font:inherit;font-size:13px;border:1px solid #DCC9CB;border-radius:8px;padding:6px 8px;background:#fff;color:#3D2E30}\n.ui-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.ui-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}\n.ui-chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}\n.ui-chk input{width:auto}\n.ui-opt{border:1px dashed #C99AA0;border-radius:10px;padding:8px 10px;margin-top:8px;background:#fff}\n.ui-opt .hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#5E2A30}\n.ui-price{font-family:MA,M,sans-serif;font-size:16px;color:#5E2A30;margin-top:6px}\n.ui-btn{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;background:#8B3A42;color:#fff}\n.ui-btn.sec{background:#F3E3E4;color:#5E2A30}\n.ui-btn.sm{padding:3px 9px;font-size:11px}\n.ui-bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}\n.ui-hint{font-size:11px;color:#8A7A78;line-height:1.45}\n.ui-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}\n.ui-top .hint{font-size:12px;color:#8A7A78}\n#preview .slot{margin:0 auto 18px;box-shadow:0 8px 24px rgba(94,42,48,.15);background:#fff;overflow:hidden;border-radius:6px}\n#preview .slot .pg{transform-origin:0 0}\n[contenteditable]:hover{outline:1px dashed #C99AA0}\n[contenteditable]:focus{outline:2px solid #8B3A42}\n.ui-empty{padding:60px 20px;text-align:center;color:#8A7A78;font-size:14px}\n";
-var HTML="<div class=\"ui-wrap\">\n<aside class=\"ui-side\">\n  <h1>Propostas</h1>\n  <div class=\"sub\">Escolha o servi\u00e7o, ajuste os par\u00e2metros e gere a proposta edit\u00e1vel. Os valores v\u00eam das calculadoras de precifica\u00e7\u00e3o.</div>\n\n  <div class=\"ui-sec\"><h3>Cliente</h3>\n    <label>Nome do cliente</label><input id=\"f-cliente\" value=\"ATVOS\">\n    <label>A/C (aos cuidados de)</label><textarea id=\"f-ac\" rows=\"2\">Dr. Phelipe Monteiro Felicio e Sra. Tatiane da Silva Sousa</textarea>\n    <div class=\"ui-row\"><div><label>Cidade</label><input id=\"f-cidade\" value=\"S\u00e3o Paulo\"></div><div><label>Data</label><input id=\"f-data\" type=\"date\"></div></div>\n  </div>\n\n  <div class=\"ui-sec\"><h3>Servi\u00e7os</h3>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-ergo\" checked> Gest\u00e3o de Ergonomia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-nr1\" checked> Diagn\u00f3stico NR-1 (psicossocial)</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-gl\"> Gin\u00e1stica Laboral</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-fisio\"> Fisioterapia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-masso\"> Massoterapia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-enf\"> Enfermagem do Trabalho</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-med\"> Medicina do Trabalho</label>\n    <div class=\"ui-hint\">Cada servi\u00e7o gera um bloco de p\u00e1ginas. Ergonomia + NR-1 saem na mesma proposta, separados por assunto.</div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-ergo\"><h3>Ergonomia <button class=\"ui-btn sm sec\" id=\"add-ergo\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"ergo-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-nr1\"><h3>NR-1 psicossocial</h3>\n    <div class=\"ui-row\"><div><label>Vidas</label><input id=\"n-vidas\" type=\"number\" value=\"11000\" min=\"1\"></div><div><label>Valor/hora an\u00e1lise (R$)</label><input id=\"n-vh\" type=\"number\" value=\"150\"></div></div>\n    <div class=\"ui-row3\"><div><label>Etapa 1 (R$)</label><input id=\"n-e1\" type=\"number\" value=\"1600\"></div><div><label>Etapa 2 (R$)</label><input id=\"n-e2\" type=\"number\" value=\"1600\"></div><div><label>Reuni\u00e3o (R$)</label><input id=\"n-reu\" type=\"number\" value=\"400\"></div></div>\n    <label>Minutos de an\u00e1lise por vida</label><input id=\"n-min\" type=\"number\" value=\"2\" step=\"0.5\">\n    <div class=\"ui-price\" id=\"n-total\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-gl\"><h3>Gin\u00e1stica Laboral <button class=\"ui-btn sm sec\" id=\"add-gl\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div class=\"ui-row\"><div><label>Local do programa</label><input id=\"g-local\" value=\"Sede \u00b7 Pinheiros\"></div><div><label>Cidade/unidade (texto)</label><input id=\"g-local2\" value=\"sede de Pinheiros\"></div></div>\n    <div id=\"gl-opts\"></div>\n  </div>\n\n\n  <div class=\"ui-sec\" id=\"box-fisio\" style=\"display:none\"><h3>Fisioterapia <button class=\"ui-btn sm sec\" id=\"add-fisio\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"fisio-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-masso\" style=\"display:none\"><h3>Massoterapia <button class=\"ui-btn sm sec\" id=\"add-masso\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"masso-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-enf\" style=\"display:none\"><h3>Enfermagem do Trabalho <button class=\"ui-btn sm sec\" id=\"add-enf\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"enf-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-med\" style=\"display:none\"><h3>Medicina do Trabalho <button class=\"ui-btn sm sec\" id=\"add-med\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"med-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\"><h3>Prazos e condi\u00e7\u00f5es</h3>\n    <div class=\"ui-row3\"><div><label>Pagamento (dias)</label><input id=\"c-pag\" type=\"number\" value=\"30\"></div><div><label>Mobiliza\u00e7\u00e3o (dias)</label><input id=\"c-imp\" type=\"number\" value=\"30\"></div><div><label>Validade (dias)</label><input id=\"c-val\" type=\"number\" value=\"30\"></div></div>\n    <label>Reajuste</label><input id=\"c-reaj\" value=\"IPCA (a cada 12 meses)\">\n    <div class=\"ui-hint\" style=\"margin-top:6px\"><b>C\u00f3digo do servi\u00e7o (LC 116)</b> \u2014 escolha na lista suspensa; a descri\u00e7\u00e3o \u00e9 preenchida automaticamente. Confirme com o fiscal antes de enviar.</div>\n    <div id=\"cg-ergo\">\n    <label>C\u00f3digo \u00b7 Ergonomia / NR-1</label><select id=\"c-cod-ergo\" data-def=\"08.02.01\"></select><div class=\"ui-hint\" id=\"h-cod-ergo\"></div><input type=\"hidden\" id=\"c-obs-ergo\" value=\"Instru\u00e7\u00e3o, treinamento, orienta\u00e7\u00e3o pedag\u00f3gica e educacional, avalia\u00e7\u00e3o de conhecimentos de qualquer natureza\"></div>\n    <div id=\"cg-gl\">\n    <label>C\u00f3digo \u00b7 Gin\u00e1stica Laboral</label><select id=\"c-cod-gl\" data-def=\"04.08.02\"></select><div class=\"ui-hint\" id=\"h-cod-gl\"></div><input type=\"hidden\" id=\"c-obs-gl\" value=\"Terapia ocupacional, fisioterapia e fonoaudiologia\"></div>\n    <div id=\"cg-fisio\">\n    <label>C\u00f3digo \u00b7 Fisioterapia</label><select id=\"c-cod-fisio\" data-def=\"04.08.02\"></select><div class=\"ui-hint\" id=\"h-cod-fisio\"></div><input type=\"hidden\" id=\"c-obs-fisio\" value=\"Terapia ocupacional, fisioterapia e fonoaudiologia\"></div>\n    <div id=\"cg-masso\">\n    <label>C\u00f3digo \u00b7 Massoterapia</label><select id=\"c-cod-masso\" data-def=\"04.09\"></select><div class=\"ui-hint\" id=\"h-cod-masso\"></div><input type=\"hidden\" id=\"c-obs-masso\" value=\"Terapias de qualquer esp\u00e9cie destinadas ao tratamento f\u00edsico, org\u00e2nico e mental\"></div>\n    <div id=\"cg-enf\">\n    <label>C\u00f3digo \u00b7 Enfermagem do Trabalho</label><select id=\"c-cod-enf\" data-def=\"04.06\"></select><div class=\"ui-hint\" id=\"h-cod-enf\"></div><input type=\"hidden\" id=\"c-obs-enf\" value=\"Enfermagem, inclusive servi\u00e7os auxiliares\"></div>\n    <div id=\"cg-med\">\n    <label>C\u00f3digo \u00b7 Medicina do Trabalho</label><select id=\"c-cod-med\" data-def=\"04.01\"></select><div class=\"ui-hint\" id=\"h-cod-med\"></div><input type=\"hidden\" id=\"c-obs-med\" value=\"Medicina e biomedicina\"></div>\n    <label>CNPJ e raz\u00e3o social (GL)</label><input id=\"c-cnpj-gl\" value=\"15.447.255/0001-74 \u00b7 ELEVALIFE SA\u00daDE E EDUCA\u00c7\u00c3O LTDA\">\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"c-ref\" checked> Observa\u00e7\u00e3o de alimenta\u00e7\u00e3o (Ergonomia, jornada &gt; 6 h)</label>\n  </div>\n\n  <div class=\"ui-bar\"><button class=\"ui-btn\" id=\"btn-gerar\" type=\"button\">Gerar proposta</button><button class=\"ui-btn sec\" id=\"btn-print\" type=\"button\">Imprimir / PDF</button></div>\n  <div class=\"ui-sec\"><h3>SharePoint</h3>\n    <div class=\"ui-bar\" style=\"margin:0 0 8px\"><button class=\"ui-btn\" id=\"btn-save\" type=\"button\">Salvar proposta</button><button class=\"ui-btn sec\" id=\"btn-open\" type=\"button\">Abrir salvas</button></div>\n    <label>Anexar o PDF final (opcional)</label><input id=\"f-pdf\" type=\"file\" accept=\"application/pdf\">\n    <div class=\"ui-bar\" style=\"margin:8px 0 0\"><button class=\"ui-btn sec\" id=\"btn-pdf\" type=\"button\">Enviar PDF ao SharePoint</button></div>\n    <div class=\"ui-hint\" id=\"sp-msg\" style=\"margin-top:8px\"></div>\n  </div>\n  <div class=\"ui-sec\" id=\"box-mail\"><h3>Enviar por e-mail</h3>\n    <label>Oportunidade no Kanban</label>\n    <select id=\"e-lead\"><option value=\"\">Digite o cliente acima\u2026</option></select>\n    <div class=\"ui-row\"><div><label>Contato (nome)</label><input id=\"e-contato\" placeholder=\"Nome do contato\"></div><div><label>Servi\u00e7o (Kanban)</label><input id=\"e-serv\" placeholder=\"Ex.: ERGO; GL\"></div></div>\n    <div class=\"ui-row3\"><div><label>Valor mensal (R$)</label><input id=\"e-vmes\" type=\"number\" step=\"0.01\"></div><div><label>Meses</label><input id=\"e-meses\" type=\"number\" value=\"12\" min=\"1\"></div><div><label>Valor total (R$)</label><input id=\"e-vtot\" type=\"number\" step=\"0.01\"></div></div>\n    <label>Para (separe com v\u00edrgula)</label><input id=\"e-para\" placeholder=\"nome@empresa.com.br\">\n    <label>CC adicional</label><input id=\"e-cc\" placeholder=\"Fixos: leonardo@ e rafael@\">\n    <label>Assunto</label><input id=\"e-assunto\">\n    <label>Mensagem</label><textarea id=\"e-corpo\" rows=\"11\"></textarea>\n    <label>Assinatura</label><textarea id=\"e-assin\" rows=\"2\" readonly style=\"opacity:.75\"></textarea>\n    <label>PDF da proposta (anexo)</label>\n    <div class=\"ui-hint\">Usa o arquivo escolhido em \u201cAnexar o PDF final\u201d, acima (at\u00e9 3 MB).</div>\n    <div class=\"ui-bar\" style=\"margin:8px 0 0\"><button class=\"ui-btn sec\" id=\"e-tpl\" type=\"button\">Restaurar modelo</button><button class=\"ui-btn\" id=\"e-send\" type=\"button\">Enviar proposta</button></div>\n    <div class=\"ui-hint\" id=\"e-msg\" style=\"margin-top:8px\"></div>\n  </div>\n  <div class=\"ui-hint\">Gerar de novo refaz todas as p\u00e1ginas e descarta edi\u00e7\u00f5es manuais. Para o PDF, use \u201cImprimir / PDF\u201d, escolha \u201cSalvar como PDF\u201d e depois anexe o arquivo acima. \u201cSalvar proposta\u201d guarda a vers\u00e3o edit\u00e1vel.</div>\n</aside>\n\n<main class=\"ui-main\">\n  <div class=\"ui-top\"><b style=\"color:#5E2A30\">Pr\u00e9-visualiza\u00e7\u00e3o edit\u00e1vel</b><span class=\"hint\">Clique em qualquer texto da proposta para editar.</span></div>\n  <div id=\"preview\"><div class=\"ui-empty\">Defina os par\u00e2metros e clique em <b>Gerar proposta</b>.</div></div>\n</main>\n</div>\n\n<div id=\"ov\" style=\"display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:50;align-items:center;justify-content:center\"><div style=\"background:#fff;border-radius:14px;width:min(640px,92vw);max-height:80vh;overflow:auto;padding:16px 18px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:8px\"><b style=\"color:#5E2A30\">Propostas salvas no SharePoint</b><button class=\"ui-btn sec sm\" id=\"ov-x\" type=\"button\">fechar</button></div><div id=\"ov-list\" style=\"font-size:13px\"></div></div></div>";
+var CSS_UI="\n/* UI da tela (prefixo ui-) \u2014 o CSS das l\u00e2minas vem de propostas.css */\n:host{display:block;--ui-bg:#F7F2EE}\n\n.ui-root{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;color:#3D2E30}\n.ui-wrap{display:grid;grid-template-columns:372px 1fr;height:calc(100vh - 150px);min-height:620px;border-radius:14px;overflow:hidden;border:1px solid #E7D8D9}\n.ui-side{overflow:auto;background:#fff;border-right:1px solid #E7D8D9;padding:16px 16px 40px}\n.ui-main{overflow:auto;padding:16px 20px 60px}\n.ui-side h1{font-size:17px;color:#5E2A30;margin-bottom:2px}\n.ui-side .sub{font-size:11.5px;color:#8A7A78;margin-bottom:12px}\n.ui-sec{border:1px solid #E7D8D9;border-radius:12px;padding:10px 12px;margin-bottom:10px;background:#FFFCFB}\n.ui-sec>h3{font-size:12.5px;color:#8B3A42;letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;gap:8px}\n.ui-sec label{display:block;font-size:11px;color:#8A7A78;margin:6px 0 2px}\n.ui-sec input,.ui-sec select,.ui-sec textarea{width:100%;font:inherit;font-size:13px;border:1px solid #DCC9CB;border-radius:8px;padding:6px 8px;background:#fff;color:#3D2E30}\n.ui-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}\n.ui-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}\n.ui-chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}\n.ui-chk input{width:auto}\n.ui-opt{border:1px dashed #C99AA0;border-radius:10px;padding:8px 10px;margin-top:8px;background:#fff}\n.ui-opt .hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#5E2A30}\n.ui-price{font-family:MA,M,sans-serif;font-size:16px;color:#5E2A30;margin-top:6px}\n.ui-btn{font:inherit;font-size:13px;font-weight:700;border:0;border-radius:10px;padding:9px 14px;cursor:pointer;background:#8B3A42;color:#fff}\n.ui-btn.sec{background:#F3E3E4;color:#5E2A30}\n.ui-btn.sm{padding:3px 9px;font-size:11px}\n.ui-bar{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}\n.ui-hint{font-size:11px;color:#8A7A78;line-height:1.45}\n.ui-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}\n.ui-top .hint{font-size:12px;color:#8A7A78}\n#preview .slot{margin:0 auto 18px;box-shadow:0 8px 24px rgba(94,42,48,.15);background:#fff;overflow:hidden;border-radius:6px}\n#preview .slot .pg{transform-origin:0 0}\n[contenteditable]:hover{outline:1px dashed #C99AA0}\n[contenteditable]:focus{outline:2px solid #8B3A42}\n.cod-row{display:flex;align-items:center;gap:8px;border:1px solid #E7D8D9;border-radius:10px;padding:7px 9px;margin-top:6px;background:#fff}\n.cod-n{width:92px;flex:none;font-size:11px;font-weight:700;color:#8B3A42;line-height:1.25}\n.cod-v{flex:1;min-width:0;font-size:11px;color:#8A7A78;line-height:1.3}\n.cod-v b{display:block;font-size:14px;color:#5E2A30}\n.cod-v span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}\n.ov-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #EFE3E4}\n.ov-row .nm{flex:1;min-width:0}\n.ov-row .nm b{display:block;font-size:13px;color:#3D2E30}\n.ov-row .nm small{display:block;font-size:11px;color:#8A7A78}\n.ov-tag{display:inline-block;font-size:10px;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:4px;background:#F3E3E4;color:#5E2A30}\n.ov-q{width:100%;font:inherit;font-size:13px;border:1px solid #DCC9CB;border-radius:8px;padding:8px 10px;margin:0 0 6px}\n.ov-pick{display:flex;gap:10px;width:100%;text-align:left;border:0;background:#fff;border-bottom:1px solid #EFE3E4;padding:8px 4px;cursor:pointer;font:inherit}\n.ov-pick:hover{background:#FBF5F5}\n.ov-pick b{flex:none;width:64px;font-size:13px;color:#8B3A42}\n.ov-pick span{font-size:12px;color:#3D2E30;line-height:1.35}\n.ov-pick i{display:block;font-style:normal;font-size:10.5px;color:#8A7A78}\n.ov-grp{font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#8A7A78;text-transform:uppercase;padding:8px 4px 2px}\n.ui-empty{padding:60px 20px;text-align:center;color:#8A7A78;font-size:14px}\n";
+var HTML="<div class=\"ui-wrap\">\n<aside class=\"ui-side\">\n  <h1>Propostas</h1>\n  <div class=\"sub\">Escolha o servi\u00e7o, ajuste os par\u00e2metros e gere a proposta edit\u00e1vel. Os valores v\u00eam das calculadoras de precifica\u00e7\u00e3o.</div>\n\n  <div class=\"ui-sec\"><h3>Cliente</h3>\n    <label>Nome do cliente</label><input id=\"f-cliente\" value=\"ATVOS\">\n    <label>A/C (aos cuidados de)</label><textarea id=\"f-ac\" rows=\"2\">Dr. Phelipe Monteiro Felicio e Sra. Tatiane da Silva Sousa</textarea>\n    <div class=\"ui-row\"><div><label>Cidade</label><input id=\"f-cidade\" value=\"S\u00e3o Paulo\"></div><div><label>Data</label><input id=\"f-data\" type=\"date\"></div></div>\n  </div>\n\n  <div class=\"ui-sec\"><h3>Servi\u00e7os</h3>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-ergo\" checked> Gest\u00e3o de Ergonomia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-nr1\" checked> Diagn\u00f3stico NR-1 (psicossocial)</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-gl\"> Gin\u00e1stica Laboral</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-fisio\"> Fisioterapia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-masso\"> Massoterapia</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-enf\"> Enfermagem do Trabalho</label>\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"s-med\"> Medicina do Trabalho</label>\n    <div class=\"ui-hint\">Cada servi\u00e7o gera um bloco de p\u00e1ginas. Ergonomia + NR-1 saem na mesma proposta, separados por assunto.</div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-ergo\"><h3>Ergonomia <button class=\"ui-btn sm sec\" id=\"add-ergo\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"ergo-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-nr1\"><h3>NR-1 psicossocial</h3>\n    <div class=\"ui-row\"><div><label>Vidas</label><input id=\"n-vidas\" type=\"number\" value=\"11000\" min=\"1\"></div><div><label>Valor/hora an\u00e1lise (R$)</label><input id=\"n-vh\" type=\"number\" value=\"150\"></div></div>\n    <div class=\"ui-row3\"><div><label>Etapa 1 (R$)</label><input id=\"n-e1\" type=\"number\" value=\"1600\"></div><div><label>Etapa 2 (R$)</label><input id=\"n-e2\" type=\"number\" value=\"1600\"></div><div><label>Reuni\u00e3o (R$)</label><input id=\"n-reu\" type=\"number\" value=\"400\"></div></div>\n    <label>Minutos de an\u00e1lise por vida</label><input id=\"n-min\" type=\"number\" value=\"2\" step=\"0.5\">\n    <div class=\"ui-price\" id=\"n-total\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-gl\"><h3>Gin\u00e1stica Laboral <button class=\"ui-btn sm sec\" id=\"add-gl\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div class=\"ui-row\"><div><label>Local do programa</label><input id=\"g-local\" value=\"Sede \u00b7 Pinheiros\"></div><div><label>Cidade/unidade (texto)</label><input id=\"g-local2\" value=\"sede de Pinheiros\"></div></div>\n    <div id=\"gl-opts\"></div>\n  </div>\n\n\n  <div class=\"ui-sec\" id=\"box-fisio\" style=\"display:none\"><h3>Fisioterapia <button class=\"ui-btn sm sec\" id=\"add-fisio\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"fisio-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-masso\" style=\"display:none\"><h3>Massoterapia <button class=\"ui-btn sm sec\" id=\"add-masso\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"masso-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-enf\" style=\"display:none\"><h3>Enfermagem do Trabalho <button class=\"ui-btn sm sec\" id=\"add-enf\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"enf-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\" id=\"box-med\" style=\"display:none\"><h3>Medicina do Trabalho <button class=\"ui-btn sm sec\" id=\"add-med\" type=\"button\">+ op\u00e7\u00e3o</button></h3>\n    <div id=\"med-opts\"></div>\n  </div>\n\n  <div class=\"ui-sec\"><h3>Prazos e condi\u00e7\u00f5es</h3>\n    <div class=\"ui-row3\"><div><label>Pagamento (dias)</label><input id=\"c-pag\" type=\"number\" value=\"30\"></div><div><label>Mobiliza\u00e7\u00e3o (dias)</label><input id=\"c-imp\" type=\"number\" value=\"30\"></div><div><label>Validade (dias)</label><input id=\"c-val\" type=\"number\" value=\"30\"></div></div>\n    <label>Reajuste</label><input id=\"c-reaj\" value=\"IPCA (a cada 12 meses)\">\n    <label style=\"margin-top:10px\">C\u00f3digo do servi\u00e7o na nota fiscal (LC 116)</label>\n    <div class=\"ui-hint\" style=\"margin:0 0 4px\">J\u00e1 vem sugerido para cada servi\u00e7o. Toque em \u201cAlterar\u201d para buscar outro c\u00f3digo. Confirme com o fiscal antes de enviar.</div>\n    <div id=\"cg-ergo\" class=\"cod-row\"><div class=\"cod-n\">Ergonomia / NR-1</div><div class=\"cod-v\"><b id=\"cv-ergo\"></b><span id=\"h-cod-ergo\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-ergo\" type=\"button\">Alterar</button><select id=\"c-cod-ergo\" data-def=\"08.02.01\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-ergo\" value=\"Instru\u00e7\u00e3o, treinamento, orienta\u00e7\u00e3o pedag\u00f3gica e educacional, avalia\u00e7\u00e3o de conhecimentos de qualquer natureza\"></div>\n    <div id=\"cg-gl\" class=\"cod-row\"><div class=\"cod-n\">Gin\u00e1stica Laboral</div><div class=\"cod-v\"><b id=\"cv-gl\"></b><span id=\"h-cod-gl\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-gl\" type=\"button\">Alterar</button><select id=\"c-cod-gl\" data-def=\"04.08.02\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-gl\" value=\"Terapia ocupacional, fisioterapia e fonoaudiologia\"></div>\n    <div id=\"cg-fisio\" class=\"cod-row\"><div class=\"cod-n\">Fisioterapia</div><div class=\"cod-v\"><b id=\"cv-fisio\"></b><span id=\"h-cod-fisio\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-fisio\" type=\"button\">Alterar</button><select id=\"c-cod-fisio\" data-def=\"04.08.02\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-fisio\" value=\"Terapia ocupacional, fisioterapia e fonoaudiologia\"></div>\n    <div id=\"cg-masso\" class=\"cod-row\"><div class=\"cod-n\">Massoterapia</div><div class=\"cod-v\"><b id=\"cv-masso\"></b><span id=\"h-cod-masso\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-masso\" type=\"button\">Alterar</button><select id=\"c-cod-masso\" data-def=\"04.09\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-masso\" value=\"Terapias de qualquer esp\u00e9cie destinadas ao tratamento f\u00edsico, org\u00e2nico e mental\"></div>\n    <div id=\"cg-enf\" class=\"cod-row\"><div class=\"cod-n\">Enfermagem do Trabalho</div><div class=\"cod-v\"><b id=\"cv-enf\"></b><span id=\"h-cod-enf\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-enf\" type=\"button\">Alterar</button><select id=\"c-cod-enf\" data-def=\"04.06\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-enf\" value=\"Enfermagem, inclusive servi\u00e7os auxiliares\"></div>\n    <div id=\"cg-med\" class=\"cod-row\"><div class=\"cod-n\">Medicina do Trabalho</div><div class=\"cod-v\"><b id=\"cv-med\"></b><span id=\"h-cod-med\"></span></div><button class=\"ui-btn sm sec\" id=\"cod-btn-med\" type=\"button\">Alterar</button><select id=\"c-cod-med\" data-def=\"04.01\" style=\"display:none\"></select><input type=\"hidden\" id=\"c-obs-med\" value=\"Medicina e biomedicina\"></div>\n    <label>CNPJ e raz\u00e3o social (GL)</label><input id=\"c-cnpj-gl\" value=\"15.447.255/0001-74 \u00b7 ELEVALIFE SA\u00daDE E EDUCA\u00c7\u00c3O LTDA\">\n    <label class=\"ui-chk\"><input type=\"checkbox\" id=\"c-ref\" checked> Observa\u00e7\u00e3o de alimenta\u00e7\u00e3o (Ergonomia, jornada &gt; 6 h)</label>\n  </div>\n\n  <div class=\"ui-bar\"><button class=\"ui-btn\" id=\"btn-gerar\" type=\"button\">Gerar proposta</button><button class=\"ui-btn sec\" id=\"btn-print\" type=\"button\">Baixar PDF</button><button class=\"ui-btn sec sm\" id=\"btn-print2\" type=\"button\">Imprimir</button></div>\n  <div class=\"ui-hint\" id=\"pdf-msg\" style=\"margin:-4px 0 10px\"></div>\n  <div class=\"ui-sec\"><h3>SharePoint</h3>\n    <div class=\"ui-bar\" style=\"margin:0 0 8px\"><button class=\"ui-btn\" id=\"btn-save\" type=\"button\">Salvar no SharePoint</button><button class=\"ui-btn sec\" id=\"btn-open\" type=\"button\">Propostas salvas</button></div>\n    <div class=\"ui-hint\">Guarda a proposta edit\u00e1vel e o PDF na pasta de propostas geradas. \u201cPropostas salvas\u201d abre a lista para reabrir ou baixar o PDF.</div>\n    <div class=\"ui-hint\" id=\"sp-msg\" style=\"margin-top:8px\"></div>\n  </div>\n  <div class=\"ui-sec\" id=\"box-mail\"><h3>Enviar por e-mail</h3>\n    <label>Oportunidade no Kanban</label>\n    <select id=\"e-lead\"><option value=\"\">Digite o cliente acima\u2026</option></select>\n    <div class=\"ui-row\"><div><label>Contato (nome)</label><input id=\"e-contato\" placeholder=\"Nome do contato\"></div><div><label>Servi\u00e7o (Kanban)</label><input id=\"e-serv\" placeholder=\"Ex.: ERGO; GL\"></div></div>\n    <div class=\"ui-row3\"><div><label>Valor mensal (R$)</label><input id=\"e-vmes\" type=\"number\" step=\"0.01\"></div><div><label>Meses</label><input id=\"e-meses\" type=\"number\" value=\"12\" min=\"1\"></div><div><label>Valor total (R$)</label><input id=\"e-vtot\" type=\"number\" step=\"0.01\"></div></div>\n    <label>Para (separe com v\u00edrgula)</label><input id=\"e-para\" placeholder=\"nome@empresa.com.br\">\n    <label>CC adicional</label><input id=\"e-cc\" placeholder=\"Fixos: leonardo@ e rafael@\">\n    <label>Assunto</label><input id=\"e-assunto\">\n    <label>Mensagem</label><textarea id=\"e-corpo\" rows=\"11\"></textarea>\n    <label>Assinatura</label><textarea id=\"e-assin\" rows=\"2\" readonly style=\"opacity:.75\"></textarea>\n    <label>PDF da proposta (anexo)</label>\n    <div class=\"ui-hint\">Por padr\u00e3o vai o PDF gerado por esta tela (at\u00e9 3 MB). Para enviar outro arquivo, escolha abaixo.</div><input id=\"f-pdf\" type=\"file\" accept=\"application/pdf\">\n    <div class=\"ui-bar\" style=\"margin:8px 0 0\"><button class=\"ui-btn sec\" id=\"e-tpl\" type=\"button\">Restaurar modelo</button><button class=\"ui-btn\" id=\"e-send\" type=\"button\">Enviar proposta</button></div>\n    <div class=\"ui-hint\" id=\"e-msg\" style=\"margin-top:8px\"></div>\n  </div>\n  <div class=\"ui-hint\">Gerar de novo refaz todas as p\u00e1ginas e descarta edi\u00e7\u00f5es manuais. \u201cBaixar PDF\u201d gera o arquivo direto, sem passar pela impress\u00e3o. \u201cSalvar no SharePoint\u201d guarda a vers\u00e3o edit\u00e1vel e o PDF.</div>\n</aside>\n\n<main class=\"ui-main\">\n  <div class=\"ui-top\"><b style=\"color:#5E2A30\">Pr\u00e9-visualiza\u00e7\u00e3o edit\u00e1vel</b><span class=\"hint\">Clique em qualquer texto da proposta para editar.</span></div>\n  <div id=\"preview\"><div class=\"ui-empty\">Defina os par\u00e2metros e clique em <b>Gerar proposta</b>.</div></div>\n</main>\n</div>\n\n<div id=\"ov\" style=\"display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:50;align-items:center;justify-content:center\"><div style=\"background:#fff;border-radius:14px;width:min(680px,94vw);max-height:84vh;display:flex;flex-direction:column;padding:16px 18px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:8px\"><b style=\"color:#5E2A30\">Propostas salvas</b><button class=\"ui-btn sec sm\" id=\"ov-x\" type=\"button\">fechar</button></div><input class=\"ov-q\" id=\"ov-q\" placeholder=\"Buscar por cliente, servi\u00e7o ou data\"><div id=\"ov-list\" style=\"font-size:13px;overflow:auto;flex:1\"></div></div></div>\n<div id=\"ov2\" style=\"display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:60;align-items:center;justify-content:center\"><div style=\"background:#fff;border-radius:14px;width:min(640px,94vw);max-height:84vh;display:flex;flex-direction:column;padding:16px 18px\"><div style=\"display:flex;justify-content:space-between;align-items:center;margin-bottom:4px\"><b style=\"color:#5E2A30\" id=\"ov2-t\">C\u00f3digo do servi\u00e7o</b><button class=\"ui-btn sec sm\" id=\"ov2-x\" type=\"button\">fechar</button></div><div class=\"ui-hint\" id=\"ov2-sub\" style=\"margin-bottom:6px\"></div><input class=\"ov-q\" id=\"ov2-q\" placeholder=\"Buscar por c\u00f3digo ou palavra (ex.: 04.06, enfermagem, treinamento)\"><div id=\"ov2-list\" style=\"overflow:auto;flex:1\"></div></div></div>";
 var mounted=false;
 function loadTpl(cb){
   if(window.PROP_TPL) return cb();
@@ -30,10 +30,78 @@ function printPreview(){
   var pages=[].map.call(R.querySelectorAll('#preview .pg'),function(p){var c=p.cloneNode(true);c.removeAttribute('contenteditable');c.style.transform='none';return '<div class="slot">'+c.outerHTML+'</div>';}).join('');
   var f=document.createElement('iframe');f.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';document.body.appendChild(f);
   var d=f.contentWindow.document;d.open();
-  d.write('<!doctype html><html><head><meta charset="utf-8"><base href="'+document.baseURI+'"><style>'+FONTS+CSS_SLIDES+'@page{size:1280px 720px;margin:0}body{margin:0}.slot{width:1280px;height:720px;overflow:hidden;page-break-after:always}</style></head><body>'+pages+'</body></html>');
+  d.write('<!doctype html><html><head><meta charset="utf-8"><base href="'+document.baseURI+'"><style>'+FONTS+CSS_SLIDES.replace(/:host\s*\{/g,':root{')+'@page{size:1280px 720px;margin:0}body{margin:0}.slot{width:1280px;height:720px;overflow:hidden;page-break-after:always}.ui-root{font-family:M,sans-serif}</style></head><body class="ui-root">'+pages+'</body></html>');
   d.close();
   setTimeout(function(){f.contentWindow.focus();f.contentWindow.print();setTimeout(function(){f.remove();},2000);},600);
 }
+/* ---- PDF direto: cada lâmina vira imagem (SVG/foreignObject -> canvas -> JPEG) e entra numa página 16:9 ---- */
+var _dataCache={};
+function toDataUri(url){
+  if(_dataCache[url])return _dataCache[url];
+  return _dataCache[url]=fetch(url,{credentials:'same-origin'}).then(function(r){if(!r.ok)throw new Error('recurso '+url+' ('+r.status+')');return r.blob();}).then(function(b){return new Promise(function(res){var fr=new FileReader();fr.onload=function(){res(fr.result);};fr.readAsDataURL(b);});});
+}
+async function inlineRel(str){
+  var re=/(?:url\(\s*['"]?|src=")(propostas-assets\/[^)'"]+)/g,m,list=[];
+  while((m=re.exec(str)))if(list.indexOf(m[1])<0)list.push(m[1]);
+  for(var i=0;i<list.length;i++){var d=await toDataUri(new URL(list[i],document.baseURI).href);str=str.split(list[i]).join(d);}
+  return str;
+}
+function sleep(ms){return new Promise(function(r){setTimeout(r,ms);});}
+function loadImg(src){return new Promise(function(res,rej){var im=new Image();im.onload=function(){res(im);};im.onerror=function(){rej(new Error('não foi possível desenhar uma lâmina'));};im.src=src;});}
+function canvasJpeg(cv,q){return new Promise(function(res){cv.toBlob(function(b){b.arrayBuffer().then(function(ab){res(new Uint8Array(ab));});},'image/jpeg',q);});}
+function pdfBytes(jpgs,W,H){
+  var enc=new TextEncoder(),parts=[],offs=[],len=0,n=jpgs.length;
+  function push(x){if(typeof x==='string')x=enc.encode(x);parts.push(x);len+=x.length;}
+  function obj(i,fn){offs[i]=len;push(i+' 0 obj\n');fn();push('\nendobj\n');}
+  push('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  var kids=[];for(var i=0;i<n;i++)kids.push((3+3*i)+' 0 R');
+  obj(1,function(){push('<< /Type /Catalog /Pages 2 0 R >>');});
+  obj(2,function(){push('<< /Type /Pages /Count '+n+' /Kids ['+kids.join(' ')+'] >>');});
+  for(var k=0;k<n;k++){(function(k){
+    var pg=3+3*k,ct=4+3*k,im=5+3*k,cs='q '+W+' 0 0 '+H+' 0 0 cm /Im0 Do Q';
+    obj(pg,function(){push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W+' '+H+'] /Resources << /XObject << /Im0 '+im+' 0 R >> >> /Contents '+ct+' 0 R >>');});
+    obj(ct,function(){push('<< /Length '+cs.length+' >>\nstream\n'+cs+'\nendstream');});
+    obj(im,function(){push('<< /Type /XObject /Subtype /Image /Width '+jpgs[k].w+' /Height '+jpgs[k].h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+jpgs[k].data.length+' >>\nstream\n');push(jpgs[k].data);push('\nendstream');});
+  })(k);}
+  var xr=len,tot=3+3*n;
+  push('xref\n0 '+tot+'\n0000000000 65535 f \n');
+  for(var j=1;j<tot;j++)push(String(offs[j]).padStart(10,'0')+' 00000 n \n');
+  push('trailer\n<< /Size '+tot+' /Root 1 0 R >>\nstartxref\n'+xr+'\n%%EOF');
+  return new Blob(parts,{type:'application/pdf'});
+}
+window.__pdfBuild=async function(slides,opts,prog){
+  opts=opts||{};var SC=1.5,CW=1280*SC,CH=720*SC,max=opts.maxBytes||0;
+  var css=await inlineRel((FONTS+CSS_SLIDES).replace(/:host\s*\{/g,':root{'));
+  css=css.replace(/&/g,'&amp;').replace(/</g,'&lt;');
+  if(document.fonts&&document.fonts.ready){try{await document.fonts.ready;}catch(e){}}
+  var cvs=[];
+  for(var i=0;i<slides.length;i++){
+    if(prog)prog(i+1,slides.length);
+    var holder=document.createElement('div');holder.innerHTML=slides[i];
+    var el=holder.firstElementChild;el.removeAttribute('contenteditable');[].forEach.call(el.querySelectorAll('[contenteditable]'),function(x){x.removeAttribute('contenteditable');});el.style.transform='none';
+    var xh=await inlineRel(new XMLSerializer().serializeToString(el));
+    var svg='<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720"><foreignObject x="0" y="0" width="1280" height="720"><div xmlns="http://www.w3.org/1999/xhtml" class="ui-root" style="width:1280px;height:720px;overflow:hidden;background:#fff;position:relative"><style>'+css+'</style>'+xh+'</div></foreignObject></svg>';
+    var url='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    var im=await loadImg(url);
+    var cv=document.createElement('canvas');cv.width=CW;cv.height=CH;var cx=cv.getContext('2d');
+    cx.fillStyle='#fff';cx.fillRect(0,0,CW,CH);
+    cx.drawImage(im,0,0,CW,CH);
+    await sleep(120);cx.drawImage(im,0,0,CW,CH);
+    cvs.push(cv);
+  }
+  var q=0.84,jp,total;
+  for(;;){
+    jp=[];total=0;
+    for(var k=0;k<cvs.length;k++){var d=await canvasJpeg(cvs[k],q);jp.push({data:d,w:CW,h:CH});total+=d.length;}
+    if(!max||total<=max||q<=0.5)break;
+    q=Math.max(0.5,q-0.1);
+  }
+  return pdfBytes(jp,960,540);
+};
+window.__download=function(blob,name){
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.style.display='none';document.body.appendChild(a);a.click();
+  setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},4000);
+};
 
 (function(){
 'use strict';
@@ -43,7 +111,7 @@ var r2=function(v){return Math.round(v*100)/100;};
 
 /* ===== Calculadoras (espelham as planilhas “6 - MODELO DE PRECIFICAÇÕES”) =====
    Regras: valor CLT-Capital da tabela de referência; PJ = CLT x (1,30/3,00 x 2,20) ;
-   Interior = -15% ; Difícil acesso = +10% sobre o valor final. */
+   Interior = -15% ; Difícil acesso = +10% sobre o valor final (vale também para Enfermagem e Medicina). */
 var PJ_F=1.3/3*2.2, INT_F=0.85, DIF_F=1.10;
 var ERGO={ /* CLT · Capital/RM · valor mensal por CH semanal */
   JR:{40:13500,30:10800,24:8775,20:8100,16:6885,12:4455,8:3786.75},
@@ -69,6 +137,7 @@ var glOpts=[{hdia:2,freq:2,regime:'CLT',loc:'Capital / Região Metropolitana',ac
 
 function sel(id,opts,val,extra){return '<select data-k="'+id+'" '+(extra||'')+'>'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'"'+(String(v)===String(val)?' selected':'')+'>'+l+'</option>';}).join('')+'</select>';}
 var LOCS=['Capital / Região Metropolitana','Interior'];
+function adjNote(o){var a=[];if(o.loc==='Interior')a.push('Interior −15%');if(o.acesso==='Difícil acesso')a.push('Difícil acesso +10%');return a.length?'<div class="ui-hint">Ajustes aplicados: '+a.join(' · ')+'</div>':'';}
 function renderErgo(){
   $('ergo-opts').innerHTML=ergoOpts.map(function(o,i){
     var p=priceErgo(o);
@@ -76,7 +145,7 @@ function renderErgo(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Senioridade</label>'+sel('sen',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen)+'</div></div>'+
     '<div class="ui-row"><div><label>Carga semanal (h)</label>'+sel('ch',[40,30,24,20,16,12,8],o.ch)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'—':BRL(p*o.qtd)+' / mês')+'</div></div>';}).join('');
+    '<div class="ui-price">'+(p==null?'—':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts('ergo-opts',ergoOpts,renderErgo);
 }
 function renderGL(){
@@ -87,7 +156,7 @@ function renderGL(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Horas por aula (dia)</label>'+sel('hdia',hs,o.hdia)+'</div><div><label>Vezes por semana</label>'+sel('freq',[1,2,3,4,5],o.freq)+'</div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês')+'</div></div>';}).join('');
+    '<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts('gl-opts',glOpts,renderGL);
 }
 function bindOpts(boxId,arr,rerender){
@@ -129,7 +198,7 @@ function calcEM(o,med){
     var tec=o.prof==='Técnico de Enfermagem',s2=(tec?SAL_TEC:SAL_ENFM)[o.sen];
     f=Math.min(1,o.ch/40);not=tec?0.4:0.35;mult=tec?2.45:2.5;Q=BENEF;P=s2*f*(1+(o.turno==='Noturno'?not:0))+INSAL;heD=1.9;heN=2.5;
   }
-  var K=r2((P+Q)*mult*(o.acesso==='Difícil acesso'?DIF_F:1)),ph=K/(o.ch*SEMANAS);
+  var K=r2((P+Q)*mult*(o.loc==='Interior'?INT_F:1)*(o.acesso==='Difícil acesso'?DIF_F:1)),ph=K/(o.ch*SEMANAS);
   return {k:K,perH:ph,heD:ph*heD,heN:ph*heN};
 }
 function priceEnf(o){return r2(calcEM(o,false).k*o.qtd);}
@@ -162,7 +231,7 @@ function renderSvc(k){
     var f=S.fields(o),p=S.price(o),rows='';
     for(var j=0;j<f.length;j+=2)rows+='<div class="ui-row">'+fld(f[j])+(f[j+1]?fld(f[j+1]):'<div></div>')+'</div>';
     var u=typeof S.unit==='function'?S.unit(o):S.unit;
-    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>Opção '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div></div>';}).join('');
+    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>Opção '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts(S.list,arr,function(){renderSvc(k);});
 }
 SVC_KEYS.forEach(function(k){$('add-'+k).onclick=function(){if(OPTS[k].length<4){OPTS[k].push(JSON.parse(JSON.stringify(SVC[k].def)));renderSvc(k);}};});
@@ -493,12 +562,39 @@ function codInit(){
   ['ergo','gl','fisio','masso','enf','med'].forEach(function(k){
     var sel=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!sel)return;
     sel.innerHTML=html;var def=sel.getAttribute('data-def');if(def)sel.value=def;
-    function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';}
+    function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';var cv=$('cv-'+k);if(cv)cv.textContent=sel.value||'—';}
+    sel._mostra=mostra;
     sel.addEventListener('change',function(){var o=sel.options[sel.selectedIndex];if(o)obs.value=o.getAttribute('data-d')||'';mostra();});
     mostra();
   });
 }
 codInit();
+function codRefresh(){['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var s=$('c-cod-'+k);if(s&&s._mostra)s._mostra();});}
+var COD_NOME={ergo:'Ergonomia / NR-1',gl:'Ginástica Laboral',fisio:'Fisioterapia',masso:'Massoterapia',enf:'Enfermagem do Trabalho',med:'Medicina do Trabalho'};
+var COD_REC={ergo:['08.02.01','17.09'],gl:['04.08.02','04.08'],fisio:['04.08.02','04.08'],masso:['04.09','04.08.02'],enf:['04.06','04.01'],med:['04.01','17.09']};
+var codAtual=null;
+function codAbrir(k){codAtual=k;$('ov2-t').textContent='Código do serviço · '+COD_NOME[k];$('ov2-sub').textContent='Atual: '+$('c-cod-'+k).value+' — '+($('h-cod-'+k).textContent||'');$('ov2-q').value='';$('ov2').style.display='flex';codListar('');$('ov2-q').focus();}
+['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var b=$('cod-btn-'+k);if(b)b.onclick=function(){codAbrir(k);};});
+$('ov2-q').oninput=function(){codListar($('ov2-q').value);};
+$('ov2-x').onclick=function(){$('ov2').style.display='none';};
+$('ov2').onclick=function(e){if(e.target===$('ov2'))$('ov2').style.display='none';};
+function codListar(q){
+  var sel=$('c-cod-'+codAtual),all=codAll(),nq=codNorm(q),ws=nq?nq.split(' '):[],out='',n=0;
+  function item(x){var i=-1,j;for(j=0;j<sel.options.length;j++){if(sel.options[j].value===x.c&&sel.options[j].getAttribute('data-d')===x.d){i=j;break;}}if(i<0)return '';n++;return '<button type="button" class="ov-pick" data-i="'+i+'"><b>'+x.c+'</b><span>'+(x.l.indexOf('LC 116')===0?x.d:x.l+'<i>'+x.d+'</i>')+'</span></button>';}
+  if(!ws.length){
+    var rec=all.filter(function(x){return COD_REC[codAtual].some(function(r){return x.c===r;})&&COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});});
+    out+='<div class="ov-grp">Sugeridos para '+COD_NOME[codAtual]+'</div>'+rec.map(item).join('');
+    var outros=all.filter(function(x){return rec.indexOf(x)<0&&COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});});
+    out+='<div class="ov-grp">Outros códigos usados pela ElevaLife</div>'+outros.map(item).join('');
+    out+='<div class="ov-grp">Lista completa da LC 116 · digite para buscar</div>'+all.filter(function(x){return rec.indexOf(x)<0&&outros.indexOf(x)<0;}).slice(0,40).map(item).join('');
+  }else{
+    var r=all.filter(function(x){var h=codNorm(x.c+' '+x.l+' '+x.d);return ws.every(function(w){return h.indexOf(w)>=0;});});
+    out+=r.slice(0,80).map(item).join('')||'<div class="ui-hint" style="padding:12px 4px">Nenhum código encontrado para esta busca.</div>';
+    if(r.length>80)out+='<div class="ui-hint" style="padding:8px 4px">Mostrando 80 de '+r.length+' resultados — refine a busca.</div>';
+  }
+  $('ov2-list').innerHTML=out;
+  $('ov2-list').querySelectorAll('[data-i]').forEach(function(b){b.onclick=function(){var s2=$('c-cod-'+codAtual);s2.selectedIndex=+b.dataset.i;s2.dispatchEvent(new Event('change',{bubbles:true}));$('ov2').style.display='none';};});
+}
 
 /* ===== geração das lâminas ===== */
 var T=window.PROP_TPL;
@@ -606,7 +702,7 @@ function fit(){
 }
 window.addEventListener('resize',fit);
 $('btn-gerar').onclick=gerar;
-$('btn-print').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();printPreview();};
+$('btn-print2').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();printPreview();};
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
@@ -621,7 +717,7 @@ function setState(st){
   FIELD_IDS.forEach(function(id){var e=$(id);if(st.campos&&st.campos[id]!=null){if(e.type==='checkbox')e.checked=!!st.campos[id];else{e.value=st.campos[id];if(e.tagName==='SELECT'&&e.value!==String(st.campos[id])){e.add(new Option(st.campos[id],st.campos[id]));e.value=st.campos[id];}}}});
   if(st.ergoOpts)ergoOpts=st.ergoOpts;if(st.glOpts)glOpts=st.glOpts;
   if(st.svcOpts)SVC_KEYS.forEach(function(k){if(st.svcOpts[k]&&st.svcOpts[k].length)OPTS[k]=st.svcOpts[k];});
-  renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();
+  renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();codRefresh();
   if(st.slides&&st.slides.length){
     $('preview').innerHTML=st.slides.map(function(h){return '<div class="slot">'+h+'</div>';}).join('');
     $('preview').querySelectorAll('.pg').forEach(function(p){p.style.transform='';p.setAttribute('contenteditable','true');});
@@ -637,42 +733,84 @@ function nomeBase(){
   var sv=[];if($('s-ergo').checked)sv.push('Ergonomia');if($('s-nr1').checked)sv.push('NR-1');if($('s-gl').checked)sv.push('Ginastica Laboral');svcNomes().forEach(function(n){sv.push(n.normalize('NFD').replace(/[\u0300-\u036f]/g,''));});
   return 'Proposta - '+($('f-cliente').value||'Cliente')+' - '+sv.join(' + ')+' - '+d;
 }
+/* ---- PDF direto (sem passar pela impressão) ---- */
+var lastPdf=null;
+function pdfMsg(t,err){var m=$('pdf-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
+function slidesAtuais(){return [].map.call(R.querySelectorAll('#preview .pg'),function(p){return p.outerHTML;});}
+function hashStr(t){var h=5381,i;for(i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return h+':'+t.length;}
+function makePdf(slides,prog){
+  if(!window.__pdfBuild)return Promise.reject(new Error('geração de PDF indisponível nesta tela; use Imprimir'));
+  return window.__pdfBuild(slides,{maxBytes:2.9*1024*1024},prog);
+}
+function pdfAtual(prog){
+  if(!$('preview').querySelector('.pg'))gerar();
+  var sl=slidesAtuais(),k=hashStr(sl.join(''));
+  if(lastPdf&&lastPdf.k===k)return Promise.resolve(lastPdf);
+  return makePdf(sl,prog).then(function(b){lastPdf={k:k,blob:b,name:nomeBase()+'.pdf'};return lastPdf;});
+}
+function blobB64(b){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(String(fr.result).split(',')[1]);};fr.onerror=function(){rej(new Error('falha ao ler o arquivo'));};fr.readAsDataURL(b);});}
+function mb(n){return (n/1048576).toFixed(1).replace('.',',')+' MB';}
+$('btn-print').onclick=function(){
+  var b=$('btn-print');b.disabled=true;pdfMsg('Gerando o PDF…');
+  pdfAtual(function(i,n){pdfMsg('Gerando o PDF… página '+i+' de '+n);}).then(function(r){
+    window.__download(r.blob,r.name);pdfMsg('PDF gerado: '+r.name+' ('+mb(r.blob.size)+'). Se o download não iniciar, verifique o bloqueio de downloads do navegador.');
+  }).catch(function(e){pdfMsg('Falha ao gerar o PDF: '+e.message,true);}).then(function(){b.disabled=false;});
+};
 $('btn-save').onclick=function(){
   if(!$('preview').querySelector('.pg')){spMsg('Gere a proposta antes de salvar.',true);return;}
-  spMsg('Salvando…');
-  api('POST','',{nome:nomeBase(),estado:getState()}).then(function(j){
-    if(j.ok)spMsg('Salva no SharePoint: '+j.name);else spMsg('Falha ao salvar: '+(j.error||'erro'),true);
-  }).catch(function(e){spMsg('Falha ao salvar: '+e.message,true);});
+  var b=$('btn-save'),nome=nomeBase(),okJson=false;b.disabled=true;spMsg('Salvando a proposta editável…');
+  api('POST','',{nome:nome,estado:getState()}).then(function(j){
+    if(!j.ok)throw new Error(j.error||'erro');okJson=true;
+    return pdfAtual(function(i,n){spMsg('Gerando o PDF… página '+i+' de '+n);});
+  }).then(function(r){spMsg('Enviando o PDF ('+mb(r.blob.size)+')…');return blobB64(r.blob).then(function(b64){return api('POST','',{nome:nome,pdfBase64:b64});});})
+  .then(function(j){if(!j.ok)throw new Error(j.error||'erro');spMsg('Salvo no SharePoint: '+nome+' (editável + PDF).');})
+  .catch(function(e){spMsg(okJson?('A proposta editável foi salva, mas o PDF não foi enviado: '+e.message):('Falha ao salvar: '+e.message),true);})
+  .then(function(){b.disabled=false;});
 };
-$('btn-pdf').onclick=function(){
-  var f=$('f-pdf').files[0];if(!f){spMsg('Escolha o arquivo PDF primeiro.',true);return;}
-  if(f.size>25*1024*1024){spMsg('PDF acima de 25 MB.',true);return;}
-  spMsg('Enviando PDF…');
-  var rd=new FileReader();rd.onload=function(){
-    api('POST','',{nome:nomeBase(),pdfBase64:String(rd.result).split(',')[1]}).then(function(j){
-      if(j.ok)spMsg('PDF enviado: '+j.name);else spMsg('Falha ao enviar: '+(j.error||'erro'),true);
-    }).catch(function(e){spMsg('Falha ao enviar: '+e.message,true);});
-  };rd.readAsDataURL(f);
-};
+/* ---- Propostas salvas (tela sobreposta) ---- */
+var SAVED=[];
+function agruparSalvas(items){
+  var m={};(items||[]).forEach(function(x){
+    var mt=/\.(json|pdf)$/i.exec(x.name);if(!mt)return;
+    var base=x.name.replace(/\.(json|pdf)$/i,''),g=m[base]||(m[base]={base:base,mod:''});
+    g[mt[1].toLowerCase()]=x;if(String(x.modificado)>g.mod)g.mod=String(x.modificado);g.por=g.por||x.por;
+  });
+  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return b.mod.localeCompare(a.mod);});
+}
+function renderSalvas(){
+  var q=codNorm($('ov-q').value),ws=q?q.split(' '):[];
+  var lst=SAVED.filter(function(g){var h=codNorm(g.base+' '+new Date(g.mod).toLocaleDateString('pt-BR'));return ws.every(function(w){return h.indexOf(w)>=0;});});
+  if(!lst.length){$('ov-list').textContent=SAVED.length?'Nada encontrado para esta busca.':'Nenhuma proposta salva ainda.';return;}
+  $('ov-list').innerHTML=lst.map(function(g,i){
+    return '<div class="ov-row"><div class="nm"><b>'+g.base.replace(/^Proposta - /,'')+'</b><small>'+(g.json?'<span class="ov-tag">Editável</span>':'')+(g.pdf?'<span class="ov-tag">PDF</span>':'')+new Date(g.mod).toLocaleString('pt-BR')+(g.por?' · '+g.por:'')+'</small></div>'
+     +(g.json?'<button class="ui-btn sm" data-ab="'+g.json.id+'" type="button">Abrir</button>':'')
+     +(g.json||g.pdf?'<button class="ui-btn sm sec" data-dl="'+i+'" type="button">Baixar PDF</button>':'')
+     +(g.pdf?'<a class="ui-btn sm sec" style="text-decoration:none" target="_blank" rel="noopener" href="'+g.pdf.webUrl+'">SharePoint</a>':'')+'</div>';}).join('');
+  $('ov-list').querySelectorAll('[data-ab]').forEach(function(b){b.onclick=function(){
+    b.textContent='abrindo…';
+    api('GET','?id='+encodeURIComponent(b.dataset.ab)).then(function(r){
+      if(r.ok&&r.estado&&r.estado.estado){setState(r.estado.estado);lastPdf=null;$('ov').style.display='none';spMsg('Proposta aberta.');}else{b.textContent='erro';}
+    }).catch(function(){b.textContent='erro';});};});
+  $('ov-list').querySelectorAll('[data-dl]').forEach(function(b){b.onclick=function(){
+    var g=lst[+b.dataset.dl],lab=b.textContent;b.disabled=true;b.textContent='gerando…';
+    var pr=g.json?api('GET','?id='+encodeURIComponent(g.json.id)).then(function(r){
+        var sl=r.ok&&r.estado&&r.estado.estado&&r.estado.estado.slides;if(!sl||!sl.length)throw new Error('proposta sem páginas');
+        return makePdf(sl,function(i,n){b.textContent='página '+i+'/'+n;});}):Promise.reject(new Error('sem versão editável'));
+    pr.then(function(blob){window.__download(blob,g.base+'.pdf');},function(e){if(g.pdf&&g.pdf.webUrl){window.open(g.pdf.webUrl,'_blank');}else{spMsg('Não foi possível gerar o PDF: '+e.message,true);}})
+      .then(function(){b.disabled=false;b.textContent=lab;});};});
+}
 $('btn-open').onclick=function(){
-  $('ov').style.display='flex';$('ov-list').textContent='Carregando…';
+  $('ov').style.display='flex';$('ov-list').textContent='Carregando…';$('ov-q').value='';
   api('GET','').then(function(j){
     if(!j.ok){$('ov-list').textContent='Falha: '+(j.error||'erro');return;}
-    var js=(j.items||[]).filter(function(x){return /\.json$/i.test(x.name);});
-    var pd=(j.items||[]).filter(function(x){return /\.pdf$/i.test(x.name);});
-    if(!js.length&&!pd.length){$('ov-list').textContent='Nenhuma proposta salva ainda.';return;}
-    var out='';
-    js.forEach(function(x){out+='<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE3E4"><div style="flex:1"><b>'+x.name.replace(/\.json$/i,'')+'</b><div style="font-size:11px;color:#8A7A78">'+new Date(x.modificado).toLocaleString('pt-BR')+(x.por?' · '+x.por:'')+'</div></div><button class="ui-btn sm" data-open="'+x.id+'" type="button">abrir</button></div>';});
-    pd.forEach(function(x){out+='<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE3E4"><div style="flex:1">PDF · '+x.name+'</div><a class="ui-btn sm sec" style="text-decoration:none" target="_blank" rel="noopener" href="'+x.webUrl+'">ver</a></div>';});
-    $('ov-list').innerHTML=out;
-    $('ov-list').querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(){
-      b.textContent='abrindo…';
-      api('GET','?id='+encodeURIComponent(b.dataset.open)).then(function(r){
-        if(r.ok&&r.estado&&r.estado.estado){setState(r.estado.estado);$('ov').style.display='none';spMsg('Proposta aberta.');}else{b.textContent='erro';}
-      });};});
+    SAVED=agruparSalvas(j.items);renderSalvas();$('ov-q').focus();
   }).catch(function(e){$('ov-list').textContent='Falha: '+e.message;});
 };
+$('ov-q').oninput=renderSalvas;
 $('ov-x').onclick=function(){$('ov').style.display='none';};
+$('ov').onclick=function(e){if(e.target===$('ov'))$('ov').style.display='none';};
+/* ---- seletor de código de serviço ---- */
+
 
 /* init */
 var today=new Date();$('f-data').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
@@ -758,27 +896,30 @@ $('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)apl
 $('e-send').onclick=function(){
   var f=$('f-pdf').files[0];
   if(!$('e-para').value.trim()){eMsg('Informe o e-mail do destinatário.',true);return;}
-  if(!f){eMsg('Escolha o PDF final em “Anexar o PDF final” (acima).',true);return;}
-  if(f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
+  if(f&&f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
+  if(!f&&!$('preview').querySelector('.pg')){eMsg('Gere a proposta antes de enviar (o PDF vai em anexo).',true);return;}
   var lid=$('e-lead').value;
   if(!lid){eMsg('Escolha a oportunidade no Kanban (ou “Criar nova”).',true);return;}
   if(!$('e-assunto').value){aplicarModelo();}
   var corpo=$('e-corpo').value;
-  eMsg('Enviando…');$('e-send').disabled=true;
-  var rd=new FileReader();rd.onload=function(){
-    var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:f.name,pdfBase64:String(rd.result).split(',')[1],
+  eMsg(f?'Enviando…':'Gerando o PDF…');$('e-send').disabled=true;
+  var pdfP=f?blobB64(f).then(function(b64){return {nome:f.name,b64:b64};}):pdfAtual(function(i,n){eMsg('Gerando o PDF… página '+i+' de '+n);}).then(function(r){
+      if(r.blob.size>3*1024*1024)throw new Error('o PDF gerado ficou com '+mb(r.blob.size)+' (limite de 3 MB); anexe uma versão comprimida');
+      return blobB64(r.blob).then(function(b64){return {nome:r.name,b64:b64};});});
+  pdfP.then(function(pdf){
+    eMsg('Enviando…');
+    var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:pdf.nome,pdfBase64:pdf.b64,
       lead:{id:(lid==='__novo'?'':lid),cliente:$('f-cliente').value,nome:$('e-contato').value,serv:$('e-serv').value,valorMensal:parseFloat($('e-vmes').value)||0,numMeses:parseInt($('e-meses').value,10)||0,valor:parseFloat($('e-vtot').value)||0}};
-    fetch('/api/propostas-enviar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-      .then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});})
-      .then(function(j){
-        $('e-send').disabled=false;
-        if(!j.ok){eMsg('Não enviado: '+(j.error||'erro'),true);return;}
-        var k=j.kanban||{};
-        var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
-        t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
-        eMsg(t,!k.ok);leadsCache=null;
-      }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
-  };rd.readAsDataURL(f);
+    return fetch('/api/propostas-enviar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});});
+  }).then(function(j){
+    $('e-send').disabled=false;
+    if(!j.ok){eMsg('Não enviado: '+(j.error||'erro'),true);return;}
+    var k=j.kanban||{};
+    var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
+    t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
+    eMsg(t,!k.ok);leadsCache=null;
+  }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
 aplicarModelo();
 if($('f-cliente').value)listarOportunidades();

@@ -37,6 +37,23 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
 #preview .slot .pg{transform-origin:0 0}
 [contenteditable]:hover{outline:1px dashed #C99AA0}
 [contenteditable]:focus{outline:2px solid #8B3A42}
+.cod-row{display:flex;align-items:center;gap:8px;border:1px solid #E7D8D9;border-radius:10px;padding:7px 9px;margin-top:6px;background:#fff}
+.cod-n{width:92px;flex:none;font-size:11px;font-weight:700;color:#8B3A42;line-height:1.25}
+.cod-v{flex:1;min-width:0;font-size:11px;color:#8A7A78;line-height:1.3}
+.cod-v b{display:block;font-size:14px;color:#5E2A30}
+.cod-v span{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ov-row{display:flex;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #EFE3E4}
+.ov-row .nm{flex:1;min-width:0}
+.ov-row .nm b{display:block;font-size:13px;color:#3D2E30}
+.ov-row .nm small{display:block;font-size:11px;color:#8A7A78}
+.ov-tag{display:inline-block;font-size:10px;font-weight:700;border-radius:6px;padding:1px 6px;margin-right:4px;background:#F3E3E4;color:#5E2A30}
+.ov-q{width:100%;font:inherit;font-size:13px;border:1px solid #DCC9CB;border-radius:8px;padding:8px 10px;margin:0 0 6px}
+.ov-pick{display:flex;gap:10px;width:100%;text-align:left;border:0;background:#fff;border-bottom:1px solid #EFE3E4;padding:8px 4px;cursor:pointer;font:inherit}
+.ov-pick:hover{background:#FBF5F5}
+.ov-pick b{flex:none;width:64px;font-size:13px;color:#8B3A42}
+.ov-pick span{font-size:12px;color:#3D2E30;line-height:1.35}
+.ov-pick i{display:block;font-style:normal;font-size:10.5px;color:#8A7A78}
+.ov-grp{font-size:10.5px;font-weight:700;letter-spacing:.6px;color:#8A7A78;text-transform:uppercase;padding:8px 4px 2px}
 .ui-empty{padding:60px 20px;text-align:center;color:#8A7A78;font-size:14px}
 @media print{
   @page{size:1280px 720px;margin:0}
@@ -109,28 +126,23 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
   <div class="ui-sec"><h3>Prazos e condições</h3>
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
-    <div class="ui-hint" style="margin-top:6px"><b>Código do serviço (LC 116)</b> — escolha na lista suspensa; a descrição é preenchida automaticamente. Confirme com o fiscal antes de enviar.</div>
-    <div id="cg-ergo">
-    <label>Código · Ergonomia / NR-1</label><select id="c-cod-ergo" data-def="08.02.01"></select><div class="ui-hint" id="h-cod-ergo"></div><input type="hidden" id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza"></div>
-    <div id="cg-gl">
-    <label>Código · Ginástica Laboral</label><select id="c-cod-gl" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-gl"></div><input type="hidden" id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
-    <div id="cg-fisio">
-    <label>Código · Fisioterapia</label><select id="c-cod-fisio" data-def="04.08.02"></select><div class="ui-hint" id="h-cod-fisio"></div><input type="hidden" id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
-    <div id="cg-masso">
-    <label>Código · Massoterapia</label><select id="c-cod-masso" data-def="04.09"></select><div class="ui-hint" id="h-cod-masso"></div><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental"></div>
-    <div id="cg-enf">
-    <label>Código · Enfermagem do Trabalho</label><select id="c-cod-enf" data-def="04.06"></select><div class="ui-hint" id="h-cod-enf"></div><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares"></div>
-    <div id="cg-med">
-    <label>Código · Medicina do Trabalho</label><select id="c-cod-med" data-def="04.01"></select><div class="ui-hint" id="h-cod-med"></div><input type="hidden" id="c-obs-med" value="Medicina e biomedicina"></div>
+    <label style="margin-top:10px">Código do serviço na nota fiscal (LC 116)</label>
+    <div class="ui-hint" style="margin:0 0 4px">Já vem sugerido para cada serviço. Toque em “Alterar” para buscar outro código. Confirme com o fiscal antes de enviar.</div>
+    <div id="cg-ergo" class="cod-row"><div class="cod-n">Ergonomia / NR-1</div><div class="cod-v"><b id="cv-ergo"></b><span id="h-cod-ergo"></span></div><button class="ui-btn sm sec" id="cod-btn-ergo" type="button">Alterar</button><select id="c-cod-ergo" data-def="08.02.01" style="display:none"></select><input type="hidden" id="c-obs-ergo" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza"></div>
+    <div id="cg-gl" class="cod-row"><div class="cod-n">Ginástica Laboral</div><div class="cod-v"><b id="cv-gl"></b><span id="h-cod-gl"></span></div><button class="ui-btn sm sec" id="cod-btn-gl" type="button">Alterar</button><select id="c-cod-gl" data-def="04.08.02" style="display:none"></select><input type="hidden" id="c-obs-gl" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
+    <div id="cg-fisio" class="cod-row"><div class="cod-n">Fisioterapia</div><div class="cod-v"><b id="cv-fisio"></b><span id="h-cod-fisio"></span></div><button class="ui-btn sm sec" id="cod-btn-fisio" type="button">Alterar</button><select id="c-cod-fisio" data-def="04.08.02" style="display:none"></select><input type="hidden" id="c-obs-fisio" value="Terapia ocupacional, fisioterapia e fonoaudiologia"></div>
+    <div id="cg-masso" class="cod-row"><div class="cod-n">Massoterapia</div><div class="cod-v"><b id="cv-masso"></b><span id="h-cod-masso"></span></div><button class="ui-btn sm sec" id="cod-btn-masso" type="button">Alterar</button><select id="c-cod-masso" data-def="04.09" style="display:none"></select><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental"></div>
+    <div id="cg-enf" class="cod-row"><div class="cod-n">Enfermagem do Trabalho</div><div class="cod-v"><b id="cv-enf"></b><span id="h-cod-enf"></span></div><button class="ui-btn sm sec" id="cod-btn-enf" type="button">Alterar</button><select id="c-cod-enf" data-def="04.06" style="display:none"></select><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares"></div>
+    <div id="cg-med" class="cod-row"><div class="cod-n">Medicina do Trabalho</div><div class="cod-v"><b id="cv-med"></b><span id="h-cod-med"></span></div><button class="ui-btn sm sec" id="cod-btn-med" type="button">Alterar</button><select id="c-cod-med" data-def="04.01" style="display:none"></select><input type="hidden" id="c-obs-med" value="Medicina e biomedicina"></div>
     <label>CNPJ e razão social (GL)</label><input id="c-cnpj-gl" value="15.447.255/0001-74 · ELEVALIFE SAÚDE E EDUCAÇÃO LTDA">
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
 
-  <div class="ui-bar"><button class="ui-btn" id="btn-gerar" type="button">Gerar proposta</button><button class="ui-btn sec" id="btn-print" type="button">Imprimir / PDF</button></div>
+  <div class="ui-bar"><button class="ui-btn" id="btn-gerar" type="button">Gerar proposta</button><button class="ui-btn sec" id="btn-print" type="button">Baixar PDF</button><button class="ui-btn sec sm" id="btn-print2" type="button">Imprimir</button></div>
+  <div class="ui-hint" id="pdf-msg" style="margin:-4px 0 10px"></div>
   <div class="ui-sec"><h3>SharePoint</h3>
-    <div class="ui-bar" style="margin:0 0 8px"><button class="ui-btn" id="btn-save" type="button">Salvar proposta</button><button class="ui-btn sec" id="btn-open" type="button">Abrir salvas</button></div>
-    <label>Anexar o PDF final (opcional)</label><input id="f-pdf" type="file" accept="application/pdf">
-    <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="btn-pdf" type="button">Enviar PDF ao SharePoint</button></div>
+    <div class="ui-bar" style="margin:0 0 8px"><button class="ui-btn" id="btn-save" type="button">Salvar no SharePoint</button><button class="ui-btn sec" id="btn-open" type="button">Propostas salvas</button></div>
+    <div class="ui-hint">Guarda a proposta editável e o PDF na pasta de propostas geradas. “Propostas salvas” abre a lista para reabrir ou baixar o PDF.</div>
     <div class="ui-hint" id="sp-msg" style="margin-top:8px"></div>
   </div>
   <div class="ui-sec" id="box-mail"><h3>Enviar por e-mail</h3>
@@ -144,11 +156,11 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <label>Mensagem</label><textarea id="e-corpo" rows="11"></textarea>
     <label>Assinatura</label><textarea id="e-assin" rows="2" readonly style="opacity:.75"></textarea>
     <label>PDF da proposta (anexo)</label>
-    <div class="ui-hint">Usa o arquivo escolhido em “Anexar o PDF final”, acima (até 3 MB).</div>
+    <div class="ui-hint">Por padrão vai o PDF gerado por esta tela (até 3 MB). Para enviar outro arquivo, escolha abaixo.</div><input id="f-pdf" type="file" accept="application/pdf">
     <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="e-tpl" type="button">Restaurar modelo</button><button class="ui-btn" id="e-send" type="button">Enviar proposta</button></div>
     <div class="ui-hint" id="e-msg" style="margin-top:8px"></div>
   </div>
-  <div class="ui-hint">Gerar de novo refaz todas as páginas e descarta edições manuais. Para o PDF, use “Imprimir / PDF”, escolha “Salvar como PDF” e depois anexe o arquivo acima. “Salvar proposta” guarda a versão editável.</div>
+  <div class="ui-hint">Gerar de novo refaz todas as páginas e descarta edições manuais. “Baixar PDF” gera o arquivo direto, sem passar pela impressão. “Salvar no SharePoint” guarda a versão editável e o PDF.</div>
 </aside>
 
 <main class="ui-main">
@@ -157,7 +169,8 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
 </main>
 </div>
 
-<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:50;align-items:center;justify-content:center"><div style="background:#fff;border-radius:14px;width:min(640px,92vw);max-height:80vh;overflow:auto;padding:16px 18px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#5E2A30">Propostas salvas no SharePoint</b><button class="ui-btn sec sm" id="ov-x" type="button">fechar</button></div><div id="ov-list" style="font-size:13px"></div></div></div>
+<div id="ov" style="display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:50;align-items:center;justify-content:center"><div style="background:#fff;border-radius:14px;width:min(680px,94vw);max-height:84vh;display:flex;flex-direction:column;padding:16px 18px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="color:#5E2A30">Propostas salvas</b><button class="ui-btn sec sm" id="ov-x" type="button">fechar</button></div><input class="ov-q" id="ov-q" placeholder="Buscar por cliente, serviço ou data"><div id="ov-list" style="font-size:13px;overflow:auto;flex:1"></div></div></div>
+<div id="ov2" style="display:none;position:fixed;inset:0;background:rgba(61,46,48,.45);z-index:60;align-items:center;justify-content:center"><div style="background:#fff;border-radius:14px;width:min(640px,94vw);max-height:84vh;display:flex;flex-direction:column;padding:16px 18px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><b style="color:#5E2A30" id="ov2-t">Código do serviço</b><button class="ui-btn sec sm" id="ov2-x" type="button">fechar</button></div><div class="ui-hint" id="ov2-sub" style="margin-bottom:6px"></div><input class="ov-q" id="ov2-q" placeholder="Buscar por código ou palavra (ex.: 04.06, enfermagem, treinamento)"><div id="ov2-list" style="overflow:auto;flex:1"></div></div></div>
 <script src="propostas-templates.js"></script>
 <script>
 (function(){
@@ -168,7 +181,7 @@ var r2=function(v){return Math.round(v*100)/100;};
 
 /* ===== Calculadoras (espelham as planilhas “6 - MODELO DE PRECIFICAÇÕES”) =====
    Regras: valor CLT-Capital da tabela de referência; PJ = CLT x (1,30/3,00 x 2,20) ;
-   Interior = -15% ; Difícil acesso = +10% sobre o valor final. */
+   Interior = -15% ; Difícil acesso = +10% sobre o valor final (vale também para Enfermagem e Medicina). */
 var PJ_F=1.3/3*2.2, INT_F=0.85, DIF_F=1.10;
 var ERGO={ /* CLT · Capital/RM · valor mensal por CH semanal */
   JR:{40:13500,30:10800,24:8775,20:8100,16:6885,12:4455,8:3786.75},
@@ -194,6 +207,7 @@ var glOpts=[{hdia:2,freq:2,regime:'CLT',loc:'Capital / Região Metropolitana',ac
 
 function sel(id,opts,val,extra){return '<select data-k="'+id+'" '+(extra||'')+'>'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'"'+(String(v)===String(val)?' selected':'')+'>'+l+'</option>';}).join('')+'</select>';}
 var LOCS=['Capital / Região Metropolitana','Interior'];
+function adjNote(o){var a=[];if(o.loc==='Interior')a.push('Interior −15%');if(o.acesso==='Difícil acesso')a.push('Difícil acesso +10%');return a.length?'<div class="ui-hint">Ajustes aplicados: '+a.join(' · ')+'</div>':'';}
 function renderErgo(){
   $('ergo-opts').innerHTML=ergoOpts.map(function(o,i){
     var p=priceErgo(o);
@@ -201,7 +215,7 @@ function renderErgo(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Senioridade</label>'+sel('sen',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen)+'</div></div>'+
     '<div class="ui-row"><div><label>Carga semanal (h)</label>'+sel('ch',[40,30,24,20,16,12,8],o.ch)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'—':BRL(p*o.qtd)+' / mês')+'</div></div>';}).join('');
+    '<div class="ui-price">'+(p==null?'—':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts('ergo-opts',ergoOpts,renderErgo);
 }
 function renderGL(){
@@ -212,7 +226,7 @@ function renderGL(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Horas por aula (dia)</label>'+sel('hdia',hs,o.hdia)+'</div><div><label>Vezes por semana</label>'+sel('freq',[1,2,3,4,5],o.freq)+'</div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês')+'</div></div>';}).join('');
+    '<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts('gl-opts',glOpts,renderGL);
 }
 function bindOpts(boxId,arr,rerender){
@@ -254,7 +268,7 @@ function calcEM(o,med){
     var tec=o.prof==='Técnico de Enfermagem',s2=(tec?SAL_TEC:SAL_ENFM)[o.sen];
     f=Math.min(1,o.ch/40);not=tec?0.4:0.35;mult=tec?2.45:2.5;Q=BENEF;P=s2*f*(1+(o.turno==='Noturno'?not:0))+INSAL;heD=1.9;heN=2.5;
   }
-  var K=r2((P+Q)*mult*(o.acesso==='Difícil acesso'?DIF_F:1)),ph=K/(o.ch*SEMANAS);
+  var K=r2((P+Q)*mult*(o.loc==='Interior'?INT_F:1)*(o.acesso==='Difícil acesso'?DIF_F:1)),ph=K/(o.ch*SEMANAS);
   return {k:K,perH:ph,heD:ph*heD,heN:ph*heN};
 }
 function priceEnf(o){return r2(calcEM(o,false).k*o.qtd);}
@@ -287,7 +301,7 @@ function renderSvc(k){
     var f=S.fields(o),p=S.price(o),rows='';
     for(var j=0;j<f.length;j+=2)rows+='<div class="ui-row">'+fld(f[j])+(f[j+1]?fld(f[j+1]):'<div></div>')+'</div>';
     var u=typeof S.unit==='function'?S.unit(o):S.unit;
-    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>Opção '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div></div>';}).join('');
+    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>Opção '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div>'+adjNote(o)+'</div>';}).join('');
   bindOpts(S.list,arr,function(){renderSvc(k);});
 }
 SVC_KEYS.forEach(function(k){$('add-'+k).onclick=function(){if(OPTS[k].length<4){OPTS[k].push(JSON.parse(JSON.stringify(SVC[k].def)));renderSvc(k);}};});
@@ -618,12 +632,39 @@ function codInit(){
   ['ergo','gl','fisio','masso','enf','med'].forEach(function(k){
     var sel=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!sel)return;
     sel.innerHTML=html;var def=sel.getAttribute('data-def');if(def)sel.value=def;
-    function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';}
+    function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';var cv=$('cv-'+k);if(cv)cv.textContent=sel.value||'—';}
+    sel._mostra=mostra;
     sel.addEventListener('change',function(){var o=sel.options[sel.selectedIndex];if(o)obs.value=o.getAttribute('data-d')||'';mostra();});
     mostra();
   });
 }
 codInit();
+function codRefresh(){['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var s=$('c-cod-'+k);if(s&&s._mostra)s._mostra();});}
+var COD_NOME={ergo:'Ergonomia / NR-1',gl:'Ginástica Laboral',fisio:'Fisioterapia',masso:'Massoterapia',enf:'Enfermagem do Trabalho',med:'Medicina do Trabalho'};
+var COD_REC={ergo:['08.02.01','17.09'],gl:['04.08.02','04.08'],fisio:['04.08.02','04.08'],masso:['04.09','04.08.02'],enf:['04.06','04.01'],med:['04.01','17.09']};
+var codAtual=null;
+function codAbrir(k){codAtual=k;$('ov2-t').textContent='Código do serviço · '+COD_NOME[k];$('ov2-sub').textContent='Atual: '+$('c-cod-'+k).value+' — '+($('h-cod-'+k).textContent||'');$('ov2-q').value='';$('ov2').style.display='flex';codListar('');$('ov2-q').focus();}
+['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var b=$('cod-btn-'+k);if(b)b.onclick=function(){codAbrir(k);};});
+$('ov2-q').oninput=function(){codListar($('ov2-q').value);};
+$('ov2-x').onclick=function(){$('ov2').style.display='none';};
+$('ov2').onclick=function(e){if(e.target===$('ov2'))$('ov2').style.display='none';};
+function codListar(q){
+  var sel=$('c-cod-'+codAtual),all=codAll(),nq=codNorm(q),ws=nq?nq.split(' '):[],out='',n=0;
+  function item(x){var i=-1,j;for(j=0;j<sel.options.length;j++){if(sel.options[j].value===x.c&&sel.options[j].getAttribute('data-d')===x.d){i=j;break;}}if(i<0)return '';n++;return '<button type="button" class="ov-pick" data-i="'+i+'"><b>'+x.c+'</b><span>'+(x.l.indexOf('LC 116')===0?x.d:x.l+'<i>'+x.d+'</i>')+'</span></button>';}
+  if(!ws.length){
+    var rec=all.filter(function(x){return COD_REC[codAtual].some(function(r){return x.c===r;})&&COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});});
+    out+='<div class="ov-grp">Sugeridos para '+COD_NOME[codAtual]+'</div>'+rec.map(item).join('');
+    var outros=all.filter(function(x){return rec.indexOf(x)<0&&COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});});
+    out+='<div class="ov-grp">Outros códigos usados pela ElevaLife</div>'+outros.map(item).join('');
+    out+='<div class="ov-grp">Lista completa da LC 116 · digite para buscar</div>'+all.filter(function(x){return rec.indexOf(x)<0&&outros.indexOf(x)<0;}).slice(0,40).map(item).join('');
+  }else{
+    var r=all.filter(function(x){var h=codNorm(x.c+' '+x.l+' '+x.d);return ws.every(function(w){return h.indexOf(w)>=0;});});
+    out+=r.slice(0,80).map(item).join('')||'<div class="ui-hint" style="padding:12px 4px">Nenhum código encontrado para esta busca.</div>';
+    if(r.length>80)out+='<div class="ui-hint" style="padding:8px 4px">Mostrando 80 de '+r.length+' resultados — refine a busca.</div>';
+  }
+  $('ov2-list').innerHTML=out;
+  $('ov2-list').querySelectorAll('[data-i]').forEach(function(b){b.onclick=function(){var s2=$('c-cod-'+codAtual);s2.selectedIndex=+b.dataset.i;s2.dispatchEvent(new Event('change',{bubbles:true}));$('ov2').style.display='none';};});
+}
 
 /* ===== geração das lâminas ===== */
 var T=window.PROP_TPL;
@@ -731,7 +772,7 @@ function fit(){
 }
 window.addEventListener('resize',fit);
 $('btn-gerar').onclick=gerar;
-$('btn-print').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();window.print();};
+$('btn-print2').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();window.print();};
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
@@ -746,7 +787,7 @@ function setState(st){
   FIELD_IDS.forEach(function(id){var e=$(id);if(st.campos&&st.campos[id]!=null){if(e.type==='checkbox')e.checked=!!st.campos[id];else{e.value=st.campos[id];if(e.tagName==='SELECT'&&e.value!==String(st.campos[id])){e.add(new Option(st.campos[id],st.campos[id]));e.value=st.campos[id];}}}});
   if(st.ergoOpts)ergoOpts=st.ergoOpts;if(st.glOpts)glOpts=st.glOpts;
   if(st.svcOpts)SVC_KEYS.forEach(function(k){if(st.svcOpts[k]&&st.svcOpts[k].length)OPTS[k]=st.svcOpts[k];});
-  renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();
+  renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();codRefresh();
   if(st.slides&&st.slides.length){
     $('preview').innerHTML=st.slides.map(function(h){return '<div class="slot">'+h+'</div>';}).join('');
     $('preview').querySelectorAll('.pg').forEach(function(p){p.style.transform='';p.setAttribute('contenteditable','true');});
@@ -762,42 +803,84 @@ function nomeBase(){
   var sv=[];if($('s-ergo').checked)sv.push('Ergonomia');if($('s-nr1').checked)sv.push('NR-1');if($('s-gl').checked)sv.push('Ginastica Laboral');svcNomes().forEach(function(n){sv.push(n.normalize('NFD').replace(/[\u0300-\u036f]/g,''));});
   return 'Proposta - '+($('f-cliente').value||'Cliente')+' - '+sv.join(' + ')+' - '+d;
 }
+/* ---- PDF direto (sem passar pela impressão) ---- */
+var lastPdf=null;
+function pdfMsg(t,err){var m=$('pdf-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
+function slidesAtuais(){return [].map.call(document.querySelectorAll('#preview .pg'),function(p){return p.outerHTML;});}
+function hashStr(t){var h=5381,i;for(i=0;i<t.length;i++)h=((h<<5)+h+t.charCodeAt(i))|0;return h+':'+t.length;}
+function makePdf(slides,prog){
+  if(!window.__pdfBuild)return Promise.reject(new Error('geração de PDF indisponível nesta tela; use Imprimir'));
+  return window.__pdfBuild(slides,{maxBytes:2.9*1024*1024},prog);
+}
+function pdfAtual(prog){
+  if(!$('preview').querySelector('.pg'))gerar();
+  var sl=slidesAtuais(),k=hashStr(sl.join(''));
+  if(lastPdf&&lastPdf.k===k)return Promise.resolve(lastPdf);
+  return makePdf(sl,prog).then(function(b){lastPdf={k:k,blob:b,name:nomeBase()+'.pdf'};return lastPdf;});
+}
+function blobB64(b){return new Promise(function(res,rej){var fr=new FileReader();fr.onload=function(){res(String(fr.result).split(',')[1]);};fr.onerror=function(){rej(new Error('falha ao ler o arquivo'));};fr.readAsDataURL(b);});}
+function mb(n){return (n/1048576).toFixed(1).replace('.',',')+' MB';}
+$('btn-print').onclick=function(){
+  var b=$('btn-print');b.disabled=true;pdfMsg('Gerando o PDF…');
+  pdfAtual(function(i,n){pdfMsg('Gerando o PDF… página '+i+' de '+n);}).then(function(r){
+    window.__download(r.blob,r.name);pdfMsg('PDF gerado: '+r.name+' ('+mb(r.blob.size)+'). Se o download não iniciar, verifique o bloqueio de downloads do navegador.');
+  }).catch(function(e){pdfMsg('Falha ao gerar o PDF: '+e.message,true);}).then(function(){b.disabled=false;});
+};
 $('btn-save').onclick=function(){
   if(!$('preview').querySelector('.pg')){spMsg('Gere a proposta antes de salvar.',true);return;}
-  spMsg('Salvando…');
-  api('POST','',{nome:nomeBase(),estado:getState()}).then(function(j){
-    if(j.ok)spMsg('Salva no SharePoint: '+j.name);else spMsg('Falha ao salvar: '+(j.error||'erro'),true);
-  }).catch(function(e){spMsg('Falha ao salvar: '+e.message,true);});
+  var b=$('btn-save'),nome=nomeBase(),okJson=false;b.disabled=true;spMsg('Salvando a proposta editável…');
+  api('POST','',{nome:nome,estado:getState()}).then(function(j){
+    if(!j.ok)throw new Error(j.error||'erro');okJson=true;
+    return pdfAtual(function(i,n){spMsg('Gerando o PDF… página '+i+' de '+n);});
+  }).then(function(r){spMsg('Enviando o PDF ('+mb(r.blob.size)+')…');return blobB64(r.blob).then(function(b64){return api('POST','',{nome:nome,pdfBase64:b64});});})
+  .then(function(j){if(!j.ok)throw new Error(j.error||'erro');spMsg('Salvo no SharePoint: '+nome+' (editável + PDF).');})
+  .catch(function(e){spMsg(okJson?('A proposta editável foi salva, mas o PDF não foi enviado: '+e.message):('Falha ao salvar: '+e.message),true);})
+  .then(function(){b.disabled=false;});
 };
-$('btn-pdf').onclick=function(){
-  var f=$('f-pdf').files[0];if(!f){spMsg('Escolha o arquivo PDF primeiro.',true);return;}
-  if(f.size>25*1024*1024){spMsg('PDF acima de 25 MB.',true);return;}
-  spMsg('Enviando PDF…');
-  var rd=new FileReader();rd.onload=function(){
-    api('POST','',{nome:nomeBase(),pdfBase64:String(rd.result).split(',')[1]}).then(function(j){
-      if(j.ok)spMsg('PDF enviado: '+j.name);else spMsg('Falha ao enviar: '+(j.error||'erro'),true);
-    }).catch(function(e){spMsg('Falha ao enviar: '+e.message,true);});
-  };rd.readAsDataURL(f);
-};
+/* ---- Propostas salvas (tela sobreposta) ---- */
+var SAVED=[];
+function agruparSalvas(items){
+  var m={};(items||[]).forEach(function(x){
+    var mt=/\.(json|pdf)$/i.exec(x.name);if(!mt)return;
+    var base=x.name.replace(/\.(json|pdf)$/i,''),g=m[base]||(m[base]={base:base,mod:''});
+    g[mt[1].toLowerCase()]=x;if(String(x.modificado)>g.mod)g.mod=String(x.modificado);g.por=g.por||x.por;
+  });
+  return Object.keys(m).map(function(k){return m[k];}).sort(function(a,b){return b.mod.localeCompare(a.mod);});
+}
+function renderSalvas(){
+  var q=codNorm($('ov-q').value),ws=q?q.split(' '):[];
+  var lst=SAVED.filter(function(g){var h=codNorm(g.base+' '+new Date(g.mod).toLocaleDateString('pt-BR'));return ws.every(function(w){return h.indexOf(w)>=0;});});
+  if(!lst.length){$('ov-list').textContent=SAVED.length?'Nada encontrado para esta busca.':'Nenhuma proposta salva ainda.';return;}
+  $('ov-list').innerHTML=lst.map(function(g,i){
+    return '<div class="ov-row"><div class="nm"><b>'+g.base.replace(/^Proposta - /,'')+'</b><small>'+(g.json?'<span class="ov-tag">Editável</span>':'')+(g.pdf?'<span class="ov-tag">PDF</span>':'')+new Date(g.mod).toLocaleString('pt-BR')+(g.por?' · '+g.por:'')+'</small></div>'
+     +(g.json?'<button class="ui-btn sm" data-ab="'+g.json.id+'" type="button">Abrir</button>':'')
+     +(g.json||g.pdf?'<button class="ui-btn sm sec" data-dl="'+i+'" type="button">Baixar PDF</button>':'')
+     +(g.pdf?'<a class="ui-btn sm sec" style="text-decoration:none" target="_blank" rel="noopener" href="'+g.pdf.webUrl+'">SharePoint</a>':'')+'</div>';}).join('');
+  $('ov-list').querySelectorAll('[data-ab]').forEach(function(b){b.onclick=function(){
+    b.textContent='abrindo…';
+    api('GET','?id='+encodeURIComponent(b.dataset.ab)).then(function(r){
+      if(r.ok&&r.estado&&r.estado.estado){setState(r.estado.estado);lastPdf=null;$('ov').style.display='none';spMsg('Proposta aberta.');}else{b.textContent='erro';}
+    }).catch(function(){b.textContent='erro';});};});
+  $('ov-list').querySelectorAll('[data-dl]').forEach(function(b){b.onclick=function(){
+    var g=lst[+b.dataset.dl],lab=b.textContent;b.disabled=true;b.textContent='gerando…';
+    var pr=g.json?api('GET','?id='+encodeURIComponent(g.json.id)).then(function(r){
+        var sl=r.ok&&r.estado&&r.estado.estado&&r.estado.estado.slides;if(!sl||!sl.length)throw new Error('proposta sem páginas');
+        return makePdf(sl,function(i,n){b.textContent='página '+i+'/'+n;});}):Promise.reject(new Error('sem versão editável'));
+    pr.then(function(blob){window.__download(blob,g.base+'.pdf');},function(e){if(g.pdf&&g.pdf.webUrl){window.open(g.pdf.webUrl,'_blank');}else{spMsg('Não foi possível gerar o PDF: '+e.message,true);}})
+      .then(function(){b.disabled=false;b.textContent=lab;});};});
+}
 $('btn-open').onclick=function(){
-  $('ov').style.display='flex';$('ov-list').textContent='Carregando…';
+  $('ov').style.display='flex';$('ov-list').textContent='Carregando…';$('ov-q').value='';
   api('GET','').then(function(j){
     if(!j.ok){$('ov-list').textContent='Falha: '+(j.error||'erro');return;}
-    var js=(j.items||[]).filter(function(x){return /\.json$/i.test(x.name);});
-    var pd=(j.items||[]).filter(function(x){return /\.pdf$/i.test(x.name);});
-    if(!js.length&&!pd.length){$('ov-list').textContent='Nenhuma proposta salva ainda.';return;}
-    var out='';
-    js.forEach(function(x){out+='<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE3E4"><div style="flex:1"><b>'+x.name.replace(/\.json$/i,'')+'</b><div style="font-size:11px;color:#8A7A78">'+new Date(x.modificado).toLocaleString('pt-BR')+(x.por?' · '+x.por:'')+'</div></div><button class="ui-btn sm" data-open="'+x.id+'" type="button">abrir</button></div>';});
-    pd.forEach(function(x){out+='<div style="display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #EFE3E4"><div style="flex:1">PDF · '+x.name+'</div><a class="ui-btn sm sec" style="text-decoration:none" target="_blank" rel="noopener" href="'+x.webUrl+'">ver</a></div>';});
-    $('ov-list').innerHTML=out;
-    $('ov-list').querySelectorAll('[data-open]').forEach(function(b){b.onclick=function(){
-      b.textContent='abrindo…';
-      api('GET','?id='+encodeURIComponent(b.dataset.open)).then(function(r){
-        if(r.ok&&r.estado&&r.estado.estado){setState(r.estado.estado);$('ov').style.display='none';spMsg('Proposta aberta.');}else{b.textContent='erro';}
-      });};});
+    SAVED=agruparSalvas(j.items);renderSalvas();$('ov-q').focus();
   }).catch(function(e){$('ov-list').textContent='Falha: '+e.message;});
 };
+$('ov-q').oninput=renderSalvas;
 $('ov-x').onclick=function(){$('ov').style.display='none';};
+$('ov').onclick=function(e){if(e.target===$('ov'))$('ov').style.display='none';};
+/* ---- seletor de código de serviço ---- */
+
 
 /* init */
 var today=new Date();$('f-data').value=today.getFullYear()+'-'+String(today.getMonth()+1).padStart(2,'0')+'-'+String(today.getDate()).padStart(2,'0');
@@ -883,27 +966,30 @@ $('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)apl
 $('e-send').onclick=function(){
   var f=$('f-pdf').files[0];
   if(!$('e-para').value.trim()){eMsg('Informe o e-mail do destinatário.',true);return;}
-  if(!f){eMsg('Escolha o PDF final em “Anexar o PDF final” (acima).',true);return;}
-  if(f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
+  if(f&&f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
+  if(!f&&!$('preview').querySelector('.pg')){eMsg('Gere a proposta antes de enviar (o PDF vai em anexo).',true);return;}
   var lid=$('e-lead').value;
   if(!lid){eMsg('Escolha a oportunidade no Kanban (ou “Criar nova”).',true);return;}
   if(!$('e-assunto').value){aplicarModelo();}
   var corpo=$('e-corpo').value;
-  eMsg('Enviando…');$('e-send').disabled=true;
-  var rd=new FileReader();rd.onload=function(){
-    var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:f.name,pdfBase64:String(rd.result).split(',')[1],
+  eMsg(f?'Enviando…':'Gerando o PDF…');$('e-send').disabled=true;
+  var pdfP=f?blobB64(f).then(function(b64){return {nome:f.name,b64:b64};}):pdfAtual(function(i,n){eMsg('Gerando o PDF… página '+i+' de '+n);}).then(function(r){
+      if(r.blob.size>3*1024*1024)throw new Error('o PDF gerado ficou com '+mb(r.blob.size)+' (limite de 3 MB); anexe uma versão comprimida');
+      return blobB64(r.blob).then(function(b64){return {nome:r.name,b64:b64};});});
+  pdfP.then(function(pdf){
+    eMsg('Enviando…');
+    var body={para:$('e-para').value,cc:$('e-cc').value,assunto:$('e-assunto').value,corpo:corpo,pdfNome:pdf.nome,pdfBase64:pdf.b64,
       lead:{id:(lid==='__novo'?'':lid),cliente:$('f-cliente').value,nome:$('e-contato').value,serv:$('e-serv').value,valorMensal:parseFloat($('e-vmes').value)||0,numMeses:parseInt($('e-meses').value,10)||0,valor:parseFloat($('e-vtot').value)||0}};
-    fetch('/api/propostas-enviar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
-      .then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});})
-      .then(function(j){
-        $('e-send').disabled=false;
-        if(!j.ok){eMsg('Não enviado: '+(j.error||'erro'),true);return;}
-        var k=j.kanban||{};
-        var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
-        t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
-        eMsg(t,!k.ok);leadsCache=null;
-      }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
-  };rd.readAsDataURL(f);
+    return fetch('/api/propostas-enviar',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)})
+      .then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});});
+  }).then(function(j){
+    $('e-send').disabled=false;
+    if(!j.ok){eMsg('Não enviado: '+(j.error||'erro'),true);return;}
+    var k=j.kanban||{};
+    var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
+    t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
+    eMsg(t,!k.ok);leadsCache=null;
+  }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
 aplicarModelo();
 if($('f-cliente').value)listarOportunidades();
