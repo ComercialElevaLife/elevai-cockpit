@@ -337,20 +337,22 @@ function svcRows(k,o){
 /* ---- novas lâminas: time envolvido, indicadores com gráficos, sistema de agendamento ---- */
 var IMGS={agenda:'',ind:''};
 var TEAM={
- fisio:[['João Barbosa','Diretor de Op.'],['Dhanilo Cruz','Líder de área'],['Fisioterapeuta','Atendimento na unidade']],
- masso:[['João Barbosa','Diretor de Op.'],['Cristiano Goulart','Líder de área'],['Massoterapeuta','Atendimento na unidade']],
- enf:[['João Barbosa','Diretor de Op.'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Equipe de Enfermagem','Atendimento na unidade']],
- med:[['João Barbosa','Diretor de Op.'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Médico do Trabalho','Atendimento na unidade']]};
+ fisio:[['João Barbosa','Diretor de Operações'],['Dhanilo Cruz','Líder de área'],['Fisioterapeuta','Fisioterapia · alocado','Na unidade do cliente']],
+ masso:[['João Barbosa','Diretor de Operações'],['Cristiano Goulart','Líder de área'],['Massoterapeuta','Massoterapia · alocado','Na unidade do cliente']],
+ enf:[['João Barbosa','Diretor de Operações'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Equipe de Enfermagem','Enfermagem do Trabalho · alocada','Na unidade do cliente']],
+ med:[['João Barbosa','Diretor de Operações'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Médico do Trabalho','Medicina do Trabalho · alocado','Na unidade do cliente']]};
 function iniciais(n){var p=n.replace(/^Dra?\.\s*/,'').split(' ').filter(Boolean);return (p[0][0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
 function teamSlide(k,ctx,tag){
-  var T=TEAM[k],n=T.length;
-  var cards=T.map(function(x,i){
-    var pessoa=i<n-1;
-    var av=pessoa?'<div style="width:86px;height:86px;border-radius:50%;background:linear-gradient(135deg,var(--deep),var(--w));color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:28px;margin:0 auto 16px">'+iniciais(x[0])+'</div>':'<div style="width:86px;height:86px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;margin:0 auto 16px">'+ic('users')+'</div>';
-    return '<div style="flex:1;background:var(--bg);border-radius:20px;padding:30px 16px;text-align:center">'+av+'<div style="font-family:MA,M;font-weight:700;font-size:19px;color:var(--deep);line-height:1.25">'+x[0]+'</div><div style="font-size:14px;color:#5b4a4d;margin-top:6px">'+x[1]+'</div></div>';
+  var T=TEAM[k],n=T.length,o='';
+  var cores=['var(--deep)','#7A3139','var(--mid)','var(--mid)'];
+  T.forEach(function(x,i){
+    var last=i===n-1,sz=last?60:(i===0?70:64),cor=last?'var(--w)':(i===0?'var(--deep)':(i===1?'#7A3139':'var(--mid)'));
+    var nome=x[0],ini=last?nome.replace(/^Equipe de /,'').charAt(0).toUpperCase():iniciais(nome);
+    if(i>0)o+='<div style="width:2px;height:18px;background:var(--soft);margin:0 auto"></div>';
+    o+='<div style="text-align:center;width:260px"><div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+cor+';color:#fff;font-family:MA;font-size:'+(sz*0.36)+'px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 6px 16px rgba(94,42,48,.25);border:4px solid #fff;outline:2px solid var(--soft)">'+ini+'</div>'
+     +'<div style="font-family:MA;font-size:17px;color:var(--deep)">'+nome+'</div><div style="font-size:12.5px;font-weight:700;color:var(--mid);margin-top:2px">'+x[1]+'</div>'+(last&&x[2]?'<div style="font-size:11.5px;color:var(--mut);margin-top:3px">'+x[2]+'</div>':'')+'</div>';
   });
-  var seta='<div style="display:flex;align-items:center;color:var(--mid);font-size:30px;font-weight:800;padding:0 6px">›</div>';
-  return pageWrap(head('Time envolvido','Quem acompanha o serviço','',tag)+'<div style="display:flex;align-items:stretch;margin-top:40px">'+cards.join(seta)+'</div>'+foot(ctx));
+  return pageWrap(head('Time envolvido','Quem cuida do seu programa','',tag)+'<div style="display:flex;flex-direction:column;align-items:center;margin-top:6px">'+o+'</div>'+foot(ctx));
 }
 /* gráficos simples em SVG (exemplos ilustrativos) */
 function svgBarsG(cats,series,w,h){
