@@ -211,17 +211,46 @@ var TEAM={
  enf:[['João Barbosa','Diretor de Operações'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Equipe de Enfermagem','Enfermagem do Trabalho · alocada','Na unidade do cliente']],
  med:[['João Barbosa','Diretor de Operações'],['Dra. Regina Sobreiro','Consultora Técnica'],['Cristiano Goulart','Líder de área'],['Médico do Trabalho','Medicina do Trabalho · alocado','Na unidade do cliente']]};
 function iniciais(n){var p=n.replace(/^Dra?\.\s*/,'').split(' ').filter(Boolean);return (p[0][0]+(p.length>1?p[p.length-1][0]:'')).toUpperCase();}
+function orgNode(ini,nome,cargo,sz,cor,sub,w){
+  return '<div style="text-align:center;width:'+(w||230)+'px"><div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+cor+';color:#fff;font-family:MA;font-size:'+(sz*0.36)+'px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 6px 16px rgba(94,42,48,.25);border:4px solid #fff;outline:2px solid var(--soft)">'+ini+'</div>'
+   +'<div style="font-family:MA;font-size:17px;color:var(--deep)">'+nome+'</div><div style="font-size:12.5px;font-weight:700;color:var(--mid);margin-top:2px">'+cargo+'</div>'+(sub?'<div style="font-size:11.5px;color:var(--mut);margin-top:3px">'+sub+'</div>':'')+'</div>';
+}
+function orgLine(h){return '<div style="width:2px;height:'+h+'px;background:var(--soft);margin:0 auto"></div>';}
+function orgKids(nodes,sz,cor){
+  var n=nodes.length,w=n<=2?320:(n===3?280:240),g=24,o=orgLine(16);
+  if(n>1){
+    o+='<div style="width:'+((n-1)*(w+g))+'px;height:2px;background:var(--soft)"></div><div style="display:flex;gap:'+g+'px">'+nodes.map(function(){return '<div style="width:'+w+'px">'+orgLine(12)+'</div>';}).join('')+'</div>';
+  }
+  return o+'<div style="display:flex;gap:'+g+'px">'+nodes.map(function(x){return orgNode(x.ini,x.nome,x.cargo,sz,cor,x.sub,w);}).join('')+'</div>';
+}
+function qProf(q){q=q||1;return q+(q>1?' profissionais':' profissional');}
+function profItems(k,ctx){
+  var arr=[];
+  if(k==='ergo')arr=ergoOpts.map(function(o){return {ini:'E',nome:'Especialista em Ergonomia',cargo:qProf(o.qtd)+' · nível '+NIV[o.sen]};});
+  else if(k==='gl')arr=glOpts.map(function(o){return {ini:'O',nome:'Orientador de Atividades Físicas',cargo:qProf(o.qtd)+' · alocado'+(o.qtd>1?'s':''),sub:ctx.glLocal};});
+  else arr=OPTS[k].map(function(o){
+    var nome=k==='fisio'?'Fisioterapeuta':(k==='masso'?'Massoterapeuta':(k==='enf'?o.prof:'Médico do Trabalho'));
+    return {ini:nome.charAt(0).toUpperCase(),nome:nome,cargo:qProf(o.qtd)+(o.sen?' · nível '+NIV[o.sen]:'')};});
+  if(arr.length>1)arr.forEach(function(x,i){x.sub=(x.sub?x.sub+' · ':'')+'Opção '+String.fromCharCode(65+i);});
+  return arr;
+}
+function orgPage(tag,lead,body,ctx){return pageWrap(head('Time envolvido','Quem cuida do seu programa',lead,tag)+'<div style="display:flex;flex-direction:column;align-items:center;margin-top:'+(lead?'0':'6')+'px">'+body+'</div>'+foot(ctx));}
 function teamSlide(k,ctx,tag){
-  var T=TEAM[k],n=T.length,o='';
-  var cores=['var(--deep)','#7A3139','var(--mid)','var(--mid)'];
-  T.forEach(function(x,i){
-    var last=i===n-1,sz=last?60:(i===0?70:64),cor=last?'var(--w)':(i===0?'var(--deep)':(i===1?'#7A3139':'var(--mid)'));
-    var nome=x[0],ini=last?nome.replace(/^Equipe de /,'').charAt(0).toUpperCase():iniciais(nome);
-    if(i>0)o+='<div style="width:2px;height:18px;background:var(--soft);margin:0 auto"></div>';
-    o+='<div style="text-align:center;width:260px"><div style="width:'+sz+'px;height:'+sz+'px;border-radius:50%;background:'+cor+';color:#fff;font-family:MA;font-size:'+(sz*0.36)+'px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px;box-shadow:0 6px 16px rgba(94,42,48,.25);border:4px solid #fff;outline:2px solid var(--soft)">'+ini+'</div>'
-     +'<div style="font-family:MA;font-size:17px;color:var(--deep)">'+nome+'</div><div style="font-size:12.5px;font-weight:700;color:var(--mid);margin-top:2px">'+x[1]+'</div>'+(last&&x[2]?'<div style="font-size:11.5px;color:var(--mut);margin-top:3px">'+x[2]+'</div>':'')+'</div>';
-  });
-  return pageWrap(head('Time envolvido','Quem cuida do seu programa','',tag)+'<div style="display:flex;flex-direction:column;align-items:center;margin-top:6px">'+o+'</div>'+foot(ctx));
+  var T=TEAM[k],o=orgNode('JB',T[0][0],T[0][1],70,'var(--deep)')+orgLine(18)+orgNode(iniciais(T[1][0]),T[1][0],T[1][1],64,'#7A3139');
+  for(var i=2;i<T.length-1;i++)o+=orgLine(18)+orgNode(iniciais(T[i][0]),T[i][0],T[i][1],64,i===2?'var(--mid)':'var(--mid)');
+  return orgPage(tag,'',o+orgKids(profItems(k,ctx),60,'var(--w)'),ctx);
+}
+function teamErgo(ctx){
+  var o=orgNode('J','João','Diretor de Operações',70,'var(--deep)')+orgLine(18)+orgNode('A','Alexandre','Líder de área',64,'#7A3139')+orgLine(16)
+   +'<div style="width:240px;height:2px;background:var(--soft)"></div><div style="display:flex;gap:24px">'+[0,1].map(function(){return '<div style="width:216px">'+orgLine(12)+'</div>';}).join('')+'</div>'
+   +'<div style="display:flex;gap:24px">'+orgNode('F','Felipe','Supervisor Operacional',60,'var(--mid)').replace('230px','216px')+orgNode('D','Dani','Supervisora Operacional',60,'var(--mid)').replace('230px','216px')+'</div>';
+  return orgPage('Gestão de Ergonomia','',o+orgKids(profItems('ergo',ctx),60,'var(--w)').replace('<div style="width:2px;height:16px','<div style="width:2px;height:18px'),ctx);
+}
+function teamGl(ctx){
+  var sup=[['G','Giovanni'],['V','Vanessa'],['W','William']],o=orgNode('J','João','Diretor de Operações',70,'var(--deep)')+orgLine(18)+orgNode('D','Danilo','Líder de área',64,'#7A3139')+orgLine(16)
+   +'<div style="width:'+(2*(230+24))+'px;height:2px;background:var(--soft)"></div><div style="display:flex;gap:24px">'+sup.map(function(){return '<div style="width:230px">'+orgLine(12)+'</div>';}).join('')+'</div>'
+   +'<div style="display:flex;gap:24px">'+sup.map(function(x){return orgNode(x[0],x[1],'Supervisor(a) Operacional',60,'var(--mid)');}).join('')+'</div>';
+  return orgPage('Programa de Ginástica Laboral','',o+orgKids(profItems('gl',ctx),60,'var(--w)'),ctx);
 }
 /* gráficos simples em SVG (exemplos ilustrativos) */
 function svgBarsG(cats,series,w,h){
@@ -463,10 +492,10 @@ function gerar(){
   S.push(cover,T.about,T.clients);
   if(ergo){
     var lv=ergoOpts[0]||{sen:'PL',regime:'CLT'};
-    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,T.team_ergo.replace('{{PROF_NIVEL}}','Nível '+NIV[lv.sen]+' · '+lv.regime),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,T.ergo_rep,ergoInvest(ctx));
+    S.push(T.scenario,T.hub,T.cycle,T.ergo_method,teamErgo(ctx),ergoVisits(ctx),T.ergo_deliv,T.ergo_ind,T.ergo_rep,ergoInvest(ctx));
   }
   if(nr1on) S.push(T.nr1,nr1Invest(ctx));
-  if(gl) S.push(T.gl_how,T.gl_phases,T.team_gl,glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,T.gl_rep,glInvest(ctx));
+  if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,T.gl_rep,glInvest(ctx));
   SVC_KEYS.forEach(function(k){if(svcOn(k))svcSlides(k,ctx).forEach(function(h){S.push(h);});});
   conditions(ctx).forEach(function(c){S.push(c);});var cs=condSaude(ctx);if(cs)S.push(cs);S.push(T.end.replace('Proposta válida por 30 dias','Proposta válida por '+($('c-val').value||30)+' dias'));
   var html=S.map(function(h,i){return fill(h,ctx).replace(/\{\{N\}\}/g,i+1);});
