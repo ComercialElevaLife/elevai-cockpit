@@ -163,6 +163,11 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <label>Assunto</label><input id="e-assunto">
     <label>Mensagem</label><textarea id="e-corpo" rows="11"></textarea>
     <label>Assinatura</label><textarea id="e-assin" rows="2" readonly style="opacity:.75"></textarea>
+    <div id="sig-box" style="margin:6px 0 10px"><img id="sig-img" alt="Assinatura do e-mail" style="display:none;width:100%;max-width:420px;border-radius:8px;border:1px solid var(--ln)">
+      <div class="ui-hint" id="sig-msg" style="margin-top:4px"></div>
+      <div id="sig-up" style="display:none;margin-top:6px"><div class="ui-row"><div><label>Seu nome</label><input id="sig-nome" placeholder="Nome e sobrenome"></div><div><label>Seu cargo</label><input id="sig-cargo" placeholder="Ex.: Coordenador de Operações"></div></div>
+        <label>Arquivo da assinatura (JPG ou PNG, até 700 KB)</label><input id="sig-file" type="file" accept="image/png,image/jpeg">
+        <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="sig-send" type="button">Cadastrar minha assinatura</button></div></div></div>
     <label>PDF da proposta (anexo)</label>
     <div class="ui-hint">Por padrão vai o PDF gerado por esta tela (até 3 MB). Para enviar outro arquivo, escolha abaixo.</div><input id="f-pdf" type="file" accept="application/pdf">
     <div class="ui-bar" style="margin:8px 0 0"><button class="ui-btn sec" id="e-tpl" type="button">Restaurar modelo</button><button class="ui-btn" id="e-send" type="button">Enviar proposta</button></div>
@@ -976,7 +981,34 @@ renderErgo();renderGL();showNr1();svcToggle();
 /* ===== Envio por e-mail + Kanban ===== */
 var TPL_ASSUNTO='Proposta ElevaLife | {{EMPRESA}} | {{SERVICO}}';
 var TPL_CORPO='Olá, {{CONTATO}}, tudo bem?\n\nConforme conversamos, enviamos em anexo a proposta técnica e comercial de {{SERVICO}} para a {{EMPRESA}}.\n\nEm resumo, a proposta contempla:\n\n{{RESUMO}}\n\nA proposta tem validade de {{VALIDADE}} dias corridos.\n\nAgradecemos a oportunidade de apresentar nosso trabalho e a atenção dedicada ao nosso time. Ficamos à disposição para esclarecer dúvidas e ajustar o que for necessário à rotina de vocês.';
-var TPL_ASSIN='Assinatura padrão ElevaLife (Leonardo Scaccabarozzi · Executivo de Novos Negócios) incluída automaticamente.';
+var TPL_ASSIN='Assinatura padrão ElevaLife incluída automaticamente.';
+/* ---- assinatura do usuário logado (cadastro no servidor: SharePoint + aplicação) ---- */
+var SIG=null;
+function sigTexto(){
+  if(!SIG)return TPL_ASSIN;
+  if(SIG.tem)return 'Assinatura de '+SIG.nome+(SIG.cargo?' · '+SIG.cargo:'')+' ('+SIG.email+') incluída automaticamente.';
+  return 'Sem assinatura cadastrada para '+SIG.email+'. Cadastre o arquivo abaixo antes de enviar.';
+}
+function sigRender(){
+  var img=$('sig-img'),msg=$('sig-msg'),up=$('sig-up');
+  if(SIG&&SIG.tem&&SIG.preview){img.src=SIG.preview;img.style.display='block';msg.textContent='Esta é a assinatura que vai no e-mail, conforme o login ('+SIG.email+').';msg.style.color='#8A7A78';up.style.display='none';}
+  else if(SIG&&!SIG.tem){img.style.display='none';msg.textContent='Não encontramos uma assinatura para '+SIG.email+'. Envie o arquivo da sua assinatura para cadastrar; ele fica salvo para os próximos envios.';msg.style.color='#B3261E';up.style.display='block';if(!$('sig-nome').value)$('sig-nome').value=SIG.nome||'';}
+  else{img.style.display='none';msg.textContent='';up.style.display='none';}
+  $('e-assin').value=sigTexto();
+}
+function sigRefresh(){
+  return fetch('/api/propostas-assinatura',{credentials:'same-origin'}).then(function(r){return r.json();}).then(function(j){SIG=(j&&j.ok)?j:null;sigRender();}).catch(function(){SIG=null;sigRender();});
+}
+$('sig-send').onclick=function(){
+  var f=$('sig-file').files[0];
+  if(!f){eMsg('Escolha o arquivo da assinatura.',true);return;}
+  if(!/^image\/(png|jpeg)$/.test(f.type)){eMsg('A assinatura deve ser uma imagem JPG ou PNG.',true);return;}
+  if(f.size>700*1024){eMsg('Imagem acima de 700 KB — reduza o tamanho.',true);return;}
+  var b=$('sig-send');b.disabled=true;eMsg('Cadastrando a assinatura…');
+  blobB64(f).then(function(b64){return fetch('/api/propostas-assinatura',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({imagemBase64:b64,nome:$('sig-nome').value,cargo:$('sig-cargo').value})}).then(function(r){return r.json().catch(function(){return {ok:false,error:'resposta inválida ('+r.status+')'};});});})
+  .then(function(j){b.disabled=false;if(!j.ok){eMsg('Não foi possível cadastrar: '+(j.error||'erro'),true);return;}SIG=j;sigRender();eMsg('Assinatura cadastrada para '+j.email+'.');})
+  .catch(function(e){b.disabled=false;eMsg('Falha ao cadastrar: '+e.message,true);});
+};
 function resumoTexto(){
   var r=[];
   if($('s-ergo').checked)r.push('• Gestão de Ergonomia: especialista em ergonomia dedicado à rotina da unidade, com AEP/AET, planos de ação e acompanhamento dos casos;');
@@ -999,7 +1031,7 @@ function preencherTpl(t){
 function aplicarModelo(){
   $('e-assunto').value=preencherTpl(TPL_ASSUNTO);
   $('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');
-  $('e-assin').value=TPL_ASSIN;
+  $('e-assin').value=sigTexto();
   if(!$('e-serv').value)$('e-serv').value=servKanban();
   sugerirValor();
 }
@@ -1054,6 +1086,7 @@ $('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)apl
 $('e-send').onclick=function(){
   var f=$('f-pdf').files[0];
   if(!$('e-para').value.trim()){eMsg('Informe o e-mail do destinatário.',true);return;}
+  if(SIG&&!SIG.tem){eMsg('Cadastre a sua assinatura antes de enviar (campo logo abaixo da mensagem).',true);return;}
   if(f&&f.size>3*1024*1024){eMsg('PDF acima de 3 MB — comprima o arquivo.',true);return;}
   if(!f&&!$('preview').querySelector('.pg')){eMsg('Gere a proposta antes de enviar (o PDF vai em anexo).',true);return;}
   var lid=$('e-lead').value;
@@ -1080,6 +1113,7 @@ $('e-send').onclick=function(){
   }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
 aplicarModelo();
+sigRefresh();
 if($('f-cliente').value)listarOportunidades();
 
 })();
