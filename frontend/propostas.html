@@ -126,6 +126,8 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
 
   <div class="ui-sec" id="box-aet" style="display:none"><h3>Trabalhos pontuais · AEP e AET <button class="ui-btn sm sec" id="add-aet" type="button">+ unidade</button></h3>
     <div class="ui-hint" style="margin:0 0 8px">Cada bloco é uma unidade ou escopo. Os valores seguem a calculadora AEP/AET (horas técnicas, coordenação de 10 %, faixa de valor por hora, custos de campo e encargos de NF).</div>
+    <div class="ui-row"><div><label>Modalidade de contratação</label><select id="aet-modo"><option value="Separado">AEP e AET separadas (cada uma na sua faixa de valor)</option><option value="Junto">AEP e AET juntas (faixa do total de horas)</option></select></div><div><label>Ergonomistas em campo (prévia de prazo)</label><input id="aet-prof" type="number" min="1" value="1"></div></div>
+    <div class="ui-hint" style="margin:0 0 8px">Para vender só AEP ou só AET, deixe a quantidade do outro serviço em zero. A proposta separa organização e valores de cada serviço.</div>
     <div id="aet-opts"></div>
     <div class="ui-row"><div><label>Prazo de entrega (dias após o início das coletas)</label><input id="aet-ent" type="number" min="1" value="60"></div><div><label>Prazo de validação (dias corridos)</label><input id="aet-val" type="number" min="1" value="15"></div></div>
   </div>
@@ -292,17 +294,47 @@ function priceMed(o){return r2(calcEM(o,true).k*o.qtd);}
 var AET_CH={n1:3,n2:1,n3:1.2,n4:0.66};
 var AET_FX=[[8,250],[16,225],[24,200],[32,190],[40,180],[100,166],[150,140],[1e9,120]];
 var AET_COORD=0.10,AET_NF=0.166,AET_HOSP=250,AET_REF=50,AET_KM=1,AET_PED=15.48;
-function aetCalc(o){
+function aetRate(ch){for(var i=0;i<AET_FX.length;i++){if(ch<=AET_FX[i][0])return AET_FX[i][1];}return 120;}
+function aetModo(){var e=$('aet-modo');return e&&e.value==='Junto'?'Junto':'Separado';}
+function aetProf(){var e=$('aet-prof');return Math.max(1,parseInt(e&&e.value,10)||1);}
+function aetParts(o){
   var n1=+o.aet_n1||0,n2=+o.aet_n2||0,n3=+o.aet_n3||0,n4=+o.aet_n4||0;
-  var ch=n1*AET_CH.n1+n2*AET_CH.n2+n3*AET_CH.n3+n4*AET_CH.n4,hc=ch*(1+AET_COORD),rate=0;
-  for(var i=0;i<AET_FX.length;i++){if(ch<=AET_FX[i][0]){rate=AET_FX[i][1];break;}}
-  var srv=hc*rate,nA=n1+n2+n3+n4;
+  return {aep:{n:n3+n4,ch:n3*AET_CH.n3+n4*AET_CH.n4,cc:n3*AET_CH.n3*0.7+n4*AET_CH.n4*0.8},
+          aet:{n:n1+n2,ch:n1*AET_CH.n1+n2*AET_CH.n2,cc:n1*AET_CH.n1*0.4+n2*AET_CH.n2*0.5}};
+}
+function aetCalc(o,modo){
+  modo=modo||aetModo();
+  var P=aetParts(o),chT=P.aep.ch+P.aet.ch,prof=aetProf();
   var cus=(+o.aet_aq||0)*(+o.aet_av||0)+(+o.aet_hosp||0)*AET_HOSP+(+o.aet_ref||0)*AET_REF+(+o.aet_km||0)*AET_KM+(+o.aet_ped||0)*AET_PED;
-  return {n:nA,ch:ch,hc:hc,rate:rate,srv:srv,cus:cus,tot:r2((srv+cus)*(1+AET_NF)),med:nA?srv/nA:0};
+  function parte(p,rate){
+    if(!p.n)return null;
+    var hc=p.ch*(1+AET_COORD),srv=hc*rate,cu=chT?cus*p.ch/chT:0,hr=Math.ceil(hc-1e-9);
+    return {n:p.n,ch:p.ch,hc:hc,horas:hr,campo:p.cc/8,dias:Math.ceil(hr/8/prof-1e-9),rate:rate,srv:srv,cus:cu,tot:r2((srv+cu)*(1+AET_NF)),med:srv/p.n};
+  }
+  function monta(rA,rT){var a=parte(P.aep,rA),t=parte(P.aet,rT);return {aep:a,aet:t,tot:r2((a?a.tot:0)+(t?t.tot:0))};}
+  var sep=monta(aetRate(P.aep.ch),aetRate(P.aet.ch)),jun=monta(aetRate(chT),aetRate(chT)),sel=modo==='Junto'?jun:sep;
+  return {modo:modo,n:P.aep.n+P.aet.n,ch:chT,cus:cus,aep:sel.aep,aet:sel.aet,tot:sel.tot,sep:sep,jun:jun,ambos:!!(P.aep.n&&P.aet.n)};
 }
 function priceAet(o){var c=aetCalc(o);return c.n>0?c.tot:null;}
-function aetNote(o){var c=aetCalc(o);if(!c.n)return '<div class="ui-hint">Informe a quantidade de análises.</div>';return '<div class="ui-hint">Horas técnicas '+r2(c.ch).toLocaleString('pt-BR')+' h · com coordenação '+r2(c.hc).toLocaleString('pt-BR')+' h · valor/hora '+BRL(c.rate)+' · valor médio por análise '+BRL(c.med)+'<br>Serviço técnico '+BRL(c.srv)+' · custos de campo '+BRL(c.cus)+' · encargos de NF '+(AET_NF*100).toFixed(1).replace('.',',')+' % sobre o subtotal</div>';}
-function aetDesc(o){var a=[];if(+o.aet_n3)a.push(o.aet_n3+' AEP operacional'+(o.aet_n3>1?'is':''));if(+o.aet_n4)a.push(o.aet_n4+' AEP administrativa'+(o.aet_n4>1?'s':''));if(+o.aet_n1)a.push(o.aet_n1+' AET operacional'+(o.aet_n1>1?'is':''));if(+o.aet_n2)a.push(o.aet_n2+' AET administrativa'+(o.aet_n2>1?'s':''));return a.join(' + ')||'—';}
+function aetFmt(n,d){return (Math.round(n*Math.pow(10,d||0))/Math.pow(10,d||0)).toLocaleString('pt-BR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
+function aetNote(o){
+  var c=aetCalc(o);if(!c.n)return '<div class="ui-hint">Informe a quantidade de análises.</div>';
+  var l=[];
+  [['AEP',c.aep],['AET',c.aet]].forEach(function(x){if(x[1])l.push(x[0]+': '+aetFmt(x[1].ch,2)+' h técnicas ('+aetFmt(x[1].hc,2)+' h com coordenação) · '+BRL(x[1].rate)+'/h · '+BRL(x[1].tot)+' · prévia de '+x[1].dias+' dia(s) útil(eis)');});
+  l.push('Custos de campo '+BRL(c.cus)+' · encargos de NF '+(AET_NF*100).toFixed(1).replace('.',',')+' % sobre o subtotal');
+  if(c.ambos)l.push('Separados: '+BRL(c.sep.tot)+' · Juntos: '+BRL(c.jun.tot)+' (faixa do total de horas)');
+  return '<div class="ui-hint">'+l.join('<br>')+'</div>';
+}
+function aetDesc(o,tipo){
+  var a=[],n1=+o.aet_n1||0,n2=+o.aet_n2||0,n3=+o.aet_n3||0,n4=+o.aet_n4||0;
+  function pl(n,s,p){return n+' '+(n>1?p:s);}
+  if(tipo!=='aet'){if(n3)a.push(pl(n3,'operacional','operacionais'));if(n4)a.push(pl(n4,'administrativa','administrativas'));}
+  if(tipo!=='aep'){if(n1)a.push(pl(n1,'operacional','operacionais'));if(n2)a.push(pl(n2,'administrativa','administrativas'));}
+  return a.join(' + ')||'—';
+}
+function aetTemParte(k){return OPTS.aet.some(function(o){var c=aetCalc(o);return !!c[k];});}
+function aetNomeServ(){var a=aetTemParte('aep'),t=aetTemParte('aet');return a&&!t?'AEP pontual':(t&&!a?'AET pontual':'AEP e AET pontuais');}
+function aetKanServ(){var a=aetTemParte('aep'),t=aetTemParte('aet');return a&&!t?'AEP':(t&&!a?'AET':'AEP/AET');}
 function aetDef(){return {aet_unid:'Unidade 1',aet_n1:0,aet_n2:0,aet_n3:30,aet_n4:20,aet_aq:0,aet_av:0,aet_hosp:0,aet_ref:0,aet_km:0,aet_ped:0};}
 var OPTS={
  fisio:[{regime:'CLT',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}],
@@ -325,7 +357,7 @@ var SVC={
  med:{cb:'s-med',box:'box-med',list:'med-opts',nome:'Medicina do Trabalho',kan:'MED TRAB',price:priceMed,unit:' / mês',
   fields:function(o){return [['regime','Regime',['CLT','PJ'],o.regime],['turno','Turno',['Diurno','Noturno'],o.turno],['sen','Senioridade',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen],['ch','Carga semanal (h)',[20,10,8,12,16,24,30,40],o.ch],['qtd','Quantidade','num',o.qtd],['loc','Localidade',LOCS,o.loc],['acesso','Acesso',['Fácil acesso','Difícil acesso'],o.acesso]];},
   def:{regime:'PJ',turno:'Diurno',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}},
- aet:{cb:'s-aet',box:'box-aet',list:'aet-opts',nome:'AEP e AET pontuais',kan:'AEP/AET',price:priceAet,unit:' no período',lab:'Unidade',note:aetNote,
+ aet:{cb:'s-aet',box:'box-aet',list:'aet-opts',get nome(){return aetNomeServ();},get kan(){return aetKanServ();},price:priceAet,unit:' no período',lab:'Unidade',note:aetNote,
   fields:function(o){return [['aet_unid','Unidade / escopo','txt',o.aet_unid],['aet_n3','AEP operacional (qtd)','num0',o.aet_n3],['aet_n4','AEP administrativa (qtd)','num0',o.aet_n4],['aet_n1','AET operacional (qtd)','num0',o.aet_n1],['aet_n2','AET administrativa (qtd)','num0',o.aet_n2],['aet_aq','Passagens aéreas (qtd)','num0',o.aet_aq],['aet_av','Valor por passagem (R$)','num0',o.aet_av],['aet_hosp','Hospedagem (diárias)','num0',o.aet_hosp],['aet_ref','Refeições (qtd)','num0',o.aet_ref],['aet_km','Deslocamento (km, ida e volta)','num0',o.aet_km],['aet_ped','Pedágios (qtd)','num0',o.aet_ped]];},
   def:aetDef()}};
 var SVC_KEYS=['fisio','masso','enf','med','aet'];
@@ -620,13 +652,15 @@ function svcSlides(k,ctx){
 }
 
 /* ===== Lâminas · Trabalhos pontuais AEP e AET ===== */
-function aetHoras(o){return Math.ceil(aetCalc(o).hc-1e-9);}
-function aetTbl(cols,rows,foot){
-  var th='padding:11px 14px;font-size:12.5px;letter-spacing:1px;font-weight:800;color:#fff;background:#A34E56;text-align:center';
-  var body=rows.map(function(r,i){var bg=i%2===0?'#F3E3E4':'#FAF3F3';return '<tr style="background:'+bg+'">'+r.map(function(c,j){return '<td style="padding:21px 14px;font-size:16.5px;'+(j===0?'font-weight:800;color:var(--deep);text-align:left':'text-align:center')+'">'+c+'</td>';}).join('')+'</tr>';}).join('');
-  var ft=foot?'<tr style="background:#EBD9DB">'+foot.map(function(c,j){return '<td style="padding:18px 14px;font-size:17px;font-weight:800;color:var(--deep);text-align:'+(j===0?'left':'center')+'">'+c+'</td>';}).join('')+'</tr>':'';
-  return '<table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr>'+cols.map(function(c){return '<th style="'+th+'">'+c+'</th>';}).join('')+'</tr></thead><tbody>'+body+ft+'</tbody></table>';
+function aetTbl(cols,rows,foot,fs){
+  fs=fs||15;
+  var th='padding:10px 12px;font-size:12px;letter-spacing:1px;font-weight:800;color:#fff;background:#A34E56;text-align:center';
+  var body=rows.map(function(r,i){var bg=i%2===0?'#F3E3E4':'#FAF3F3';return '<tr style="background:'+bg+'">'+r.map(function(c,j){return '<td style="padding:13px 12px;font-size:'+fs+'px;'+(j===0?'font-weight:800;color:var(--deep);text-align:left':'text-align:center')+'">'+c+'</td>';}).join('')+'</tr>';}).join('');
+  var ft=foot?'<tr style="background:#EBD9DB">'+foot.map(function(c,j){return '<td style="padding:12px;font-size:'+(fs+1)+'px;font-weight:800;color:var(--deep);text-align:'+(j===0?'left':'center')+'">'+c+'</td>';}).join('')+'</tr>':'';
+  return '<table style="width:100%;border-collapse:collapse"><thead><tr>'+cols.map(function(c){return '<th style="'+th+'">'+c+'</th>';}).join('')+'</tr></thead><tbody>'+body+ft+'</tbody></table>';
 }
+var AET_SV={aep:{sig:'AEP',nome:'Avaliação Ergonômica Preliminar',tipo:'aep'},aet:{sig:'AET',nome:'Análise Ergonômica do Trabalho',tipo:'aet'}};
+function aetBloco(tit,sub,tabela){return '<div style="margin-top:14px"><div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px"><span style="font-family:MA;font-weight:700;font-size:17px;color:var(--deep)">'+tit+'</span><span style="font-size:12.5px;color:var(--mut)">'+sub+'</span></div>'+tabela+'</div>';}
 function aetMatriz(){
   var cor=function(v){return v<=4?'#2E8B57':(v<=9?'#D9A21B':(v<=16?'#D63B3B':'#7A3FB5'));},o='',x0=34,cw=36,ch=26;
   for(var g=5;g>=1;g--){o+='<text x="28" y="'+((5-g)*ch+ch/2+4)+'" font-size="11" fill="#5b4a4d" text-anchor="end">'+g+'</text>';for(var p=1;p<=5;p++)o+='<rect x="'+(x0+(p-1)*cw)+'" y="'+((5-g)*ch)+'" width="'+(cw-2)+'" height="'+(ch-2)+'" rx="3" fill="'+cor(g*p)+'"/><text x="'+(x0+(p-1)*cw+cw/2-1)+'" y="'+((5-g)*ch+ch/2+4)+'" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">'+(g*p)+'</text>';}
@@ -640,38 +674,63 @@ function aetTeam(ctx,tag){
   return orgPage(tag,'',o+orgKids([{ini:'E',nome:'Ergonomistas',cargo:'Equipe técnica',sub:'Fisioterapeuta e/ou Educador Físico, com pós-graduação em ergonomia'}],60,'var(--w)'),ctx);
 }
 function aetSlides(ctx){
-  var opts=OPTS.aet,tag='Proposta · AEP e AET pontuais',out=[],cl=ctx.cliente;
+  var opts=OPTS.aet,tag='Proposta · '+aetNomeServ(),out=[],cl=ctx.cliente;
+  var cs=opts.map(function(o){return aetCalc(o);});
+  var temA=aetTemParte('aep'),temT=aetTemParte('aet'),modo=aetModo(),prof=aetProf(),svs=[];
+  if(temA)svs.push('aep');if(temT)svs.push('aet');
   /* 1. método */
-  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','AEP e AET: método de diagnóstico','Como ferramentas diagnósticas, alinhadas à identificação de perigos e à avaliação de riscos da NR-01 e da NR-17, utilizamos a Avaliação Ergonômica Preliminar (AEP) e a Análise Ergonômica do Trabalho (AET).',tag)
-   +'<div style="display:flex;gap:18px;margin-top:26px;align-items:stretch">'
-   +'<div class="tile" style="flex:1.1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('clip','sm')+'<div><b>AEP · Avaliação Ergonômica Preliminar</b><span style="font-size:15px">Identifica as demandas ergonômicas e quantifica os riscos de forma rápida e objetiva, permitindo iniciar a gestão dos riscos. Tem como base a norma ISO/TS 20646 e conceitos como agente causador (repetitividade, levantamento de cargas, posturas, fatores psicossociais e organizacionais), circunstância geradora, consequência, medida de controle existente, gravidade e probabilidade. Resulta na graduação do risco de cada atividade e no inventário de riscos ergonômicos.</span></div></div>'
-   +'<div class="tile" style="flex:1.1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('search','sm')+'<div><b>AET · Análise Ergonômica do Trabalho</b><span style="font-size:15px">Indicada para situações complexas ou com histórico de doenças e acidentes. A compreensão das atividades é pautada em três dimensões e seus impactos nos indivíduos: <b style="display:inline;font-size:15px">psicossocial</b> (conhecimentos, relações, cultura e clima organizacional), <b style="display:inline;font-size:15px">física e tecnológica</b> (tecnologia, equipamentos, ambiente físico e mobiliário) e <b style="display:inline;font-size:15px">organizacional</b> (processos, sistema de gestão, sistema de informação e estrutura).</span></div></div>'
+  var cardA='<div class="tile" style="flex:1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('clip','sm')+'<div><b style="font-size:17px">AEP · Avaliação Ergonômica Preliminar</b><span style="font-size:15px">Identifica as demandas ergonômicas e quantifica os riscos de forma rápida e objetiva, permitindo iniciar a gestão dos riscos. Tem como base a norma ISO/TS 20646 e conceitos como agente causador (repetitividade, levantamento de cargas, posturas, fatores psicossociais e organizacionais), circunstância geradora, consequência, medida de controle existente, gravidade e probabilidade. Resulta na graduação do risco de cada atividade e no inventário de riscos ergonômicos.</span></div></div>';
+  var cardT='<div class="tile" style="flex:1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('search','sm')+'<div><b style="font-size:17px">AET · Análise Ergonômica do Trabalho</b><span style="font-size:15px">Indicada para situações complexas ou com histórico de doenças e acidentes. A compreensão das atividades é pautada em três dimensões e seus impactos nos indivíduos: <b style="display:inline;font-size:15px">psicossocial</b> (conhecimentos, relações, cultura e clima organizacional), <b style="display:inline;font-size:15px">física e tecnológica</b> (tecnologia, equipamentos, ambiente físico e mobiliário) e <b style="display:inline;font-size:15px">organizacional</b> (processos, sistema de gestão, sistema de informação e estrutura).</span></div></div>';
+  var lead=temA&&temT?'Como ferramentas diagnósticas, alinhadas à identificação de perigos e à avaliação de riscos da NR-01 e da NR-17, utilizamos a Avaliação Ergonômica Preliminar (AEP) e a Análise Ergonômica do Trabalho (AET). Cada uma pode ser contratada separadamente ou em conjunto.':'Como ferramenta diagnóstica, alinhada à identificação de perigos e à avaliação de riscos da NR-01 e da NR-17, utilizamos a '+(temA?'Avaliação Ergonômica Preliminar (AEP).':'Análise Ergonômica do Trabalho (AET).');
+  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos',temA&&temT?'AEP e AET: método de diagnóstico':(temA?'AEP: método de diagnóstico':'AET: método de diagnóstico'),lead,tag)
+   +'<div style="display:flex;gap:18px;margin-top:22px;align-items:stretch">'+(temA?cardA:'')+(temT?cardT:'')
    +'<div style="flex:.62;background:#fff;border:2px solid var(--ln);border-radius:18px;padding:16px 16px 12px"><div style="font-weight:800;color:var(--mid);font-size:11.5px;letter-spacing:1px;margin-bottom:6px">GRAVIDADE × PROBABILIDADE</div>'+aetMatriz()+'<div style="font-size:12.5px;color:#5b4a4d;line-height:1.45;margin-top:8px">O risco é dimensionado em matriz 4×4 ou 5×5, com 3 ou 5 níveis de risco e ação, conforme o método utilizado pela contratante.</div></div>'
    +'</div><p class="note">Matriz ilustrativa, com valores de exemplo.</p>'+foot(ctx)));
-  /* 2. metodologias */
-  var M=[['target','Levantamento e transporte manual de cargas','ISO 11228-1, baseada na equação de NIOSH e nas tabelas psicofísicas de Snook e Ciriello.'],['layers','Empurrar e puxar cargas','ISO 11228-2, baseada nas tabelas psicofísicas de Snook e Ciriello.'],['chart','Atividades repetitivas','ISO 11228-3, com Strain Index (Moore e Garg), HAL (ACGIH) e OCRA.'],['users','Postura de trabalho estática','ISO 11226: limites de postura conforme carga muscular, angulação das articulações e tempo de exposição.'],['run','Postura de trabalho dinâmica','RULA (membros superiores), REBA (corpo todo) e MFA (fadiga muscular).'],['heart','Demandas cognitivas','ISO 10075, princípios ergonômicos relativos à carga mental de trabalho.'],['clip','Dimensionamento dos postos','Iida (2005) e Kroemer e Grandjean (2005), com dados antropométricos da população.'],['check','Ponderação do risco','Cruzamento da exposição diária com o resultado da metodologia, para dimensionar o risco ergonômico da atividade.']];
-  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','Metodologias aplicadas em cada tipo de exigência','',tag)+'<div class="grid g4" style="margin-top:26px;gap:16px">'+M.map(function(x){return '<div class="tile" style="flex-direction:column;align-items:flex-start;padding:24px 20px">'+ic(x[0],'sm')+'<div><b style="font-size:17px">'+x[1]+'</b><span style="font-size:14.5px">'+x[2]+'</span></div></div>';}).join('')+'</div>'+foot(ctx)));
-  /* 3. etapas da AEP */
-  var E=[['Coleta de dados','Checklist de fatores de risco ergonômico, com base na ISO/TS 20646. O ergonomista entrevista o colaborador que executa a atividade, observa o posto de trabalho e registra vídeos e fotos. Duração média: 20 minutos na avaliação administrativa e 40 minutos na operacional.'],['Severidade','Classificada conforme as queixas do colaborador entrevistado, a observação do ergonomista sobre a atividade e o histórico de absenteísmo.'],['Probabilidade','Classificada com base na coleta de dados, em que o ergonomista identifica o tempo de exposição do colaborador a cada atividade e fator de risco.'],['Graduação do fator de risco','Resulta do cruzamento entre severidade e probabilidade. A AEP por cargo pode ter vários fatores de risco, inclusive repetidos, com graduações diferentes conforme a exposição e as fontes geradoras.']];
-  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','Da coleta à graduação do risco','',tag)+'<div class="arrowrow" style="margin-top:24px">'+E.map(function(f,i){return '<div class="chev"><b>'+(i+1)+'</b><span>'+f[0]+'</span></div>';}).join('')+'</div><div style="display:flex;gap:16px;margin-top:28px">'+E.map(function(f){return '<div style="flex:1;background:var(--bg);border-radius:16px;padding:22px 20px;font-size:15.5px;line-height:1.55;color:#3a2a2c">'+f[1]+'</div>';}).join('')+'</div>'+foot(ctx)));
-  /* 4. equipe */
+  /* 2. processo (comum aos dois serviços) */
+  var PR=[['Levantamento','Entrevista com gestores e dados de saúde e segurança',['Captação de informações organizacionais e produtivas','Análise de demandas gerenciais','Análise de dados médicos e de segurança','Análise de queixas (pesquisa)']],['Diagnóstico de riscos',temA&&temT?'AEP ou AET, conforme a complexidade e a elegibilidade':(temA?'Aplicação da AEP':'Aplicação da AET'),['Diagnóstico '+(temA&&temT?'preliminar (AEP) ou aprofundado (AET)':(temA?'preliminar (AEP)':'aprofundado (AET)')),'Plano de ações com prioridades e alternativas de medidas de eliminação ou organizacionais']],['Organização e apresentação dos dados','Entrega estruturada dos resultados',['Elaboração do relatório de cada função','Organização dos riscos encontrados em planilha, separados e graduados por atividade','Organização do plano de ações em planilha','Indicadores em dashboard (% de riscos, nº de ações)']]];
+  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','Processo de diagnóstico','',tag)+'<div class="arrowrow" style="margin-top:22px">'+PR.map(function(f,i){return '<div class="chev"><b>'+(i+1)+'</b><span>'+f[0]+'<br><small style="font-weight:500">'+f[1]+'</small></span></div>';}).join('')+'</div><div style="display:flex;gap:16px;margin-top:22px">'+PR.map(function(f){return '<div style="flex:1;background:var(--bg);border-radius:16px;padding:20px 22px"><ul style="margin:0;padding-left:18px;font-size:15px;line-height:1.55;color:#3a2a2c">'+f[2].map(function(x){return '<li style="margin-bottom:6px">'+x+'</li>';}).join('')+'</ul></div>';}).join('')+'</div>'+foot(ctx)));
+  /* 3. metodologias (AET) */
+  if(temT){
+    var M=[['target','Levantamento e transporte manual de cargas','ISO 11228-1, baseada na equação de NIOSH e nas tabelas psicofísicas de Snook e Ciriello.'],['layers','Empurrar e puxar cargas','ISO 11228-2, baseada nas tabelas psicofísicas de Snook e Ciriello.'],['chart','Atividades repetitivas','ISO 11228-3, com Strain Index (Moore e Garg), HAL (ACGIH) e OCRA.'],['users','Postura de trabalho estática','ISO 11226: limites de postura conforme carga muscular, angulação das articulações e tempo de exposição.'],['run','Postura de trabalho dinâmica','RULA (membros superiores), REBA (corpo todo) e MFA (fadiga muscular).'],['heart','Demandas cognitivas','ISO 10075, princípios ergonômicos relativos à carga mental de trabalho.'],['clip','Dimensionamento dos postos','Iida (2005) e Kroemer e Grandjean (2005), com dados antropométricos da população.'],['check','Ponderação do risco','Cruzamento da exposição diária com o resultado da metodologia, para dimensionar o risco ergonômico da atividade.']];
+    out.push(pageWrap(head('AET · Análise Ergonômica do Trabalho','Metodologias aplicadas em cada tipo de exigência','',tag)+'<div class="grid g4" style="margin-top:26px;gap:16px">'+M.map(function(x){return '<div class="tile" style="flex-direction:column;align-items:flex-start;padding:24px 20px">'+ic(x[0],'sm')+'<div><b style="font-size:17px">'+x[1]+'</b><span style="font-size:14.5px">'+x[2]+'</span></div></div>';}).join('')+'</div>'+foot(ctx)));
+  }
+  /* 4. etapas da AEP */
+  if(temA){
+    var E=[['Coleta de dados','Checklist de fatores de risco ergonômico, com base na ISO/TS 20646. O ergonomista entrevista o colaborador que executa a atividade, observa o posto de trabalho e registra vídeos e fotos. Duração média: 20 minutos na avaliação administrativa e 40 minutos na operacional.'],['Severidade','Classificada conforme as queixas do colaborador entrevistado, a observação do ergonomista sobre a atividade e o histórico de absenteísmo.'],['Probabilidade','Classificada com base na coleta de dados, em que o ergonomista identifica o tempo de exposição do colaborador a cada atividade e fator de risco.'],['Graduação do fator de risco','Resulta do cruzamento entre severidade e probabilidade. A AEP por cargo pode ter vários fatores de risco, inclusive repetidos, com graduações diferentes conforme a exposição e as fontes geradoras.']];
+    out.push(pageWrap(head('AEP · Avaliação Ergonômica Preliminar','Da coleta à graduação do risco','',tag)+'<div class="arrowrow" style="margin-top:24px">'+E.map(function(f,i){return '<div class="chev"><b>'+(i+1)+'</b><span>'+f[0]+'</span></div>';}).join('')+'</div><div style="display:flex;gap:16px;margin-top:28px">'+E.map(function(f){return '<div style="flex:1;background:var(--bg);border-radius:16px;padding:22px 20px;font-size:15.5px;line-height:1.55;color:#3a2a2c">'+f[1]+'</div>';}).join('')+'</div>'+foot(ctx)));
+  }
+  /* 5. equipe */
   out.push(aetTeam(ctx,tag));
-  /* 5. organização dos serviços */
-  var rows=opts.map(function(o){var c=aetCalc(o);return [o.aet_unid||'—',aetDesc(o),aetHoras(o)+' h'];});
-  var tot=opts.reduce(function(a,o){return a+aetHoras(o);},0);
+  /* 6. organização dos serviços: um bloco por serviço, com prévia de prazo */
+  var blocos=svs.map(function(k){
+    var rows=[],tH=0,tC=0,tD=0;
+    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tH+=p.horas;tC+=p.campo;tD+=p.dias;rows.push([o.aet_unid||'—',aetDesc(o,k),p.horas+' h',aetFmt(p.campo,1),p.dias]);});
+    var ft=rows.length>1?['Total','',tH+' h',aetFmt(tC,1),tD]:null;
+    return aetBloco(AET_SV[k].sig+' · '+AET_SV[k].nome,'análises operacionais e administrativas por unidade',aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','DIAS DE CAMPO','DIAS ÚTEIS (PRÉVIA)'],rows,ft,svs.length>1?14:16));
+  }).join('');
+  var totH=0,totD=0;cs.forEach(function(c){if(c.aep){totH+=c.aep.horas;totD+=c.aep.dias;}if(c.aet){totH+=c.aet.horas;totD+=c.aet.dias;}});
+  var prev='<div style="margin-top:16px;background:var(--bg);border-radius:14px;padding:14px 18px;font-size:13.5px;line-height:1.55;color:#3a2a2c"><b style="color:var(--deep)">Prévia do cronograma, sem confirmação.</b> Estimativa com '+prof+(prof>1?' ergonomistas':' ergonomista')+' e jornada de 8 h por dia; as horas técnicas incluem 10 % de coordenação. '+(svs.length>1?'Executando os dois serviços em sequência: '+totH+' h técnicas e cerca de '+totD+' dias úteis. ':'')+'O cronograma definitivo é confirmado após o aceite da proposta, com início das visitas em até '+ctx.imp+' dias após o aceite.</div>';
+  out.push(pageWrap(head('Organização dos serviços',svs.length>1?'AEP e AET: escopo, horas e prazo estimado':'Escopo, horas e prazo estimado','',tag)+blocos+prev+foot(ctx)));
+  /* 7. etapas e considerações */
   var et=['Análise da demanda e dos dados','Levantamentos de campo','Análise das informações e elaboração do documento e da planilha','Validação da análise e das recomendações','Entrega do documento revisado'];
   var ent=$('aet-ent').value||60,vl=$('aet-val').value||15;
-  out.push(pageWrap(head('Organização dos serviços','Escopo, horas técnicas e etapas','',tag)
-   +aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS'],rows,opts.length>1?['Total','',tot+' h']:null)
-   +'<div style="display:flex;gap:22px;margin-top:26px"><div style="flex:1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">ETAPAS</div><div style="font-size:15px;line-height:1.5;color:#3a2a2c">Estima-se a dedicação de cerca de '+tot+' horas técnicas, nas seguintes etapas:</div><ol style="margin:8px 0 0 20px;padding:0;font-size:15px;line-height:1.7;color:#3a2a2c">'+et.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol><div style="font-size:15px;line-height:1.5;color:#3a2a2c;margin-top:10px">O serviço é desenvolvido por fisioterapeuta e/ou educador físico, com pós-graduação em ergonomia.</div></div>'
-   +'<div style="flex:1.1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">CONSIDERAÇÕES</div><div style="font-size:14px;line-height:1.5;color:#3a2a2c">Conforme a NR-17, a organização deve realizar a AET da situação de trabalho quando: a) observada a necessidade de uma avaliação mais aprofundada; b) identificadas inadequações ou insuficiência das ações adotadas; c) sugerida pelo acompanhamento de saúde dos trabalhadores, nos termos do PCMSO e da alínea “c” do subitem 1.5.5.1.1 da NR-01; ou d) indicada causa relacionada às condições de trabalho na análise de acidentes e doenças relacionadas ao trabalho, nos termos do PGR.</div>'
-   +'<ul style="margin:10px 0 0 20px;padding:0;font-size:14px;line-height:1.65;color:#3a2a2c"><li>Prazo de entrega: até '+ent+' dias após o início das coletas de informações.</li><li>Prazo para validação dos estudos: até '+vl+' dias corridos após o envio dos documentos.</li><li>Início do serviço: em até '+ctx.imp+' dias após a assinatura ou o pedido.</li></ul></div></div>'+foot(ctx)));
-  /* 6. investimento */
-  var tt=0,irows=opts.map(function(o){var c=aetCalc(o),p=priceAet(o)||0;tt+=p;return [o.aet_unid||'—',aetDesc(o),aetHoras(o)+' h',c.n?BRL(p/c.n):'—',BRL(p)];});
-  var cus=opts.some(function(o){return aetCalc(o).cus>0;});
-  out.push(pageWrap(head('Investimento · AEP e AET pontuais','Valores por unidade e total','',tag)
-   +aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','MÉDIA POR ANÁLISE','INVESTIMENTO'],irows,opts.length>1?['Investimento total','','','',BRL(tt)]:null)
-   +'<p class="note">Valores com impostos inclusos e emissão de nota fiscal. Valor único para o escopo descrito, sem recorrência mensal.<br>'+(cus?'Inclui os custos de campo da equipe técnica (deslocamento, hospedagem e refeições), conforme o escopo.':'Sem custos de deslocamento previstos neste escopo; se houver despesas de viagem, serão combinadas previamente com '+cl+'.')+'<br>A média por análise é o investimento da unidade dividido pela quantidade de análises previstas.</p>'+foot(ctx)));
+  out.push(pageWrap(head('Organização dos serviços','Etapas, prazos e considerações','',tag)
+   +'<div style="display:flex;gap:26px;margin-top:22px"><div style="flex:1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">ETAPAS</div><div style="font-size:15px;line-height:1.5;color:#3a2a2c">Cada serviço contratado segue estas etapas:</div><ol style="margin:8px 0 0 20px;padding:0;font-size:15px;line-height:1.75;color:#3a2a2c">'+et.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol><div style="font-size:15px;line-height:1.5;color:#3a2a2c;margin-top:12px">O serviço é desenvolvido por fisioterapeuta e/ou educador físico, com pós-graduação em ergonomia.</div></div>'
+   +'<div style="flex:1.1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">CONSIDERAÇÕES</div>'+(temT?'<div style="font-size:14px;line-height:1.5;color:#3a2a2c">Conforme a NR-17, a organização deve realizar a AET da situação de trabalho quando: a) observada a necessidade de uma avaliação mais aprofundada; b) identificadas inadequações ou insuficiência das ações adotadas; c) sugerida pelo acompanhamento de saúde dos trabalhadores, nos termos do PCMSO e da alínea “c” do subitem 1.5.5.1.1 da NR-01; ou d) indicada causa relacionada às condições de trabalho na análise de acidentes e doenças relacionadas ao trabalho, nos termos do PGR.</div>':'')
+   +'<ul style="margin:10px 0 0 20px;padding:0;font-size:14.5px;line-height:1.7;color:#3a2a2c"><li>Prazo de entrega: até '+ent+' dias após o início das coletas de informações.</li><li>Prazo para validação dos estudos: até '+vl+' dias corridos após o envio dos documentos.</li><li>Início do serviço: em até '+ctx.imp+' dias após o aceite da proposta.</li></ul></div></div>'+foot(ctx)));
+  /* 8. investimento: uma tabela por serviço + total */
+  var tabs=svs.map(function(k){
+    var rows=[],tt=0,tHr=0;
+    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tt+=p.tot;tHr+=p.horas;rows.push([o.aet_unid||'—',aetDesc(o,k),p.horas+' h',BRL(p.tot/p.n),BRL(p.tot)]);});
+    return {k:k,tt:r2(tt),html:aetBloco(AET_SV[k].sig+' · '+AET_SV[k].nome,svs.length>1?(modo==='Junto'?'valor proporcional às horas, na faixa conjunta':'valor na faixa de horas do próprio serviço'):'',aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','MÉDIA POR ANÁLISE','INVESTIMENTO'],rows,rows.length>1?['Total '+AET_SV[k].sig,'','','',BRL(r2(tt))]:null,svs.length>1?14:16))};
+  });
+  var geral=r2(tabs.reduce(function(a,t){return a+t.tt;},0)),cus=cs.some(function(c){return c.cus>0;});
+  var sepTot=r2(cs.reduce(function(a,c){return a+c.sep.tot;},0)),junTot=r2(cs.reduce(function(a,c){return a+c.jun.tot;},0));
+  var tot=svs.length>1?'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;background:#EBD9DB;border-radius:12px;padding:12px 18px"><span style="font-weight:800;color:var(--deep);font-size:16px">Investimento total · '+(modo==='Junto'?'AEP e AET contratadas em conjunto':'AEP e AET contratadas separadamente')+'</span><span style="font-family:MA;font-weight:700;font-size:22px;color:var(--deep)">'+BRL(geral)+'</span></div>':'';
+  var nota='Valores com impostos inclusos e emissão de nota fiscal. Valor único para o escopo descrito, sem recorrência mensal.';
+  if(svs.length>1)nota+=(modo==='Junto'?'<br>Valores para a contratação conjunta de AEP e AET, com a faixa de valor por hora calculada sobre o total de horas. A contratação de apenas um dos serviços altera a faixa e o valor é recalculado (referência para a contratação separada: '+BRL(sepTot)+').':'<br>Cada serviço pode ser contratado de forma independente, com valor calculado na faixa de horas do próprio serviço. Referência para a contratação conjunta das duas: '+BRL(junTot)+'.');
+  nota+='<br>'+(cus?'Inclui os custos de campo da equipe técnica (deslocamento, hospedagem e refeições), divididos entre os serviços na proporção das horas.':'Sem custos de deslocamento previstos neste escopo; se houver despesas de viagem, serão combinadas previamente com '+cl+'.');
+  out.push(pageWrap(head('Investimento · '+aetNomeServ().replace(' pontuais','').replace(' pontual',''),svs.length>1?(modo==='Junto'?'Contratação conjunta':'Contratação separada por serviço'):'Valores por unidade','',tag)+tabs.map(function(t){return t.html;}).join('')+tot+'<p class="note" style="margin-top:10px">'+nota+'</p>'+foot(ctx)));
   return out;
 }
 
@@ -697,6 +756,7 @@ function showNr1(){var c=nr1Calc();$('n-total').textContent='Total '+BRL(c.total
 function svcToggle(){$('cg-ergo').style.display=($('s-ergo').checked||$('s-nr1').checked)?'':'none';$('cg-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$('cg-'+k).style.display=svcOn(k)?'':'none';});$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
 ['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet'].forEach(function(id){$(id).onchange=svcToggle;});
 SVC_KEYS.forEach(renderSvc);
+$('aet-modo').onchange=function(){renderSvc('aet');};$('aet-prof').oninput=function(){renderSvc('aet');};
 
 
 /* ===== Código de serviço (LC 116): lista suspensa digitável com sugestão ===== */
@@ -869,7 +929,7 @@ $('btn-print2').onclick=function(){if(!$('preview').querySelector('.pg'))gerar()
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
-var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet','aet-ent','aet-val','c-cod-aet','c-obs-aet','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
+var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet','aet-modo','aet-prof','aet-ent','aet-val','c-cod-aet','c-obs-aet','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
 function spMsg(t,err){var m=$('sp-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function getState(){
   var campos={};FIELD_IDS.forEach(function(id){var e=$(id);campos[id]=e.type==='checkbox'?e.checked:e.value;});
