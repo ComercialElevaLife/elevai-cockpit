@@ -87,6 +87,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <label class="ui-chk"><input type="checkbox" id="s-masso"> Massoterapia</label>
     <label class="ui-chk"><input type="checkbox" id="s-enf"> Enfermagem do Trabalho</label>
     <label class="ui-chk"><input type="checkbox" id="s-med"> Medicina do Trabalho</label>
+    <label class="ui-chk"><input type="checkbox" id="s-aet"> Trabalhos pontuais · AEP e AET</label>
     <div class="ui-hint">Cada serviço gera um bloco de páginas. Ergonomia + NR-1 saem na mesma proposta, separados por assunto.</div>
   </div>
 
@@ -123,6 +124,12 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div id="med-opts"></div>
   </div>
 
+  <div class="ui-sec" id="box-aet" style="display:none"><h3>Trabalhos pontuais · AEP e AET <button class="ui-btn sm sec" id="add-aet" type="button">+ unidade</button></h3>
+    <div class="ui-hint" style="margin:0 0 8px">Cada bloco é uma unidade ou escopo. Os valores seguem a calculadora AEP/AET (horas técnicas, coordenação de 10 %, faixa de valor por hora, custos de campo e encargos de NF).</div>
+    <div id="aet-opts"></div>
+    <div class="ui-row"><div><label>Prazo de entrega (dias após o início das coletas)</label><input id="aet-ent" type="number" min="1" value="60"></div><div><label>Prazo de validação (dias corridos)</label><input id="aet-val" type="number" min="1" value="15"></div></div>
+  </div>
+
   <div class="ui-sec"><h3>Prazos e condições</h3>
     <div class="ui-row3"><div><label>Pagamento (dias)</label><input id="c-pag" type="number" value="30"></div><div><label>Mobilização (dias)</label><input id="c-imp" type="number" value="30"></div><div><label>Validade (dias)</label><input id="c-val" type="number" value="30"></div></div>
     <label>Reajuste</label><input id="c-reaj" value="IPCA (a cada 12 meses)">
@@ -134,6 +141,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div id="cg-masso" class="cod-row"><div class="cod-n">Massoterapia</div><div class="cod-v"><b id="cv-masso"></b><span id="h-cod-masso"></span></div><button class="ui-btn sm sec" id="cod-btn-masso" type="button">Alterar</button><select id="c-cod-masso" data-def="04.09" style="display:none"></select><input type="hidden" id="c-obs-masso" value="Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental"></div>
     <div id="cg-enf" class="cod-row"><div class="cod-n">Enfermagem do Trabalho</div><div class="cod-v"><b id="cv-enf"></b><span id="h-cod-enf"></span></div><button class="ui-btn sm sec" id="cod-btn-enf" type="button">Alterar</button><select id="c-cod-enf" data-def="04.06" style="display:none"></select><input type="hidden" id="c-obs-enf" value="Enfermagem, inclusive serviços auxiliares"></div>
     <div id="cg-med" class="cod-row"><div class="cod-n">Medicina do Trabalho</div><div class="cod-v"><b id="cv-med"></b><span id="h-cod-med"></span></div><button class="ui-btn sm sec" id="cod-btn-med" type="button">Alterar</button><select id="c-cod-med" data-def="04.01" style="display:none"></select><input type="hidden" id="c-obs-med" value="Medicina e biomedicina"></div>
+    <div id="cg-aet" class="cod-row"><div class="cod-n">AEP e AET pontuais</div><div class="cod-v"><b id="cv-aet"></b><span id="h-cod-aet"></span></div><button class="ui-btn sm sec" id="cod-btn-aet" type="button">Alterar</button><select id="c-cod-aet" data-def="08.02.01" style="display:none"></select><input type="hidden" id="c-obs-aet" value="Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza"></div>
     <label>CNPJ e razão social (GL)</label><input id="c-cnpj-gl" value="15.447.255/0001-74 · ELEVALIFE SAÚDE E EDUCAÇÃO LTDA">
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
@@ -234,6 +242,7 @@ function bindOpts(boxId,arr,rerender){
   box.querySelectorAll('[data-k]').forEach(function(el){el.onchange=function(){
     var i=+el.closest('.ui-opt').dataset.i,k=el.dataset.k,v=el.value;
     if(['ch','qtd','freq','dias'].indexOf(k)>=0||k==='hdia') v=parseFloat(v);
+    if(/^aet_/.test(k)){v=parseFloat(String(v).replace(',','.'));if(isNaN(v)||v<0)v=0;}
     arr[i][k]=v; rerender();};});
   box.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){arr.splice(+b.dataset.del,1);rerender();};});
 }
@@ -273,11 +282,29 @@ function calcEM(o,med){
 }
 function priceEnf(o){return r2(calcEM(o,false).k*o.qtd);}
 function priceMed(o){return r2(calcEM(o,true).k*o.qtd);}
+
+/* ===== Trabalhos pontuais · AEP e AET (calculadora AEP/AET) ===== */
+var AET_CH={n1:3,n2:1,n3:1.2,n4:0.66};
+var AET_FX=[[8,250],[16,225],[24,200],[32,190],[40,180],[100,166],[150,140],[1e9,120]];
+var AET_COORD=0.10,AET_NF=0.166,AET_HOSP=250,AET_REF=50,AET_KM=1,AET_PED=15.48;
+function aetCalc(o){
+  var n1=+o.aet_n1||0,n2=+o.aet_n2||0,n3=+o.aet_n3||0,n4=+o.aet_n4||0;
+  var ch=n1*AET_CH.n1+n2*AET_CH.n2+n3*AET_CH.n3+n4*AET_CH.n4,hc=ch*(1+AET_COORD),rate=0;
+  for(var i=0;i<AET_FX.length;i++){if(ch<=AET_FX[i][0]){rate=AET_FX[i][1];break;}}
+  var srv=hc*rate,nA=n1+n2+n3+n4;
+  var cus=(+o.aet_aq||0)*(+o.aet_av||0)+(+o.aet_hosp||0)*AET_HOSP+(+o.aet_ref||0)*AET_REF+(+o.aet_km||0)*AET_KM+(+o.aet_ped||0)*AET_PED;
+  return {n:nA,ch:ch,hc:hc,rate:rate,srv:srv,cus:cus,tot:r2((srv+cus)*(1+AET_NF)),med:nA?srv/nA:0};
+}
+function priceAet(o){var c=aetCalc(o);return c.n>0?c.tot:null;}
+function aetNote(o){var c=aetCalc(o);if(!c.n)return '<div class="ui-hint">Informe a quantidade de análises.</div>';return '<div class="ui-hint">Horas técnicas '+r2(c.ch).toLocaleString('pt-BR')+' h · com coordenação '+r2(c.hc).toLocaleString('pt-BR')+' h · valor/hora '+BRL(c.rate)+' · valor médio por análise '+BRL(c.med)+'<br>Serviço técnico '+BRL(c.srv)+' · custos de campo '+BRL(c.cus)+' · encargos de NF '+(AET_NF*100).toFixed(1).replace('.',',')+' % sobre o subtotal</div>';}
+function aetDesc(o){var a=[];if(+o.aet_n3)a.push(o.aet_n3+' AEP operacional'+(o.aet_n3>1?'is':''));if(+o.aet_n4)a.push(o.aet_n4+' AEP administrativa'+(o.aet_n4>1?'s':''));if(+o.aet_n1)a.push(o.aet_n1+' AET operacional'+(o.aet_n1>1?'is':''));if(+o.aet_n2)a.push(o.aet_n2+' AET administrativa'+(o.aet_n2>1?'s':''));return a.join(' + ')||'—';}
+function aetDef(){return {aet_unid:'Unidade 1',aet_n1:0,aet_n2:0,aet_n3:30,aet_n4:20,aet_aq:0,aet_av:0,aet_hosp:0,aet_ref:0,aet_km:0,aet_ped:0};}
 var OPTS={
  fisio:[{regime:'CLT',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}],
  masso:[{modo:'Recorrente',regime:'CLT',freq:3,tipo:'Quick Massage',dias:3,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}],
  enf:[{prof:'Técnico de Enfermagem',turno:'Diurno',sen:'JR',ch:44,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}],
- med:[{regime:'PJ',turno:'Diurno',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}]};
+ med:[{regime:'PJ',turno:'Diurno',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}],
+ aet:[aetDef()]};
 var SVC={
  fisio:{cb:'s-fisio',box:'box-fisio',list:'fisio-opts',nome:'Fisioterapia',kan:'FISIO',price:priceFisio,unit:' / mês',
   fields:function(o){return [['regime','Regime',['CLT','PJ'],o.regime],['sen','Senioridade',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen],['ch','Carga semanal (h)',[30,24,20,18,12,8,6],o.ch],['qtd','Quantidade','num',o.qtd],['loc','Localidade',LOCS,o.loc],['acesso','Acesso',['Fácil acesso','Difícil acesso'],o.acesso]];},
@@ -292,25 +319,29 @@ var SVC={
   def:{prof:'Técnico de Enfermagem',turno:'Diurno',sen:'JR',ch:44,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}},
  med:{cb:'s-med',box:'box-med',list:'med-opts',nome:'Medicina do Trabalho',kan:'MED TRAB',price:priceMed,unit:' / mês',
   fields:function(o){return [['regime','Regime',['CLT','PJ'],o.regime],['turno','Turno',['Diurno','Noturno'],o.turno],['sen','Senioridade',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen],['ch','Carga semanal (h)',[20,10,8,12,16,24,30,40],o.ch],['qtd','Quantidade','num',o.qtd],['loc','Localidade',LOCS,o.loc],['acesso','Acesso',['Fácil acesso','Difícil acesso'],o.acesso]];},
-  def:{regime:'PJ',turno:'Diurno',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}}};
-var SVC_KEYS=['fisio','masso','enf','med'];
-function fld(x){return '<div><label>'+x[1]+'</label>'+(x[2]==='num'?'<input data-k="'+x[0]+'" type="number" min="1" value="'+x[3]+'">':sel(x[0],x[2],x[3]))+'</div>';}
+  def:{regime:'PJ',turno:'Diurno',sen:'PL',ch:20,loc:'Capital / Região Metropolitana',acesso:'Fácil acesso',qtd:1}},
+ aet:{cb:'s-aet',box:'box-aet',list:'aet-opts',nome:'AEP e AET pontuais',kan:'AEP/AET',price:priceAet,unit:' no período',lab:'Unidade',note:aetNote,
+  fields:function(o){return [['aet_unid','Unidade / escopo','txt',o.aet_unid],['aet_n3','AEP operacional (qtd)','num0',o.aet_n3],['aet_n4','AEP administrativa (qtd)','num0',o.aet_n4],['aet_n1','AET operacional (qtd)','num0',o.aet_n1],['aet_n2','AET administrativa (qtd)','num0',o.aet_n2],['aet_aq','Passagens aéreas (qtd)','num0',o.aet_aq],['aet_av','Valor por passagem (R$)','num0',o.aet_av],['aet_hosp','Hospedagem (diárias)','num0',o.aet_hosp],['aet_ref','Refeições (qtd)','num0',o.aet_ref],['aet_km','Deslocamento (km, ida e volta)','num0',o.aet_km],['aet_ped','Pedágios (qtd)','num0',o.aet_ped]];},
+  def:aetDef()}};
+var SVC_KEYS=['fisio','masso','enf','med','aet'];
+function fld(x){return '<div><label>'+x[1]+'</label>'+(x[2]==='num'?'<input data-k="'+x[0]+'" type="number" min="1" value="'+x[3]+'">':(x[2]==='num0'?'<input data-k="'+x[0]+'" type="number" min="0" step="any" value="'+x[3]+'">':(x[2]==='txt'?'<input data-k="'+x[0]+'" type="text" value="'+String(x[3]).replace(/"/g,'&quot;')+'">':sel(x[0],x[2],x[3]))))+'</div>';}
 function renderSvc(k){
   var S=SVC[k],arr=OPTS[k];
   $(S.list).innerHTML=arr.map(function(o,i){
     var f=S.fields(o),p=S.price(o),rows='';
     for(var j=0;j<f.length;j+=2)rows+='<div class="ui-row">'+fld(f[j])+(f[j+1]?fld(f[j+1]):'<div></div>')+'</div>';
     var u=typeof S.unit==='function'?S.unit(o):S.unit;
-    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>Opção '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div>'+adjNote(o)+'</div>';}).join('');
+    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>'+(S.lab||'Opção')+' '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div>'+(S.note?S.note(o):adjNote(o))+'</div>';}).join('');
   bindOpts(S.list,arr,function(){renderSvc(k);});
 }
 SVC_KEYS.forEach(function(k){$('add-'+k).onclick=function(){if(OPTS[k].length<4){OPTS[k].push(JSON.parse(JSON.stringify(SVC[k].def)));renderSvc(k);}};});
 function svcOn(k){return $(SVC[k].cb).checked;}
-function svcFirstPrice(){for(var i=0;i<SVC_KEYS.length;i++){var k=SVC_KEYS[i];if(svcOn(k)&&OPTS[k].length)return SVC[k].price(OPTS[k][0])||0;}return 0;}
+function svcFirstPrice(){for(var i=0;i<SVC_KEYS.length;i++){var k=SVC_KEYS[i];if(svcOn(k)&&OPTS[k].length){if(k==='aet')return aetTotal();return SVC[k].price(OPTS[k][0])||0;}}return 0;}
+function aetTotal(){return r2(OPTS.aet.reduce(function(a,o){return a+(priceAet(o)||0);},0));}
 function svcNomes(){return SVC_KEYS.filter(svcOn).map(function(k){return SVC[k].nome;});}
 function svcKan(){return SVC_KEYS.filter(svcOn).map(function(k){return SVC[k].kan;});}
-var COD_SVC={fisio:'c-cod-fisio',masso:'c-cod-masso',enf:'c-cod-enf',med:'c-cod-med'};
-var DESC_SVC={fisio:'Terapia ocupacional, fisioterapia e fonoaudiologia',masso:'Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental',enf:'Enfermagem, inclusive serviços auxiliares',med:'Medicina e biomedicina'};
+var COD_SVC={fisio:'c-cod-fisio',masso:'c-cod-masso',enf:'c-cod-enf',med:'c-cod-med',aet:'c-cod-aet'};
+var DESC_SVC={fisio:'Terapia ocupacional, fisioterapia e fonoaudiologia',masso:'Terapias de qualquer espécie destinadas ao tratamento físico, orgânico e mental',enf:'Enfermagem, inclusive serviços auxiliares',med:'Medicina e biomedicina',aet:'Instrução, treinamento, orientação pedagógica e educacional, avaliação de conhecimentos de qualquer natureza'};
 
 /* conteúdo das lâminas por serviço (sem valores nas lâminas técnicas) */
 var IC={heart:'<path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 00-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 000-7.8z"/>',run:'<circle cx="14" cy="4.5" r="2"/><path d="M5 22l4-6 3 2 2-5-3-2 1-4 4 3 3 1M9 12l-3 1"/>',layers:'<path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5"/>',check:'<path d="M5 12l5 5L20 7"/>',cal:'<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>',users:'<circle cx="9" cy="8" r="3.5"/><path d="M2 21v-1a6 6 0 0112 0v1"/><circle cx="17" cy="9" r="2.5"/><path d="M17 14a5 5 0 015 5v2"/>',chart:'<path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="5" width="3" height="13"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',clip:'<rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4h6v3H9zM9 12h6M9 16h6"/>'};
@@ -555,6 +586,7 @@ function agendaSlide(k,ctx,tag){
   return pageWrap(head('Sistema de agendamentos','Organização e controle da agenda','',tag)+'<div style="display:flex;gap:28px;margin-top:14px;align-items:flex-start"><div style="flex:1.45">'+left+'</div><div style="flex:1"><p style="font-size:14px;line-height:1.5;color:#3a2a2c;margin:0 0 8px">'+txt+'</p><p style="font-size:14px;line-height:1.5;color:#3a2a2c;margin:0 0 12px">'+txt2+'</p>'+meusAgend(ctx,k)+'<div style="display:flex;align-items:center;gap:14px;margin-top:12px"><div style="transform:scale(.72);transform-origin:left center;width:108px;height:108px;flex:none">'+qrSvg()+'</div><div style="font-size:12.5px;color:#5b4a4d;line-height:1.4"><b style="color:var(--deep)">QR code de exemplo</b><br>Acesso à agenda pelo celular</div></div></div></div><p class="note">Telas ilustrativas, com dados fictícios.</p>'+foot(ctx));
 }
 function svcSlides(k,ctx){
+  if(k==='aet')return aetSlides(ctx);
   var C=CONT[k],S=SVC[k],opts=OPTS[k],tag='Proposta · '+S.nome,out=[];
   var FLOW={fisio:[['Avaliação','cinético-postural'],['Tratamento','reabilitação clínica'],['Monitoramento','indicadores mensais'],['Melhoria contínua','plano de ação']],
     masso:[['Agendamento','link e agenda'],['Atendimento','execução diária'],['Indicadores','adesão e satisfação'],['Melhoria contínua','plano de ação']],
@@ -582,6 +614,62 @@ function svcSlides(k,ctx){
   return out;
 }
 
+/* ===== Lâminas · Trabalhos pontuais AEP e AET ===== */
+function aetHoras(o){return Math.ceil(aetCalc(o).hc-1e-9);}
+function aetTbl(cols,rows,foot){
+  var th='padding:11px 14px;font-size:12.5px;letter-spacing:1px;font-weight:800;color:#fff;background:#A34E56;text-align:center';
+  var body=rows.map(function(r,i){var bg=i%2===0?'#F3E3E4':'#FAF3F3';return '<tr style="background:'+bg+'">'+r.map(function(c,j){return '<td style="padding:21px 14px;font-size:16.5px;'+(j===0?'font-weight:800;color:var(--deep);text-align:left':'text-align:center')+'">'+c+'</td>';}).join('')+'</tr>';}).join('');
+  var ft=foot?'<tr style="background:#EBD9DB">'+foot.map(function(c,j){return '<td style="padding:18px 14px;font-size:17px;font-weight:800;color:var(--deep);text-align:'+(j===0?'left':'center')+'">'+c+'</td>';}).join('')+'</tr>':'';
+  return '<table style="width:100%;border-collapse:collapse;margin-top:16px"><thead><tr>'+cols.map(function(c){return '<th style="'+th+'">'+c+'</th>';}).join('')+'</tr></thead><tbody>'+body+ft+'</tbody></table>';
+}
+function aetMatriz(){
+  var cor=function(v){return v<=4?'#2E8B57':(v<=9?'#D9A21B':(v<=16?'#D63B3B':'#7A3FB5'));},o='',x0=34,cw=36,ch=26;
+  for(var g=5;g>=1;g--){o+='<text x="28" y="'+((5-g)*ch+ch/2+4)+'" font-size="11" fill="#5b4a4d" text-anchor="end">'+g+'</text>';for(var p=1;p<=5;p++)o+='<rect x="'+(x0+(p-1)*cw)+'" y="'+((5-g)*ch)+'" width="'+(cw-2)+'" height="'+(ch-2)+'" rx="3" fill="'+cor(g*p)+'"/><text x="'+(x0+(p-1)*cw+cw/2-1)+'" y="'+((5-g)*ch+ch/2+4)+'" font-size="11" font-weight="700" fill="#fff" text-anchor="middle">'+(g*p)+'</text>';}
+  for(var q=1;q<=5;q++)o+='<text x="'+(x0+(q-1)*cw+cw/2-1)+'" y="'+(5*ch+14)+'" font-size="11" fill="#5b4a4d" text-anchor="middle">'+q+'</text>';
+  return '<svg viewBox="0 0 '+(x0+5*cw)+' '+(5*ch+20)+'" width="100%">'+o+'</svg>';
+}
+function aetTeam(ctx,tag){
+  var o=orgNode('JB','João Barbosa','Diretor de Operações',70,'var(--deep)')+orgLine(18)+orgNode('A','Alexandre','Líder de área',64,'#7A3139')+orgLine(16)
+   +'<div style="width:240px;height:2px;background:var(--soft)"></div><div style="display:flex;gap:24px">'+[0,1].map(function(){return '<div style="width:216px">'+orgLine(12)+'</div>';}).join('')+'</div>'
+   +'<div style="display:flex;gap:24px">'+orgNode('F','Felipe','Supervisor Operacional',60,'var(--mid)').replace('230px','216px')+orgNode('D','Dani','Supervisora Operacional',60,'var(--mid)').replace('230px','216px')+'</div>';
+  return orgPage(tag,'',o+orgKids([{ini:'E',nome:'Ergonomistas',cargo:'Equipe técnica',sub:'Fisioterapeuta e/ou Educador Físico, com pós-graduação em ergonomia'}],60,'var(--w)'),ctx);
+}
+function aetSlides(ctx){
+  var opts=OPTS.aet,tag='Proposta · AEP e AET pontuais',out=[],cl=ctx.cliente;
+  /* 1. método */
+  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','AEP e AET: método de diagnóstico','Como ferramentas diagnósticas, alinhadas à identificação de perigos e à avaliação de riscos da NR-01 e da NR-17, utilizamos a Avaliação Ergonômica Preliminar (AEP) e a Análise Ergonômica do Trabalho (AET).',tag)
+   +'<div style="display:flex;gap:18px;margin-top:26px;align-items:stretch">'
+   +'<div class="tile" style="flex:1.1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('clip','sm')+'<div><b>AEP · Avaliação Ergonômica Preliminar</b><span style="font-size:15px">Identifica as demandas ergonômicas e quantifica os riscos de forma rápida e objetiva, permitindo iniciar a gestão dos riscos. Tem como base a norma ISO/TS 20646 e conceitos como agente causador (repetitividade, levantamento de cargas, posturas, fatores psicossociais e organizacionais), circunstância geradora, consequência, medida de controle existente, gravidade e probabilidade. Resulta na graduação do risco de cada atividade e no inventário de riscos ergonômicos.</span></div></div>'
+   +'<div class="tile" style="flex:1.1;flex-direction:column;align-items:flex-start;padding:26px 26px">'+ic('search','sm')+'<div><b>AET · Análise Ergonômica do Trabalho</b><span style="font-size:15px">Indicada para situações complexas ou com histórico de doenças e acidentes. A compreensão das atividades é pautada em três dimensões e seus impactos nos indivíduos: <b style="display:inline;font-size:15px">psicossocial</b> (conhecimentos, relações, cultura e clima organizacional), <b style="display:inline;font-size:15px">física e tecnológica</b> (tecnologia, equipamentos, ambiente físico e mobiliário) e <b style="display:inline;font-size:15px">organizacional</b> (processos, sistema de gestão, sistema de informação e estrutura).</span></div></div>'
+   +'<div style="flex:.62;background:#fff;border:2px solid var(--ln);border-radius:18px;padding:16px 16px 12px"><div style="font-weight:800;color:var(--mid);font-size:11.5px;letter-spacing:1px;margin-bottom:6px">GRAVIDADE × PROBABILIDADE</div>'+aetMatriz()+'<div style="font-size:12.5px;color:#5b4a4d;line-height:1.45;margin-top:8px">O risco é dimensionado em matriz 4×4 ou 5×5, com 3 ou 5 níveis de risco e ação, conforme o método utilizado pela contratante.</div></div>'
+   +'</div><p class="note">Matriz ilustrativa, com valores de exemplo.</p>'+foot(ctx)));
+  /* 2. metodologias */
+  var M=[['target','Levantamento e transporte manual de cargas','ISO 11228-1, baseada na equação de NIOSH e nas tabelas psicofísicas de Snook e Ciriello.'],['layers','Empurrar e puxar cargas','ISO 11228-2, baseada nas tabelas psicofísicas de Snook e Ciriello.'],['chart','Atividades repetitivas','ISO 11228-3, com Strain Index (Moore e Garg), HAL (ACGIH) e OCRA.'],['users','Postura de trabalho estática','ISO 11226: limites de postura conforme carga muscular, angulação das articulações e tempo de exposição.'],['run','Postura de trabalho dinâmica','RULA (membros superiores), REBA (corpo todo) e MFA (fadiga muscular).'],['heart','Demandas cognitivas','ISO 10075, princípios ergonômicos relativos à carga mental de trabalho.'],['clip','Dimensionamento dos postos','Iida (2005) e Kroemer e Grandjean (2005), com dados antropométricos da população.'],['check','Ponderação do risco','Cruzamento da exposição diária com o resultado da metodologia, para dimensionar o risco ergonômico da atividade.']];
+  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','Metodologias aplicadas em cada tipo de exigência','',tag)+'<div class="grid g4" style="margin-top:26px;gap:16px">'+M.map(function(x){return '<div class="tile" style="flex-direction:column;align-items:flex-start;padding:24px 20px">'+ic(x[0],'sm')+'<div><b style="font-size:17px">'+x[1]+'</b><span style="font-size:14.5px">'+x[2]+'</span></div></div>';}).join('')+'</div>'+foot(ctx)));
+  /* 3. etapas da AEP */
+  var E=[['Coleta de dados','Checklist de fatores de risco ergonômico, com base na ISO/TS 20646. O ergonomista entrevista o colaborador que executa a atividade, observa o posto de trabalho e registra vídeos e fotos. Duração média: 20 minutos na avaliação administrativa e 40 minutos na operacional.'],['Severidade','Classificada conforme as queixas do colaborador entrevistado, a observação do ergonomista sobre a atividade e o histórico de absenteísmo.'],['Probabilidade','Classificada com base na coleta de dados, em que o ergonomista identifica o tempo de exposição do colaborador a cada atividade e fator de risco.'],['Graduação do fator de risco','Resulta do cruzamento entre severidade e probabilidade. A AEP por cargo pode ter vários fatores de risco, inclusive repetidos, com graduações diferentes conforme a exposição e as fontes geradoras.']];
+  out.push(pageWrap(head('Diagnóstico de riscos ergonômicos','Da coleta à graduação do risco','',tag)+'<div class="arrowrow" style="margin-top:24px">'+E.map(function(f,i){return '<div class="chev"><b>'+(i+1)+'</b><span>'+f[0]+'</span></div>';}).join('')+'</div><div style="display:flex;gap:16px;margin-top:28px">'+E.map(function(f){return '<div style="flex:1;background:var(--bg);border-radius:16px;padding:22px 20px;font-size:15.5px;line-height:1.55;color:#3a2a2c">'+f[1]+'</div>';}).join('')+'</div>'+foot(ctx)));
+  /* 4. equipe */
+  out.push(aetTeam(ctx,tag));
+  /* 5. organização dos serviços */
+  var rows=opts.map(function(o){var c=aetCalc(o);return [o.aet_unid||'—',aetDesc(o),aetHoras(o)+' h'];});
+  var tot=opts.reduce(function(a,o){return a+aetHoras(o);},0);
+  var et=['Análise da demanda e dos dados','Levantamentos de campo','Análise das informações e elaboração do documento e da planilha','Validação da análise e das recomendações','Entrega do documento revisado'];
+  var ent=$('aet-ent').value||60,vl=$('aet-val').value||15;
+  out.push(pageWrap(head('Organização dos serviços','Escopo, horas técnicas e etapas','',tag)
+   +aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS'],rows,opts.length>1?['Total','',tot+' h']:null)
+   +'<div style="display:flex;gap:22px;margin-top:26px"><div style="flex:1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">ETAPAS</div><div style="font-size:15px;line-height:1.5;color:#3a2a2c">Estima-se a dedicação de cerca de '+tot+' horas técnicas, nas seguintes etapas:</div><ol style="margin:8px 0 0 20px;padding:0;font-size:15px;line-height:1.7;color:#3a2a2c">'+et.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ol><div style="font-size:15px;line-height:1.5;color:#3a2a2c;margin-top:10px">O serviço é desenvolvido por fisioterapeuta e/ou educador físico, com pós-graduação em ergonomia.</div></div>'
+   +'<div style="flex:1.1"><div style="font-weight:800;color:var(--mid);font-size:12px;letter-spacing:1px;margin-bottom:8px">CONSIDERAÇÕES</div><div style="font-size:14px;line-height:1.5;color:#3a2a2c">Conforme a NR-17, a organização deve realizar a AET da situação de trabalho quando: a) observada a necessidade de uma avaliação mais aprofundada; b) identificadas inadequações ou insuficiência das ações adotadas; c) sugerida pelo acompanhamento de saúde dos trabalhadores, nos termos do PCMSO e da alínea “c” do subitem 1.5.5.1.1 da NR-01; ou d) indicada causa relacionada às condições de trabalho na análise de acidentes e doenças relacionadas ao trabalho, nos termos do PGR.</div>'
+   +'<ul style="margin:10px 0 0 20px;padding:0;font-size:14px;line-height:1.65;color:#3a2a2c"><li>Prazo de entrega: até '+ent+' dias após o início das coletas de informações.</li><li>Prazo para validação dos estudos: até '+vl+' dias corridos após o envio dos documentos.</li><li>Início do serviço: em até '+ctx.imp+' dias após a assinatura ou o pedido.</li></ul></div></div>'+foot(ctx)));
+  /* 6. investimento */
+  var tt=0,irows=opts.map(function(o){var c=aetCalc(o),p=priceAet(o)||0;tt+=p;return [o.aet_unid||'—',aetDesc(o),aetHoras(o)+' h',c.n?BRL(p/c.n):'—',BRL(p)];});
+  var cus=opts.some(function(o){return aetCalc(o).cus>0;});
+  out.push(pageWrap(head('Investimento · AEP e AET pontuais','Valores por unidade e total','',tag)
+   +aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','MÉDIA POR ANÁLISE','INVESTIMENTO'],irows,opts.length>1?['Investimento total','','','',BRL(tt)]:null)
+   +'<p class="note">Valores com impostos inclusos e emissão de nota fiscal. Valor único para o escopo descrito, sem recorrência mensal.<br>'+(cus?'Inclui os custos de campo da equipe técnica (deslocamento, hospedagem e refeições), conforme o escopo.':'Sem custos de deslocamento previstos neste escopo; se houver despesas de viagem, serão combinadas previamente com '+cl+'.')+'<br>A média por análise é o investimento da unidade dividido pela quantidade de análises previstas.</p>'+foot(ctx)));
+  return out;
+}
+
 function condSaude(ctx){
   var ks=SVC_KEYS.filter(svcOn);if(!ks.length)return null;
   var cn=(ctx.cnpjGL||'').split(' · ');
@@ -602,7 +690,7 @@ function showNr1(){var c=nr1Calc();$('n-total').textContent='Total '+BRL(c.total
 ['n-vidas','n-vh','n-e1','n-e2','n-reu','n-min'].forEach(function(id){$(id).oninput=showNr1;});
 
 function svcToggle(){$('cg-ergo').style.display=($('s-ergo').checked||$('s-nr1').checked)?'':'none';$('cg-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$('cg-'+k).style.display=svcOn(k)?'':'none';});$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
-['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med'].forEach(function(id){$(id).onchange=svcToggle;});
+['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet'].forEach(function(id){$(id).onchange=svcToggle;});
 SVC_KEYS.forEach(renderSvc);
 
 
@@ -629,7 +717,7 @@ function codInit(){
   var all=codAll(),sug=all.filter(function(x){return COD_SUG.some(function(y){return y[0]===x.c&&y[2]===x.d;});}),res=all.filter(function(x){return sug.indexOf(x)<0;});
   function op(x,l){return '<option value="'+x.c+'" data-d="'+x.d.replace(/"/g,'&quot;')+'">'+x.c+' — '+l.replace(/"/g,'&quot;')+'</option>';}
   var html='<optgroup label="Sugeridos ElevaLife">'+sug.map(function(x){return op(x,x.l);}).join('')+'</optgroup><optgroup label="Lista LC 116">'+res.map(function(x){return op(x,x.d);}).join('')+'</optgroup>';
-  ['ergo','gl','fisio','masso','enf','med'].forEach(function(k){
+  ['ergo','gl','fisio','masso','enf','med','aet'].forEach(function(k){
     var sel=$('c-cod-'+k),obs=$('c-obs-'+k),hint=$('h-cod-'+k);if(!sel)return;
     sel.innerHTML=html;var def=sel.getAttribute('data-def');if(def)sel.value=def;
     function mostra(){var o=sel.options[sel.selectedIndex];hint.textContent=o?o.getAttribute('data-d'):'';var cv=$('cv-'+k);if(cv)cv.textContent=sel.value||'—';}
@@ -639,12 +727,12 @@ function codInit(){
   });
 }
 codInit();
-function codRefresh(){['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var s=$('c-cod-'+k);if(s&&s._mostra)s._mostra();});}
-var COD_NOME={ergo:'Ergonomia / NR-1',gl:'Ginástica Laboral',fisio:'Fisioterapia',masso:'Massoterapia',enf:'Enfermagem do Trabalho',med:'Medicina do Trabalho'};
-var COD_REC={ergo:['08.02.01','17.09'],gl:['04.08.02','04.08'],fisio:['04.08.02','04.08'],masso:['04.09','04.08.02'],enf:['04.06','04.01'],med:['04.01','17.09']};
+function codRefresh(){['ergo','gl','fisio','masso','enf','med','aet'].forEach(function(k){var s=$('c-cod-'+k);if(s&&s._mostra)s._mostra();});}
+var COD_NOME={ergo:'Ergonomia / NR-1',gl:'Ginástica Laboral',fisio:'Fisioterapia',masso:'Massoterapia',enf:'Enfermagem do Trabalho',med:'Medicina do Trabalho',aet:'AEP e AET pontuais'};
+var COD_REC={ergo:['08.02.01','17.09'],gl:['04.08.02','04.08'],fisio:['04.08.02','04.08'],masso:['04.09','04.08.02'],enf:['04.06','04.01'],med:['04.01','17.09'],aet:['08.02.01','17.09']};
 var codAtual=null;
 function codAbrir(k){codAtual=k;$('ov2-t').textContent='Código do serviço · '+COD_NOME[k];$('ov2-sub').textContent='Atual: '+$('c-cod-'+k).value+' — '+($('h-cod-'+k).textContent||'');$('ov2-q').value='';$('ov2').style.display='flex';codListar('');$('ov2-q').focus();}
-['ergo','gl','fisio','masso','enf','med'].forEach(function(k){var b=$('cod-btn-'+k);if(b)b.onclick=function(){codAbrir(k);};});
+['ergo','gl','fisio','masso','enf','med','aet'].forEach(function(k){var b=$('cod-btn-'+k);if(b)b.onclick=function(){codAbrir(k);};});
 $('ov2-q').oninput=function(){codListar($('ov2-q').value);};
 $('ov2-x').onclick=function(){$('ov2').style.display='none';};
 $('ov2').onclick=function(e){if(e.target===$('ov2'))$('ov2').style.display='none';};
@@ -776,7 +864,7 @@ $('btn-print2').onclick=function(){if(!$('preview').querySelector('.pg'))gerar()
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
-var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
+var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet','aet-ent','aet-val','c-cod-aet','c-obs-aet','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
 function spMsg(t,err){var m=$('sp-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function getState(){
   var campos={};FIELD_IDS.forEach(function(id){var e=$(id);campos[id]=e.type==='checkbox'?e.checked:e.value;});
@@ -894,7 +982,7 @@ function resumoTexto(){
   if($('s-ergo').checked)r.push('• Gestão de Ergonomia: especialista em ergonomia dedicado à rotina da unidade, com AEP/AET, planos de ação e acompanhamento dos casos;');
   if($('s-nr1').checked)r.push('• Diagnóstico NR-1 (fatores psicossociais): levantamento, análise e relatório para subsidiar a gestão dos riscos psicossociais no PGR;');
   if($('s-gl').checked)r.push('• Ginástica Laboral: sessões de 10 a 15 minutos conduzidas por Professor de Ginástica Laboral, nas frequências semanais descritas na proposta;');
-  var RS={fisio:'• Fisioterapia: profissional de fisioterapia na unidade, com avaliação, atendimentos e orientações de prevenção, conforme a agenda combinada;',masso:'• Massoterapia: sessões de massagem no ambiente de trabalho, de forma recorrente ou em ações pontuais, conforme a agenda combinada;',enf:'• Enfermagem do Trabalho: profissional de enfermagem na unidade, em apoio ao SESMT e ao cuidado com a saúde dos colaboradores;',med:'• Medicina do Trabalho: atuação médica ocupacional na unidade, conforme o PCMSO e a agenda combinada;'};
+  var RS={fisio:'• Fisioterapia: profissional de fisioterapia na unidade, com avaliação, atendimentos e orientações de prevenção, conforme a agenda combinada;',masso:'• Massoterapia: sessões de massagem no ambiente de trabalho, de forma recorrente ou em ações pontuais, conforme a agenda combinada;',enf:'• Enfermagem do Trabalho: profissional de enfermagem na unidade, em apoio ao SESMT e ao cuidado com a saúde dos colaboradores;',med:'• Medicina do Trabalho: atuação médica ocupacional na unidade, conforme o PCMSO e a agenda combinada;',aet:'• Trabalhos pontuais de AEP e AET: avaliação preliminar e análise ergonômica do trabalho, com documento, planilha e validação das recomendações;'};
   SVC_KEYS.forEach(function(k){if(svcOn(k))r.push(RS[k]);});
   r.push('• Relatórios, indicadores de acompanhamento e condições comerciais, detalhados no documento anexo.');
   return r.join('\n');
@@ -920,8 +1008,8 @@ function sugerirValor(){
   var v=null;
   if($('s-ergo').checked&&ergoOpts.length){v=(priceErgo(ergoOpts[0])||0)*ergoOpts[0].qtd;}
   else if($('s-gl').checked&&glOpts.length){v=(priceGL(glOpts[0])||0)*glOpts[0].qtd;}
-  if(!v)v=svcFirstPrice();
-  if(v){$('e-vmes').value=r2(v);totalizar();}
+  var pont=false;if(!v){v=svcFirstPrice();var kf=SVC_KEYS.filter(svcOn)[0];pont=(kf==='aet');}
+  if(v){$('e-vmes').value=r2(v);if(pont)$('e-meses').value=1;totalizar();}
 }
 function totalizar(){var m=parseFloat($('e-vmes').value),n=parseInt($('e-meses').value,10);if(m&&n)$('e-vtot').value=r2(m*n);}
 $('e-vmes').oninput=totalizar;$('e-meses').oninput=totalizar;
