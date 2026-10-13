@@ -164,7 +164,7 @@ function bindOpts(boxId,arr,rerender){
   box.querySelectorAll('[data-k]').forEach(function(el){el.onchange=function(){
     var i=+el.closest('.ui-opt').dataset.i,k=el.dataset.k,v=el.value;
     if(['ch','qtd','freq','dias'].indexOf(k)>=0||k==='hdia') v=parseFloat(v);
-    if(/^aet_/.test(k)){v=parseFloat(String(v).replace(',','.'));if(isNaN(v)||v<0)v=0;}
+    if(/^aet_/.test(k)&&k!=='aet_unid'){v=parseFloat(String(v).replace(',','.'));if(isNaN(v)||v<0)v=0;}
     arr[i][k]=v; rerender();};});
   box.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){arr.splice(+b.dataset.del,1);rerender();};});
 }
