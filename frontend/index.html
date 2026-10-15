@@ -622,7 +622,10 @@ td .up{color:var(--ok);font-weight:700}
     <div class="b15"><span class="n">15</span><span class="a">anos</span></div>
     <div class="t"><h1>CRM Comercial — Kanban</h1><div class="s">elevando pessoas e resultados · protótipo do Módulo 2</div></div>
   </div>
-  <div style="display:flex;gap:8px;flex-wrap:wrap">
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+    <!-- 15/10/2026 -- Léo: busca rápida no canto superior direito do Kanban (empresa, contato, telefone ou e-mail).
+         Soma com os filtros já existentes (consultor/serviço); só esconde cards, não altera nenhum dado. -->
+    <input id="crm-q" type="search" autocomplete="off" placeholder="🔍 Buscar empresa, contato, telefone ou e-mail" oninput="crmBuscaRapida()" onkeydown="if(event.key==='Escape'){this.value='';crmBuscaRapida();}" style="width:320px;max-width:60vw;padding:8px 12px;border:1px solid #C99AA0;border-radius:8px;font:500 12.5px 'Montserrat',sans-serif;color:#3A2A2E;background:#fff;outline:none" onfocus="this.style.borderColor='#8B3A42'" onblur="this.style.borderColor='#C99AA0'">
     <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
     <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
     <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
@@ -3554,9 +3557,44 @@ function fillSelects(){
   el('fc').innerHTML='<option value="">Todos</option>'+cs.map(c=>`<option>${c}</option>`).join('');
   el('fs').innerHTML='<option value="">Todos</option>'+ss.map(c=>`<option>${c}</option>`).join('');
 }
+/* 15/10/2026 -- busca rápida do Kanban (#crm-q): cada palavra digitada precisa aparecer em algum destes
+   campos do card: empresa, unidade, contato (nome/sobrenome), e-mail, telefone, contatos extras e
+   contatos cadastrados na mesma empresa. Sem acento e sem diferenciar maiúscula; telefone casa só pelos dígitos. */
+function _bqN(x){return String(x==null?'':x).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();}
+function _bqD(x){return String(x==null?'':x).replace(/\D/g,'');}
+function _bqIndex(){
+  const porId={},porNome={};
+  (STORE.contatos||[]).forEach(c=>{
+    const t=[c.nome,c.sobrenome,c.email,c.telefone].join(' ');
+    if(c.empresaId)porId[String(c.empresaId)]=(porId[String(c.empresaId)]||'')+' '+t;
+    const nm=(typeof normCli==='function')?normCli(c.empresaNome||''):'';
+    if(nm)porNome[nm]=(porNome[nm]||'')+' '+t;
+  });
+  return {porId,porNome};
+}
+function _bqTexto(l,ix){
+  let extra='';
+  try{ if(l.contatosExtraJson){ JSON.parse(l.contatosExtraJson).forEach(c=>{ extra+=' '+[c.nome,c.sobrenome,c.email,c.telefone].join(' '); }); } }catch(e){}
+  const nm=(typeof normCli==='function')?normCli(l.cliente||''):'';
+  const emp=(l.empresaId&&ix.porId[String(l.empresaId)])||ix.porNome[nm]||'';
+  const txt=[l.cliente,l.unidade,l.nome,l.contatoSobrenome,l.email,l.telefone,l.contatoSugeridoNome,l.contatoSugeridoSobrenome,l.contatoSugeridoEmail,l.contatoSugeridoTelefone,extra,emp].join(' ');
+  return {t:_bqN(txt),d:_bqD(txt)};
+}
+function crmBuscaRapida(){
+  clearTimeout(window._bqT);
+  window._bqT=setTimeout(function(){ if(typeof render==='function')render(); },120);
+}
 function filtered(){
   const c=el('fc').value,s=el('fs').value,q=el('fq').value.trim().toLowerCase();
-  return LEADS.filter(l=>(!c||l.cons===c)&&(!s||l.serv===s)&&(!q||(l.cliente+' '+l.unidade).toLowerCase().includes(q)));
+  const bq=(el('crm-q')&&el('crm-q').value||'').trim();
+  const toks=bq?bq.split(/\s+/).filter(Boolean):[];
+  const ix=toks.length?_bqIndex():null;
+  return LEADS.filter(l=>{
+    if(!((!c||l.cons===c)&&(!s||l.serv===s)&&(!q||(l.cliente+' '+l.unidade).toLowerCase().includes(q))))return false;
+    if(!toks.length)return true;
+    const h=_bqTexto(l,ix);
+    return toks.every(t=>{ const tn=_bqN(t),td=_bqD(t); return h.t.includes(tn)||(td.length>=3&&h.d.includes(td)); });
+  });
 }
 function render(){
   const data=filtered();
@@ -3648,6 +3686,7 @@ function render(){
   });
   el('board').innerHTML=h;
   el('cnt').textContent=data.length+' leads';
+  try{ var _bq=el('crm-q'); if(_bq&&_bq.value.trim()){ el('cnt').textContent=data.length+' leads (busca ativa)'; } }catch(e){}
 }
 let dragId=null;
 /* 03/09/2026 — bucket "🏢 Empresas" (Léo: arrastar o card da empresa cadastrada direto pra uma
