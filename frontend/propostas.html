@@ -23,6 +23,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
 .ui-row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .ui-chk{display:flex;align-items:center;gap:8px;font-size:13px;margin:5px 0}
 .ui-chk input{width:auto}
+.ui-man{margin-top:8px;border-top:1px dashed #E7D8D9;padding-top:6px}.ui-man summary{cursor:pointer;font-size:12px;font-weight:700;color:#8B3A42}.ui-man label{display:block;margin-top:6px}
 .ui-opt{border:1px dashed #C99AA0;border-radius:10px;padding:8px 10px;margin-top:8px;background:#fff}
 .ui-opt .hd{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;color:#5E2A30}
 .ui-price{font-family:MA,M,sans-serif;font-size:16px;color:#5E2A30;margin-top:6px}
@@ -99,6 +100,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <div class="ui-row"><div><label>Vidas</label><input id="n-vidas" type="number" value="11000" min="1"></div><div><label>Valor/hora análise (R$)</label><input id="n-vh" type="number" value="150"></div></div>
     <div class="ui-row3"><div><label>Etapa 1 (R$)</label><input id="n-e1" type="number" value="1600"></div><div><label>Etapa 2 (R$)</label><input id="n-e2" type="number" value="1600"></div><div><label>Reunião (R$)</label><input id="n-reu" type="number" value="400"></div></div>
     <label>Minutos de análise por vida</label><input id="n-min" type="number" value="2" step="0.5">
+    <details class="ui-man"><summary>Edição manual · valor e escopo</summary><label>Valor total manual (R$) · vazio = cálculo automático</label><input id="n-man" type="number" min="0" step="any"><label>Escopo manual · uma linha por etapa (etapas 1, 2 e 3)</label><textarea id="n-esc" rows="3" placeholder="Etapa 1: Diagnóstico preliminar organizacional"></textarea></details>
     <div class="ui-price" id="n-total"></div>
   </div>
 
@@ -148,6 +150,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
     <label class="ui-chk"><input type="checkbox" id="c-ref" checked> Observação de alimentação (Ergonomia, jornada &gt; 6 h)</label>
   </div>
 
+  <label class="ui-chk"><input type="checkbox" id="man-on" checked> Usar valores e escopo manuais (onde preenchidos). Desmarque para gerar a proposta padrão, sem apagar o que foi digitado.</label>
   <div class="ui-bar"><button class="ui-btn" id="btn-gerar" type="button">Gerar proposta</button><button class="ui-btn sec" id="btn-print" type="button">Baixar PDF</button><button class="ui-btn sec sm" id="btn-print2" type="button">Imprimir</button></div>
   <div class="ui-hint" id="pdf-msg" style="margin:-4px 0 10px"></div>
   <div class="ui-sec"><h3>SharePoint</h3>
@@ -223,6 +226,15 @@ var glOpts=[{hdia:2,freq:2,regime:'CLT',loc:'Capital / Região Metropolitana',ac
 function sel(id,opts,val,extra){return '<select data-k="'+id+'" '+(extra||'')+'>'+opts.map(function(o){var v=Array.isArray(o)?o[0]:o,l=Array.isArray(o)?o[1]:o;return '<option value="'+v+'"'+(String(v)===String(val)?' selected':'')+'>'+l+'</option>';}).join('')+'</select>';}
 var LOCS=['Capital / Região Metropolitana','Interior'];
 function adjNote(o){var a=[];if(o.loc==='Interior')a.push('Interior −15%');if(o.acesso==='Difícil acesso')a.push('Difícil acesso +10%');return a.length?'<div class="ui-hint">Ajustes aplicados: '+a.join(' · ')+'</div>':'';}
+/* ===== Edição manual (valor e escopo) =====
+   Cada opção de serviço aceita um valor manual e um escopo manual. Vazio = cálculo/escopo padrão.
+   A chave "man-on" (junto ao Gerar proposta) liga/desliga as edições sem apagar o que foi digitado. */
+function manOn(){var e=$('man-on');return !e||e.checked;}
+function manV(o){if(!manOn()||!o)return 0;var v=parseFloat(String(o.man_val==null?'':o.man_val).replace(',','.'));return v>0?v:0;}
+function manEscTxt(o){return manOn()&&o?String(o.man_esc||'').trim():'';}
+function escH(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function manRows(o,def){var t=manEscTxt(o);if(!t)return def;return t.split(/\n+/).map(function(l){return l.trim();}).filter(Boolean).map(function(l){var m=/^([^:]{1,40}):\s*(.+)$/.exec(l);return m?[escH(m[1]),escH(m[2])]:['Escopo',escH(l)];});}
+function manBox(o){var on=(o.man_val>0||String(o.man_esc||'').trim()!=='');return '<details class="ui-man"'+(on?' open':'')+'><summary>Edição manual · valor e escopo'+(on?' (preenchida)':'')+'</summary><label>Valor manual da opção (R$) · vazio = cálculo automático</label><input data-k="man_val" type="number" min="0" step="any" value="'+(o.man_val>0?o.man_val:'')+'"><label>Escopo manual · uma linha por item, no formato Item: descrição</label><textarea data-k="man_esc" rows="3" placeholder="Profissional: 1 especialista em ergonomia, nível pleno">'+escH(o.man_esc||'')+'</textarea></details>';}
 function renderErgo(){
   $('ergo-opts').innerHTML=ergoOpts.map(function(o,i){
     var p=priceErgo(o);
@@ -230,7 +242,7 @@ function renderErgo(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Senioridade</label>'+sel('sen',[['JR','Júnior'],['PL','Pleno'],['SR','Sênior']],o.sen)+'</div></div>'+
     '<div class="ui-row"><div><label>Carga semanal (h)</label>'+sel('ch',[40,30,24,20,16,12,8],o.ch)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'—':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
+    '<div class="ui-price">'+(manV(o)?BRL(manV(o))+' / mês (manual)':(p==null?'—':BRL(p*o.qtd)+' / mês'))+'</div>'+adjNote(o)+manBox(o)+'</div>';}).join('');
   bindOpts('ergo-opts',ergoOpts,renderErgo);
 }
 function renderGL(){
@@ -241,7 +253,7 @@ function renderGL(){
     '<div class="ui-row"><div><label>Regime</label>'+sel('regime',['CLT','PJ'],o.regime)+'</div><div><label>Quantidade</label><input data-k="qtd" type="number" min="1" value="'+o.qtd+'"></div></div>'+
     '<div class="ui-row"><div><label>Horas por aula (dia)</label>'+sel('hdia',hs,o.hdia)+'</div><div><label>Vezes por semana</label>'+sel('freq',[1,2,3,4,5],o.freq)+'</div></div>'+
     '<div class="ui-row"><div><label>Localidade</label>'+sel('loc',LOCS,o.loc)+'</div><div><label>Acesso</label>'+sel('acesso',['Fácil acesso','Difícil acesso'],o.acesso)+'</div></div>'+
-    '<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês')+'</div>'+adjNote(o)+'</div>';}).join('');
+    '<div class="ui-price">'+(manV(o)?BRL(manV(o))+' / mês (manual)':(p==null?'combinação fora da tabela':BRL(p*o.qtd)+' / mês'))+'</div>'+adjNote(o)+manBox(o)+'</div>';}).join('');
   bindOpts('gl-opts',glOpts,renderGL);
 }
 function bindOpts(boxId,arr,rerender){
@@ -249,6 +261,7 @@ function bindOpts(boxId,arr,rerender){
   box.querySelectorAll('[data-k]').forEach(function(el){el.onchange=function(){
     var i=+el.closest('.ui-opt').dataset.i,k=el.dataset.k,v=el.value;
     if(['ch','qtd','freq','dias'].indexOf(k)>=0||k==='hdia') v=parseFloat(v);
+    if(k==='man_val'){v=parseFloat(String(v).replace(',','.'));if(isNaN(v)||v<=0)v=0;}
     if(/^aet_/.test(k)&&k!=='aet_unid'){v=parseFloat(String(v).replace(',','.'));if(isNaN(v)||v<0)v=0;}
     arr[i][k]=v; rerender();};});
   box.querySelectorAll('[data-del]').forEach(function(b){b.onclick=function(){arr.splice(+b.dataset.del,1);rerender();};});
@@ -312,9 +325,15 @@ function aetCalc(o,modo){
     return {n:p.n,ch:p.ch,hc:hc,horas:hr,campo:p.cc/8,dias:Math.ceil(hr/8/prof-1e-9),rate:rate,srv:srv,cus:cu,tot:r2((srv+cu)*(1+AET_NF)),med:srv/p.n};
   }
   function monta(rA,rT){var a=parte(P.aep,rA),t=parte(P.aet,rT);return {aep:a,aet:t,tot:r2((a?a.tot:0)+(t?t.tot:0))};}
-  var sep=monta(aetRate(P.aep.ch),aetRate(P.aet.ch)),jun=monta(aetRate(chT),aetRate(chT)),sel=modo==='Junto'?jun:sep;
-  return {modo:modo,n:P.aep.n+P.aet.n,ch:chT,cus:cus,aep:sel.aep,aet:sel.aet,tot:sel.tot,sep:sep,jun:jun,ambos:!!(P.aep.n&&P.aet.n)};
+  var sep=monta(aetRate(P.aep.ch),aetRate(P.aet.ch)),jun=monta(aetRate(chT),aetRate(chT)),sel=modo==='Junto'?jun:sep,man=manV(o);
+  if(man&&sel.tot>0){ /* valor manual: reparte o total informado entre AEP e AET na proporção do cálculo */
+    var f=man/sel.tot,ps=[sel.aep,sel.aet].filter(Boolean),acc=0;
+    ps.forEach(function(q,ix){q.srv*=f;q.cus*=f;q.med*=f;q.tot=ix===ps.length-1?r2(man-acc):r2(q.tot*f);acc+=q.tot;});
+    sel={aep:sel.aep,aet:sel.aet,tot:r2(man)};sep=sel;jun=sel;
+  }
+  return {modo:modo,man:!!man,n:P.aep.n+P.aet.n,ch:chT,cus:cus,aep:sel.aep,aet:sel.aet,tot:sel.tot,sep:sep,jun:jun,ambos:!!(P.aep.n&&P.aet.n)};
 }
+function aetEsc(o,def){var t=manEscTxt(o);return t?escH(t).replace(/\n+/g,'<br>'):def;}
 function priceAet(o){var c=aetCalc(o);return c.n>0?c.tot:null;}
 function aetFmt(n,d){return (Math.round(n*Math.pow(10,d||0))/Math.pow(10,d||0)).toLocaleString('pt-BR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});}
 function aetNote(o){
@@ -361,6 +380,7 @@ var SVC={
   fields:function(o){return [['aet_unid','Unidade / escopo','txt',o.aet_unid],['aet_n3','AEP operacional (qtd)','num0',o.aet_n3],['aet_n4','AEP administrativa (qtd)','num0',o.aet_n4],['aet_n1','AET operacional (qtd)','num0',o.aet_n1],['aet_n2','AET administrativa (qtd)','num0',o.aet_n2],['aet_aq','Passagens aéreas (qtd)','num0',o.aet_aq],['aet_av','Valor por passagem (R$)','num0',o.aet_av],['aet_hosp','Hospedagem (diárias)','num0',o.aet_hosp],['aet_ref','Refeições (qtd)','num0',o.aet_ref],['aet_km','Deslocamento (km, ida e volta)','num0',o.aet_km],['aet_ped','Pedágios (qtd)','num0',o.aet_ped]];},
   def:aetDef()}};
 var SVC_KEYS=['fisio','masso','enf','med','aet'];
+SVC_KEYS.forEach(function(k){var pf=SVC[k].price;SVC[k].price=function(o){var m=manV(o);return m?m:pf(o);};});
 function fld(x){return '<div><label>'+x[1]+'</label>'+(x[2]==='num'?'<input data-k="'+x[0]+'" type="number" min="1" value="'+x[3]+'">':(x[2]==='num0'?'<input data-k="'+x[0]+'" type="number" min="0" step="any" value="'+x[3]+'">':(x[2]==='txt'?'<input data-k="'+x[0]+'" type="text" value="'+String(x[3]).replace(/"/g,'&quot;')+'">':sel(x[0],x[2],x[3]))))+'</div>';}
 function renderSvc(k){
   var S=SVC[k],arr=OPTS[k];
@@ -368,7 +388,7 @@ function renderSvc(k){
     var f=S.fields(o),p=S.price(o),rows='';
     for(var j=0;j<f.length;j+=2)rows+='<div class="ui-row">'+fld(f[j])+(f[j+1]?fld(f[j+1]):'<div></div>')+'</div>';
     var u=typeof S.unit==='function'?S.unit(o):S.unit;
-    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>'+(S.lab||'Opção')+' '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u)+'</div>'+(S.note?S.note(o):adjNote(o))+'</div>';}).join('');
+    return '<div class="ui-opt" data-i="'+i+'"><div class="hd"><span>'+(S.lab||'Opção')+' '+(i+1)+'</span>'+(arr.length>1?'<button class="ui-btn sm sec" data-del="'+i+'" type="button">remover</button>':'')+'</div>'+rows+'<div class="ui-price">'+(p==null?'combinação fora da tabela':BRL(p)+u+(manV(o)?' (manual)':''))+'</div>'+(S.note?S.note(o):adjNote(o))+manBox(o)+'</div>';}).join('');
   bindOpts(S.list,arr,function(){renderSvc(k);});
 }
 SVC_KEYS.forEach(function(k){$('add-'+k).onclick=function(){if(OPTS[k].length<4){OPTS[k].push(JSON.parse(JSON.stringify(SVC[k].def)));renderSvc(k);}};});
@@ -401,7 +421,8 @@ function tiles(items,pad){return items.map(function(x){return '<div class="tile"
 function infoCard(o,t,rows){return '<div class="opt"><div class="h"><div class="o">'+o+'</div><div class="t">'+t+'</div></div><div class="b">'+rows.map(function(r,i){return '<div class="row"'+(i===0?' style="margin-top:6px"':'')+'><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('')+'</div></div>';}
 function investCard2(o,t,rows,price,unit,anual){return '<div class="opt"><div class="h"><div class="o">'+o+'</div><div class="t">'+t+'</div></div><div class="b"><div class="price">'+price+' <small>'+unit+'</small></div>'+rows.map(function(r,i){return '<div class="row"'+(i===0?' style="margin-top:16px"':'')+'><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('')+(anual?'<div class="row"><span>Valor em 12 meses</span><b>'+anual+'</b></div>':'')+'</div></div>';}
 function qtxt(n,s,p){return n>1?n+' '+p:'1 '+s;}
-function svcRows(k,o){
+function svcRows(k,o){return manRows(o,svcRowsAuto(k,o));}
+function svcRowsAuto(k,o){
   var q=o.qtd||1;
   if(k==='fisio')return [['Profissional',qtxt(q,'fisioterapeuta','fisioterapeutas')+', nível '+NIV[o.sen]],['Carga semanal',o.ch+' h por profissional'],['Regime',o.regime],['Coordenação técnica','Inclusa']];
   if(k==='masso'){
@@ -704,7 +725,7 @@ function aetSlides(ctx){
   /* 6. organização dos serviços: um bloco por serviço, com prévia de prazo */
   var blocos=svs.map(function(k){
     var rows=[],tH=0,tC=0,tD=0;
-    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tH+=p.horas;tC+=p.campo;tD+=p.dias;rows.push([o.aet_unid||'—',aetDesc(o,k),p.horas+' h',aetFmt(p.campo,1),p.dias]);});
+    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tH+=p.horas;tC+=p.campo;tD+=p.dias;rows.push([o.aet_unid||'—',aetEsc(o,aetDesc(o,k)),p.horas+' h',aetFmt(p.campo,1),p.dias]);});
     var ft=rows.length>1?['Total','',tH+' h',aetFmt(tC,1),tD]:null;
     return aetBloco(AET_SV[k].sig+' · '+AET_SV[k].nome,'análises operacionais e administrativas por unidade',aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','DIAS DE CAMPO','DIAS ÚTEIS (PRÉVIA)'],rows,ft,svs.length>1?14:16));
   }).join('');
@@ -721,14 +742,14 @@ function aetSlides(ctx){
   /* 8. investimento: uma tabela por serviço + total */
   var tabs=svs.map(function(k){
     var rows=[],tt=0,tHr=0;
-    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tt+=p.tot;tHr+=p.horas;rows.push([o.aet_unid||'—',aetDesc(o,k),p.horas+' h',BRL(p.tot/p.n),BRL(p.tot)]);});
+    opts.forEach(function(o,i){var p=cs[i][k];if(!p)return;tt+=p.tot;tHr+=p.horas;rows.push([o.aet_unid||'—',aetEsc(o,aetDesc(o,k)),p.horas+' h',BRL(p.tot/p.n),BRL(p.tot)]);});
     return {k:k,tt:r2(tt),html:aetBloco(AET_SV[k].sig+' · '+AET_SV[k].nome,svs.length>1?(modo==='Junto'?'valor proporcional às horas, na faixa conjunta':'valor na faixa de horas do próprio serviço'):'',aetTbl(['UNIDADE / ESCOPO','ANÁLISES PREVISTAS','HORAS TÉCNICAS','MÉDIA POR ANÁLISE','INVESTIMENTO'],rows,rows.length>1?['Total '+AET_SV[k].sig,'','','',BRL(r2(tt))]:null,svs.length>1?14:16))};
   });
   var geral=r2(tabs.reduce(function(a,t){return a+t.tt;},0)),cus=cs.some(function(c){return c.cus>0;});
   var sepTot=r2(cs.reduce(function(a,c){return a+c.sep.tot;},0)),junTot=r2(cs.reduce(function(a,c){return a+c.jun.tot;},0));
   var tot=svs.length>1?'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:14px;background:#EBD9DB;border-radius:12px;padding:12px 18px"><span style="font-weight:800;color:var(--deep);font-size:16px">Investimento total · '+(modo==='Junto'?'AEP e AET contratadas em conjunto':'AEP e AET contratadas separadamente')+'</span><span style="font-family:MA;font-weight:700;font-size:22px;color:var(--deep)">'+BRL(geral)+'</span></div>':'';
   var nota='Valores com impostos inclusos e emissão de nota fiscal. Valor único para o escopo descrito, sem recorrência mensal.';
-  if(svs.length>1)nota+=(modo==='Junto'?'<br>Valores para a contratação conjunta de AEP e AET, com a faixa de valor por hora calculada sobre o total de horas. A contratação de apenas um dos serviços altera a faixa e o valor é recalculado (referência para a contratação separada: '+BRL(sepTot)+').':'<br>Cada serviço pode ser contratado de forma independente, com valor calculado na faixa de horas do próprio serviço. Referência para a contratação conjunta das duas: '+BRL(junTot)+'.');
+  if(svs.length>1&&!cs.some(function(c){return c.man;}))nota+=(modo==='Junto'?'<br>Valores para a contratação conjunta de AEP e AET, com a faixa de valor por hora calculada sobre o total de horas. A contratação de apenas um dos serviços altera a faixa e o valor é recalculado (referência para a contratação separada: '+BRL(sepTot)+').':'<br>Cada serviço pode ser contratado de forma independente, com valor calculado na faixa de horas do próprio serviço. Referência para a contratação conjunta das duas: '+BRL(junTot)+'.');
   nota+='<br>'+(cus?'Inclui os custos de campo da equipe técnica (deslocamento, hospedagem e refeições), divididos entre os serviços na proporção das horas.':'Sem custos de deslocamento previstos neste escopo; se houver despesas de viagem, serão combinadas previamente com '+cl+'.');
   out.push(pageWrap(head('Investimento · '+aetNomeServ().replace(' pontuais','').replace(' pontual',''),svs.length>1?(modo==='Junto'?'Contratação conjunta':'Contratação separada por serviço'):'Valores por unidade','',tag)+tabs.map(function(t){return t.html;}).join('')+tot+'<p class="note" style="margin-top:10px">'+nota+'</p>'+foot(ctx)));
   return out;
@@ -748,10 +769,12 @@ function condSaude(ctx){
 function nr1Calc(){
   var vidas=+$('n-vidas').value||0,vh=+$('n-vh').value||0,e1=+$('n-e1').value||0,e2=+$('n-e2').value||0,reu=+$('n-reu').value||0,mi=+$('n-min').value||0;
   var analise=r2(vidas*(mi/60)*vh), e3=r2(analise+reu), total=r2(e1+e2+e3);
+  var mn=manOn()&&$('n-man')?(parseFloat(String($('n-man').value).replace(',','.'))||0):0;
+  if(mn>0){total=r2(mn);e3=r2(Math.max(0,mn-e1-e2));} /* valor manual: total informado; a etapa 3 fica com o restante */
   return {vidas:vidas,e1:e1,e2:e2,e3:e3,total:total,porVida:vidas?total/vidas:0};
 }
 function showNr1(){var c=nr1Calc();$('n-total').textContent='Total '+BRL(c.total)+'  ·  Etapa 3 '+BRL(c.e3);}
-['n-vidas','n-vh','n-e1','n-e2','n-reu','n-min'].forEach(function(id){$(id).oninput=showNr1;});
+['n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','n-man'].forEach(function(id){$(id).oninput=showNr1;});
 
 function svcToggle(){$('cg-ergo').style.display=($('s-ergo').checked||$('s-nr1').checked)?'':'none';$('cg-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$('cg-'+k).style.display=svcOn(k)?'':'none';});$('box-ergo').style.display=$('s-ergo').checked?'':'none';$('box-nr1').style.display=$('s-nr1').checked?'':'none';$('box-gl').style.display=$('s-gl').checked?'':'none';SVC_KEYS.forEach(function(k){$(SVC[k].box).style.display=svcOn(k)?'':'none';});}
 ['s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet'].forEach(function(id){$(id).onchange=svcToggle;});
@@ -849,8 +872,8 @@ function investCard(o,t,rows,price,anual){
   rows.map(function(r,i){return '<div class="row"'+(i===0?' style="margin-top:16px"':'')+'><span>'+r[0]+'</span><b>'+r[1]+'</b></div>';}).join('')+'<div class="row"><span>Valor em 12 meses</span><b>'+anual+'</b></div></div></div>';
 }
 function ergoInvest(ctx){
-  var cards=ergoOpts.map(function(o,i){var v=Math.max(1,Math.ceil(o.ch/8)),p=(priceErgo(o)||0)*o.qtd;
-    return investCard('OPÇÃO '+String.fromCharCode(65+i),o.ch+' horas semanais',[['Profissional',(o.qtd>1?o.qtd+' especialistas':'1 especialista')+' em ergonomia, nível '+NIV[o.sen]],['Presença em campo',v+(v>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.ch/v)+' h'],['Coordenação técnica','Inclusa']],BRL(p),BRL(p*12));}).join('');
+  var cards=ergoOpts.map(function(o,i){var v=Math.max(1,Math.ceil(o.ch/8)),p=manV(o)||(priceErgo(o)||0)*o.qtd;
+    return investCard('OPÇÃO '+String.fromCharCode(65+i),o.ch+' horas semanais',manRows(o,[['Profissional',(o.qtd>1?o.qtd+' especialistas':'1 especialista')+' em ergonomia, nível '+NIV[o.sen]],['Presença em campo',v+(v>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.ch/v)+' h'],['Coordenação técnica','Inclusa']]),BRL(p),BRL(p*12));}).join('');
   return pageWrap(head('Investimento · Gestão de Ergonomia','Opções de presença','',ctx.tagE)+'<div class="grid" style="margin-top:22px;'+gridCols(ergoOpts.length)+'">'+cards+'</div><p class="note">Valores mensais, com impostos inclusos e emissão de nota fiscal.'+(ctx.ref?'<br>Refeição não inclusa: fica a cargo da contratante nos casos aplicáveis (jornada acima de 6 horas).':'')+'</p>'+foot(ctx));
 }
 function glVisits(ctx){
@@ -858,13 +881,15 @@ function glVisits(ctx){
   return pageWrap(head('Quem atua e quando','Rotina de aulas na sede','',ctx.tagG)+'<div class="grid" style="margin-top:20px;'+gridCols(glOpts.length)+'">'+cards+'</div><p class="note">Coordenação técnica inclusa.</p>'+foot(ctx));
 }
 function glInvest(ctx){
-  var cards=glOpts.map(function(o,i){var p=(priceGL(o)||0)*o.qtd;
-    return investCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),[['Profissional',(o.qtd>1?o.qtd+' Professores':'1 Professor')+' de Ginástica Laboral'],['Frequência',o.freq+(o.freq>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.hdia)+' h'],['Local',ctx.glLocal],['Coordenação técnica','Inclusa']],BRL(p),BRL(p*12));}).join('');
+  var cards=glOpts.map(function(o,i){var p=manV(o)||(priceGL(o)||0)*o.qtd;
+    return investCard('OPÇÃO '+(i+1),o.freq+(o.freq>1?' vezes por semana':' vez por semana'),manRows(o,[['Profissional',(o.qtd>1?o.qtd+' Professores':'1 Professor')+' de Ginástica Laboral'],['Frequência',o.freq+(o.freq>1?' visitas semanais':' visita semanal')+' de '+hlabel(o.hdia)+' h'],['Local',ctx.glLocal],['Coordenação técnica','Inclusa']]),BRL(p),BRL(p*12));}).join('');
   return pageWrap(head('Investimento · Ginástica Laboral','Opções de frequência','',ctx.tagG)+'<div class="grid" style="margin-top:22px;'+gridCols(glOpts.length)+'">'+cards+'</div><p class="note">Valores mensais, com impostos inclusos e emissão de nota fiscal.</p>'+foot(ctx));
 }
 function nr1Invest(ctx){
   var c=ctx.nr1;
   var rows=[['Etapa 1','Diagnóstico preliminar organizacional',BRL(c.e1)],['Etapa 2','Treinamento gerencial, informativo em vídeo e material gráfico',BRL(c.e2)],['Etapa 3','Questionário HSE-IT para '+c.vidas.toLocaleString('pt-BR')+' vidas, análise, relatório com plano de ação e reunião de resultados',BRL(c.e3)]];
+  var tx=manOn()&&$('n-esc')?String($('n-esc').value||'').split(/\n+/).map(function(l){return l.trim();}).filter(Boolean):[];
+  tx.forEach(function(l,i){if(rows[i])rows[i][1]=escH(l.replace(/^etapa\s*\d+\s*[:\-]?\s*/i,''));});
   var r=rows.map(function(x){return '<div style="display:flex;align-items:center;gap:18px;padding:16px 0;border-bottom:1px solid var(--ln)"><div style="width:84px;font-weight:800;color:var(--mid);font-size:13px">'+x[0].toUpperCase()+'</div><div style="flex:1;font-size:14px">'+x[1]+'</div><div style="font-family:MA;font-size:20px;color:var(--deep)">'+x[2]+'</div></div>';}).join('');
   return pageWrap(head('Investimento · Diagnóstico NR-1','Valor do levantamento psicossocial','',ctx.tagN)+
   '<div class="grid" style="grid-template-columns:1.7fr 1fr;gap:28px;margin-top:20px"><div>'+r+'<p class="note">Valor único do projeto, com impostos inclusos e emissão de nota fiscal.</p></div>'+
@@ -925,11 +950,12 @@ function fit(){
 }
 window.addEventListener('resize',fit);
 $('btn-gerar').onclick=gerar;
+$('man-on').onchange=function(){renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();};
 $('btn-print2').onclick=function(){if(!$('preview').querySelector('.pg'))gerar();window.print();};
 
 
 /* ===== SharePoint (API /api/propostas) ===== */
-var FIELD_IDS=['f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet','aet-modo','aet-prof','aet-ent','aet-val','c-cod-aet','c-obs-aet','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
+var FIELD_IDS=['man-on','n-man','n-esc','f-cliente','f-ac','f-cidade','f-data','s-ergo','s-nr1','s-gl','s-fisio','s-masso','s-enf','s-med','s-aet','aet-modo','aet-prof','aet-ent','aet-val','c-cod-aet','c-obs-aet','c-cod-fisio','c-cod-masso','c-cod-enf','c-cod-med','c-obs-fisio','c-obs-masso','c-obs-enf','c-obs-med','n-vidas','n-vh','n-e1','n-e2','n-reu','n-min','g-local','g-local2','c-pag','c-imp','c-val','c-reaj','c-cod-ergo','c-cod-gl','c-obs-ergo','c-obs-gl','c-cnpj-gl','c-ref','e-contato','e-serv','e-vmes','e-meses','e-vtot','e-para','e-cc','e-assunto','e-corpo','e-assin'];
 function spMsg(t,err){var m=$('sp-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function getState(){
   var campos={};FIELD_IDS.forEach(function(id){var e=$(id);campos[id]=e.type==='checkbox'?e.checked:e.value;});
@@ -1098,8 +1124,8 @@ function aplicarModelo(){
 function sugerirValor(){
   if($('e-vmes').value)return;
   var v=null;
-  if($('s-ergo').checked&&ergoOpts.length){v=(priceErgo(ergoOpts[0])||0)*ergoOpts[0].qtd;}
-  else if($('s-gl').checked&&glOpts.length){v=(priceGL(glOpts[0])||0)*glOpts[0].qtd;}
+  if($('s-ergo').checked&&ergoOpts.length){v=manV(ergoOpts[0])||(priceErgo(ergoOpts[0])||0)*ergoOpts[0].qtd;}
+  else if($('s-gl').checked&&glOpts.length){v=manV(glOpts[0])||(priceGL(glOpts[0])||0)*glOpts[0].qtd;}
   var pont=false;if(!v){v=svcFirstPrice();var kf=SVC_KEYS.filter(svcOn)[0];pont=(kf==='aet');}
   if(v){$('e-vmes').value=r2(v);if(pont)$('e-meses').value=1;totalizar();}
 }
