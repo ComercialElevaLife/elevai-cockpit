@@ -76,7 +76,7 @@ body.ui{background:var(--ui-bg);font-family:M,Montserrat,system-ui,sans-serif;co
 
   <div class="ui-sec"><h3>Cliente</h3>
     <label>Nome do cliente (digite ou escolha um cliente do Kanban)</label><input id="f-cliente" value="ATVOS" list="dl-cli" autocomplete="off"><datalist id="dl-cli"></datalist>
-    <label>Unidade (opcional · escolha uma unidade do Kanban ou digite)</label><input id="f-unid" list="dl-unid" autocomplete="off" placeholder="Ex.: Pindamonhangaba"><datalist id="dl-unid"></datalist>
+    <label>Unidade (opcional · escolha uma unidade do Kanban ou digite)</label><input id="f-unid" list="dl-unid" autocomplete="off" placeholder="Ex.: Pindamonhangaba"><datalist id="dl-unid"></datalist><div class="ui-hint" id="unid-hint"></div>
     <label>A/C (aos cuidados de)</label><textarea id="f-ac" rows="2">Dr. Phelipe Monteiro Felicio e Sra. Tatiane da Silva Sousa</textarea>
     <div class="ui-row"><div><label>Cidade</label><input id="f-cidade" value="São Paulo"></div><div><label>Data</label><input id="f-data" type="date"></div></div>
   </div>
@@ -1026,7 +1026,7 @@ function setState(st){
   if(st.ergoOpts)ergoOpts=st.ergoOpts;if(st.glOpts)glOpts=st.glOpts;
   if(st.svcOpts)SVC_KEYS.forEach(function(k){if(st.svcOpts[k]&&st.svcOpts[k].length)OPTS[k]=st.svcOpts[k];});
   ['n-man','n-e3'].forEach(function(id){var e=$(id),v=parseMoney(e.value);e.value=v?fmtMoney(v):'';});
-  ['e-assunto','e-corpo','e-serv','e-vmes','e-vtot'].forEach(function(id){EMF[id]=!!$(id).value;});
+  ['e-assunto','e-corpo','e-serv','e-vmes','e-vtot','e-contato','e-para'].forEach(function(id){EMF[id]=!!$(id).value;});
   renderErgo();renderGL();SVC_KEYS.forEach(renderSvc);showNr1();svcToggle();codRefresh();
   if(st.slides&&st.slides.length){
     $('preview').innerHTML=st.slides.map(function(h){return '<div class="slot">'+h+'</div>';}).join('');
@@ -1182,7 +1182,7 @@ function aplicarModelo(){
   if(!EMF['e-serv'])$('e-serv').value=servKanban();
   if(!(EMF['e-vmes']||EMF['e-vtot']||EMF['e-meses'])){$('e-vmes').value='';$('e-vtot').value='';$('e-meses').value=12;sugerirValor();}
 }
-['e-assunto','e-corpo','e-serv','e-vmes','e-vtot','e-meses'].forEach(function(id){$(id).addEventListener('input',function(){EMF[id]=true;});});
+['e-assunto','e-corpo','e-serv','e-vmes','e-vtot','e-meses','e-contato','e-para'].forEach(function(id){$(id).addEventListener('input',function(){EMF[id]=true;});});
 var amT=null;function autoMailSoon(){clearTimeout(amT);amT=setTimeout(aplicarModelo,350);}
 $('box-ergo').parentNode.addEventListener('input',function(ev){if(!ev.target.closest('#box-mail'))autoMailSoon();});
 $('box-ergo').parentNode.addEventListener('change',function(ev){if(!ev.target.closest('#box-mail'))autoMailSoon();});
@@ -1216,13 +1216,14 @@ function listarOportunidades(){
     var achados=leadsCache.filter(function(l){var c=norm(l.cliente);return ATIVOS[String(l.status||'').toUpperCase()]&&tk.every(function(t){return c.indexOf(t)>=0;});});
     var un=norm($('f-unid').value).split(' ').filter(Boolean);
     if(un.length){var so=achados.filter(function(l){var u=norm(l.unidade);return un.every(function(t){return u.indexOf(t)>=0;});});if(so.length)achados=so;}
-    var o='<option value="">'+(achados.length?'Selecione a oportunidade…':'Nenhuma ativa — será criada uma nova')+'</option>';
-    achados.forEach(function(l){o+='<option value="'+l.__id+'">'+esc(l.cliente||'')+(l.unidade?' · '+esc(l.unidade):'')+' · '+esc(l.nome||'sem contato')+' · '+esc(l.status||'')+(l.subEtapa?' / '+esc(l.subEtapa):'')+(l.serv?' · '+esc(l.serv):'')+'</option>';});
+    var pz=function(l){return String(l.status||'').toUpperCase()==='PAUSADA';},livres=achados.filter(function(l){return !pz(l);});
+    var o='<option value="">'+(livres.length?'Selecione a oportunidade…':(achados.length?'Só há oportunidade pausada — crie uma nova ou reative no Kanban':'Nenhuma ativa — será criada uma nova'))+'</option>';
+    achados.forEach(function(l){o+='<option value="'+l.__id+'"'+(pz(l)?' disabled':'')+'>'+(pz(l)?'(pausada · reative no Kanban para atualizar) ':'')+esc(l.cliente||'')+(l.unidade?' · '+esc(l.unidade):'')+' · '+esc(l.nome||'sem contato')+' · '+esc(l.status||'')+(l.subEtapa?' / '+esc(l.subEtapa):'')+(l.serv?' · '+esc(l.serv):'')+'</option>';});
     o+='<option value="__novo">➕ Criar nova oportunidade</option>';
     sel.innerHTML=o;
     if(leadEsc&&antes&&sel.querySelector('option[value="'+antes+'"]'))sel.value=antes;
-    else if(achados.length===1)sel.value=achados[0].__id;
-    else if(!achados.length)sel.value='__novo';
+    else if(livres.length===1)sel.value=livres[0].__id;
+    else if(!livres.length)sel.value='__novo';
     sel.onchange();
   });
 }
@@ -1230,8 +1231,9 @@ function esc(s){return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'
 $('e-lead').onchange=function(){
   var id=$('e-lead').value;if(!id||id==='__novo'||!leadsCache)return;
   var l=leadsCache.filter(function(x){return String(x.__id)===id;})[0];if(!l)return;
-  if(l.nome&&!$('e-contato').value)$('e-contato').value=l.nome;
-  if(l.email&&!$('e-para').value)$('e-para').value=l.email;
+  if(l.nome&&!EMF['e-contato'])$('e-contato').value=l.nome;
+  if(l.email&&!EMF['e-para'])$('e-para').value=l.email;
+  if(l.unidade){var vu=norm($('f-unid').value).split(' ').filter(Boolean),nu=norm(l.unidade);if(!vu.length||vu.every(function(t){return nu.indexOf(t)>=0;})){$('f-unid').value=l.unidade;$('unid-hint').textContent='';}}
   aplicarModelo();
 };
 function atualizarListas(){
@@ -1244,7 +1246,22 @@ function atualizarListas(){
 var tmr=null;
 $('f-cliente').addEventListener('input',function(){leadEsc=false;atualizarListas();});
 $('e-lead').addEventListener('input',function(){leadEsc=true;});
-$('f-unid').addEventListener('change',function(){leadEsc=false;listarOportunidades();});
+function unidadesCliente(){var tk=norm($('f-cliente').value).split(' ').filter(Boolean),un={},out=[];
+  if(!leadsCache||!tk.length)return out;
+  leadsCache.forEach(function(l){var n=norm(l.cliente),u=String(l.unidade||'').trim();if(u&&tk.every(function(t){return n.indexOf(t)>=0;})&&!un[norm(u)]){un[norm(u)]=1;out.push(u);}});
+  return out;}
+function completarUnidade(){ /* "Pinda" vira "Pindamonhangaba" quando só uma unidade do cliente corresponde */
+  var h=$('unid-hint'),v=$('f-unid').value.trim();h.textContent='';
+  if(!v)return;
+  var us=unidadesCliente();if(!us.length)return;
+  var tk=norm(v).split(' ').filter(Boolean),ex=us.filter(function(u){return norm(u)===norm(v);});
+  if(ex.length){$('f-unid').value=ex[0];return;}
+  var ach=us.filter(function(u){var n=norm(u);return tk.every(function(t){return n.indexOf(t)>=0;});});
+  if(ach.length===1){$('f-unid').value=ach[0];h.textContent='Unidade completada a partir do Kanban: '+ach[0]+'.';}
+  else if(ach.length>1)h.textContent='Mais de uma unidade corresponde: '+ach.join(', ')+'. Escolha uma na lista ou digite o nome completo.';
+  else h.textContent='Unidade ainda não cadastrada no Kanban para este cliente: será usada como nova.';
+}
+$('f-unid').addEventListener('change',function(){completarUnidade();leadEsc=false;listarOportunidades();aplicarModelo();});
 $('f-cliente').addEventListener('input',function(){clearTimeout(tmr);tmr=setTimeout(function(){listarOportunidades();},400);});
 $('f-cliente').addEventListener('change',function(){clearTimeout(tmr);listarOportunidades();});
 $('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)aplicarModelo();else{$('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');}});
