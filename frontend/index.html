@@ -358,6 +358,7 @@ td .up{color:var(--ok);font-weight:700}
 </style></head>
 
 <body>
+<script src="/time-eleva.js"></script><!-- 20/10/2026 — organograma ElevaLife (listas suspensas de responsável/participantes) -->
 <div id="access-gate"><div class="box"><h2 id="ag-ttl">Carregando…</h2><p id="ag-msg"></p><a id="ag-out" class="out" href="/.auth/logout?post_logout_redirect_uri=/" hidden>Sair e entrar com outra conta</a></div></div>
 <script>
 (function(){
@@ -3773,6 +3774,25 @@ function _consultorEmail(cons){ return CONSULTOR_EMAILS[String(cons||'').trim().
    automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
    (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
    (_iniciarFup) quanto a cada "Revisar" (_avancarFup). */
+/* 20/10/2026 — time ElevaLife (organograma): listas suspensas de responsável e participantes no formulário de tarefa/reunião.
+   Os nomes e e-mails vêm de /time-eleva.js (window.TIME_ELEVA). Escolher alguém preenche nome + e-mail; os campos de texto
+   continuam valendo para quem é de fora do time. */
+function _pessoaTime(e){ e=String(e||'').toLowerCase(); return (window.TIME_ELEVA||[]).find(function(p){return p.e===e;})||null; }
+function _timeOpts(modo,sel){
+  var h='<option value="">'+(modo==='part'?'+ Participante do time…':'Responsável — escolher do time…')+'</option>', g='';
+  (window.TIME_ELEVA||[]).forEach(function(p){
+    if(p.g!==g){ if(g)h+='</optgroup>'; h+='<optgroup label="'+p.g+'">'; g=p.g; }
+    h+='<option value="'+p.e+'"'+(modo!=='part'&&p.e===String(sel||'').toLowerCase()?' selected':'')+'>'+p.n+' — '+p.f+'</option>';
+  });
+  return h+(g?'</optgroup>':'');
+}
+function tRespSel(s){ var p=_pessoaTime(s.value); if(!p)return; el('t-resp').value=p.n; el('t-email').value=p.e; }
+function tPartAdd(s){
+  var e=s.value; s.value=''; if(!e)return;
+  var i=el('t-part'), a=String(i.value||'').split(/[;,]/).map(function(x){return x.trim();}).filter(Boolean);
+  if(a.map(function(x){return x.toLowerCase();}).indexOf(e)<0)a.push(e);
+  i.value=a.join(', ');
+}
 function _addAutoTask(l,id,titulo,motivo,dias){
   var dt=new Date(); dt.setDate(dt.getDate()+(dias||FUP_DIAS));
   var iso=dt.toISOString().slice(0,10);
@@ -4345,10 +4365,11 @@ function openDrawer(id){curId=id;
    <div class="tform">
      <select id="t-tipo" onchange="onTipo()"><option>Tarefa</option><option>Ligação</option><option>WhatsApp</option><option>Reunião</option></select>
      <input id="t-tit" placeholder="Título">
-     <input id="t-resp" placeholder="Responsável (nome)">
-     <input id="t-email" placeholder="E-mail do responsável / organizador">
+     <select id="t-resp-sel" onchange="tRespSel(this)">${_timeOpts('resp',_consultorEmail(l.cons))}</select>
+     <input id="t-resp" placeholder="Responsável (nome)" value="${(_pessoaTime(_consultorEmail(l.cons))||{n:''}).n}">
+     <input id="t-email" placeholder="E-mail do responsável (ou de quem é de fora do time)" value="${_consultorEmail(l.cons)}">
      <div style="display:flex;gap:6px"><input id="t-data" type="date" style="flex:1"><input id="t-hora" type="time" value="09:00" style="flex:1"></div>
-     <div id="t-rbox" style="display:none"><div style="display:flex;gap:6px"><input id="t-dur" type="number" value="30" min="15" step="15" style="flex:1" placeholder="Duração (min)"></div><input id="t-part" placeholder="Participantes (e-mails, vírgula)"></div>
+     <div id="t-rbox" style="display:none"><div style="display:flex;gap:6px"><input id="t-dur" type="number" value="30" min="15" step="15" style="flex:1" placeholder="Duração (min)"></div><select id="t-part-sel" onchange="tPartAdd(this)">${_timeOpts('part')}</select><input id="t-part" placeholder="Participantes (e-mails, vírgula)"></div>
      <textarea id="t-cont" rows="2" placeholder="Conteúdo / observações"></textarea>
      <button class="btn" onclick="addTask(${id})">+ Adicionar / Agendar</button>
    </div>
