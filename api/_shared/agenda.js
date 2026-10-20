@@ -134,8 +134,25 @@ async function criarEvento(o) {
       try { created = await g.graph('POST', caminho, ev); } catch (e2) { e2.mailbox = dono; throw e2; } // se falhar de novo, o erro sobe
     } else throw e;
   }
+  // Aviso por e-mail ao responsável (evento criado direto na agenda dele não notifica). Best-effort.
+  let avisoEmail = null;
+  if (dono !== organizador) {
+    try {
+      const nota = '<p style="font:14px Segoe UI,Arial,sans-serif;color:#333">Olá! <b>' + organizador + '</b> lançou uma ' + String(tipo || 'tarefa').toLowerCase() + ' para você no S.I.G.E. Ela já está na sua agenda do Outlook.</p>';
+      await g.graph('POST', '/users/' + encodeURIComponent(process.env.SIGE_SENDER || 'sige@elevalife.com.br') + '/sendMail', {
+        message: {
+          subject: 'Nova tarefa para você: ' + ev.subject,
+          body: { contentType: 'HTML', content: nota + ((ev.body && ev.body.content) || '') },
+          toRecipients: [{ emailAddress: { address: dono } }],
+          replyTo: [{ emailAddress: { address: organizador } }],
+        },
+        saveToSentItems: false,
+      });
+      avisoEmail = { ok: true };
+    } catch (e3) { avisoEmail = { ok: false, erro: String((e3 && e3.message) || e3).slice(0, 160) }; }
+  }
   return {
-    ok: true, id: created.id, tipo, organizador, calendarioDe: dono, semConvidados,
+    ok: true, id: created.id, tipo, organizador, calendarioDe: dono, avisoEmail, semConvidados,
     convidados: semConvidados ? [] : attendees.map(a => a.emailAddress.address),
     webLink: created.webLink || null,
     joinUrl: (created.onlineMeeting && created.onlineMeeting.joinUrl) || null,
