@@ -35,6 +35,13 @@ async function avisar(email, o) {
   try {
     const u = await g.graph('GET', '/users/' + encodeURIComponent(email) + '?$select=id');
     const uid = u && u.id; if (!uid) throw new Error('usuário não encontrado');
+    let inst = '';
+    try {
+      const li = await g.graph('GET', '/users/' + encodeURIComponent(uid) + '/teamwork/installedApps?$expand=teamsApp');
+      const ja = ((li && li.value) || []).some(x => x.teamsApp && (x.teamsApp.externalId === EXT_ID || x.teamsApp.displayName === 'S.I.G.E.'));
+      if (ja) inst = 'ja instalado';
+      else { try { await instalar(uid); inst = 'instalado agora'; } catch (ei) { inst = 'falha ao instalar: ' + corta((ei && ei.message) || ei, 110); } }
+    } catch (el) { inst = 'checagem falhou: ' + corta((el && el.message) || el, 110); }
     const corpo = {
       topic: { source: 'text', value: corta(o.titulo, 120), webUrl: 'https://teams.microsoft.com/l/entity/' + EXT_ID + '/sige?label=S.I.G.E.&webUrl=' + encodeURIComponent(o.url || 'https://sige-novasreceitas.elevalife.com.br/') }, /* Teams só aceita link do próprio Teams aqui */
       activityType: 'novaTarefa',
@@ -47,19 +54,19 @@ async function avisar(email, o) {
       if (e && (e.status === 403 || e.status === 404)) { await instalar(uid); await g.graph('POST', url, corpo); } // app ainda não instalado p/ essa pessoa
       else throw e;
     }
-    return { ok: true };
+    return { ok: true, inst };
   } catch (e) { return { ok: false, erro: corta((e && e.message) || e, 160) }; }
 }
 
 // Avisa várias pessoas (no máx. 12). Devolve { enviados, falhas, erro }.
 async function avisarVarios(emails, o) {
   const lista = Array.from(new Set((emails || []).map(x => String(x || '').trim().toLowerCase()).filter(Boolean))).slice(0, 12);
-  let enviados = 0, falhas = 0, erro = null;
+  let enviados = 0, falhas = 0, erro = null, det = null;
   for (const em of lista) {
     const r = await avisar(em, o);
-    if (r.ok) enviados++; else { falhas++; erro = erro || r.erro; }
+    if (r.ok) { enviados++; det = det || r.inst; } else { falhas++; erro = erro || r.erro; }
   }
-  return { enviados, falhas, erro };
+  return { enviados, falhas, erro, det };
 }
 
 module.exports = { avisar, avisarVarios };
