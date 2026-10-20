@@ -155,12 +155,15 @@ async function criarEvento(o) {
   }
   // Aviso por e-mail ao responsável (evento criado direto na agenda dele não notifica). Best-effort.
   let avisoEmail = null;
-  if (dono !== organizador) {
+  {
     try {
-      const nota = '<p style="font:14px Segoe UI,Arial,sans-serif;color:#333">Olá! <b>' + organizador + '</b> lançou uma ' + String(tipo || 'tarefa').toLowerCase() + ' para você no S.I.G.E. Ela já está na sua agenda do Outlook.</p>';
+      const proprio = dono === organizador;
+      const nota = proprio
+        ? '<p style="font:14px Segoe UI,Arial,sans-serif;color:#333">Olá! Este é o seu lembrete criado no S.I.G.E. Ele já está na sua agenda do Outlook.</p>'
+        : '<p style="font:14px Segoe UI,Arial,sans-serif;color:#333">Olá! <b>' + organizador + '</b> lançou uma ' + String(tipo || 'tarefa').toLowerCase() + ' para você no S.I.G.E. Ela já está na sua agenda do Outlook.</p>';
       await g.graph('POST', '/users/' + encodeURIComponent(process.env.SIGE_SENDER || 'sige@elevalife.com.br') + '/sendMail', {
         message: {
-          subject: 'Nova tarefa para você: ' + ev.subject,
+          subject: (dono === organizador ? 'Seu lembrete: ' : 'Nova tarefa para você: ') + ev.subject,
           body: { contentType: 'HTML', content: nota + ((ev.body && ev.body.content) || '') },
           toRecipients: [{ emailAddress: { address: dono } }],
           replyTo: [{ emailAddress: { address: organizador } }],
@@ -173,11 +176,11 @@ async function criarEvento(o) {
   // Aviso no Teams (sino de Atividade): responsável da tarefa, ou convidados da reunião. Melhor esforço.
   let avisoTeams = null;
   try {
-    const alvos = tipo === 'Reunião' ? (semConvidados ? [] : attendees.map(a => a.emailAddress.address)) : (dono !== organizador ? [dono] : []);
+    const alvos = tipo === 'Reunião' ? (semConvidados ? [] : attendees.map(a => a.emailAddress.address)) : [dono];
     if (alvos.length) {
-      avisoTeams = await teams.avisarVarios(alvos.filter(x => String(x).toLowerCase() !== organizador), {
+      avisoTeams = await teams.avisarVarios(tipo === 'Reunião' ? alvos.filter(x => String(x).toLowerCase() !== organizador) : alvos, {
         titulo: ev.subject,
-        resumo: (tipo === 'Reunião' ? 'Reunião de ' : 'Tarefa de ') + organizador + (card && (card.cliente || card.nome) ? ' · ' + (card.cliente || card.nome) : ''),
+        resumo: (tipo === 'Reunião' ? 'Reunião de ' : (dono === organizador ? 'Lembrete seu' : 'Tarefa de ')) + (dono === organizador && tipo !== 'Reunião' ? '' : organizador) + (card && (card.cliente || card.nome) ? ' · ' + (card.cliente || card.nome) : ''),
         url: cardUrl(card && card.id),
       });
     }
