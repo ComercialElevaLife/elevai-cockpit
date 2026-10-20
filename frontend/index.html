@@ -3793,6 +3793,15 @@ function tPartAdd(s){
   if(a.map(function(x){return x.toLowerCase();}).indexOf(e)<0)a.push(e);
   i.value=a.join(', ');
 }
+/* 21/10/2026 — botão "Gerar proposta" no card: abre Propostas já com cliente, unidade, serviços e a oportunidade deste card. */
+function gerarPropostaDoCard(id){
+  var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
+  var c={id:l.spid,cliente:l.cliente,unidade:l.unidade,serv:l.serv};
+  closeDrawer();
+  var b=document.querySelector('.nav button[data-v="propostas"]'); if(b)b.click();
+  var n=0; (function w(){ var P=window.PropostasModule; if(P&&P.abrirDoCard)return P.abrirDoCard(c); if(n++<150)setTimeout(w,100); })();
+}
+window.gerarPropostaDoCard=gerarPropostaDoCard;
 function _addAutoTask(l,id,titulo,motivo,dias){
   var dt=new Date(); dt.setDate(dt.getDate()+(dias||FUP_DIAS));
   var iso=dt.toISOString().slice(0,10);
@@ -4303,6 +4312,7 @@ function openDrawer(id){curId=id;
    <div class="d-side">
    <div class="fld"><b>Status:</b> <select class="stpick" onchange="setStatus(${id},this.value)">${COLS.concat(SIDE_COLS).map(([n])=>`<option ${n===l.status?'selected':''}>${n}</option>`).join('')}</select> ${manual[id]?'<span class="tk">✎ manual</span>':''}</div>
    ${_revertStatusHtml(l,id)}
+   <button class="btn" style="margin:6px 0 4px" onclick="gerarPropostaDoCard(${id})">📄 Gerar proposta</button>
    <h4>Negociação / Contato</h4>
    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin-bottom:8px">
      <label>Empresa<input id="le-cliente" value="${esc(l.cliente)}"></label>
