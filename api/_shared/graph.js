@@ -34,7 +34,7 @@ async function getToken() {
   return _tok.value;
 }
 
-async function graph(method, path, body) {
+async function graph(method, path, body, _retry) {
   const token = await getToken();
   const r = await fetch(path.startsWith('http') ? path : GRAPH + path, {
     method,
@@ -47,6 +47,8 @@ async function graph(method, path, body) {
   const text = await r.text();
   let j = null;
   try { j = text ? JSON.parse(text) : null; } catch (_) { j = { raw: text }; }
+  /* 20/10/2026 — permissão nova concedida no Azure só vale num token novo: se veio 403 com token em cache, renova e tenta 1 vez */
+  if (r.status === 403 && !_retry) { _tok = { value: null, exp: 0 }; return graph(method, path, body, true); }
   if (!r.ok) {
     const err = new Error('Graph ' + method + ' ' + path + ' -> ' + r.status + ': ' + text);
     err.status = r.status;
