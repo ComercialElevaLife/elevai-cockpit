@@ -4732,4 +4732,8 @@ if('serviceWorker' in navigator){
   });
 }
 </script>
+<script>
+/* 20/10/2026 — link do convite (/?card=<id>): abre direto o CRM · Kanban (o app abre no Painel, onde o card não é montado) e o card é aberto por _abrirCardDoLink. */
+(function(){try{ if(!new URLSearchParams(location.search).get('card')) return; var n=0,t=setInterval(function(){ var b=document.querySelector('.nav button[data-v="crm"]'); if(b&&b.onclick){ clearInterval(t); b.click(); } else if(++n>80) clearInterval(t); },250); }catch(e){}})();
+</script>
 </body></html>
