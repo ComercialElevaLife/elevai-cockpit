@@ -17,6 +17,7 @@ const MAX_PDF = 3 * 1024 * 1024; // sendMail aceita anexo inline até ~3 MB
 function esc(s){ return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function nl2br(s){ return esc(s).replace(/\r?\n/g,'<br>'); }
 const A = require('../_shared/assinatura'); // assinatura por usuário (SharePoint + cadastro da aplicação)
+const AG = require('../_shared/agenda'); // compromisso no calendário (emitente = usuário logado) + link do card
 
 // Layout no padrão dos e-mails do S.I.G.E. (faixa vinho, corpo com borda suave), com a assinatura padrão ElevaLife.
 function montarHtml(corpo, sig) {
@@ -50,6 +51,33 @@ const CONS_POR_EMAIL = { 'leonardo@elevalife.com.br': 'LS', 'joao@elevalife.com.
 function consDoUsuario(user, informado){ return CONS_POR_EMAIL[String(user || '').toLowerCase()] || (['LS','JB','RP','MKT','COM','OPER'].includes(String(informado || '')) ? informado : nomeDoEmail(user)); }
 function nomeDoEmail(e){ const p = String(e || '').split('@')[0].split('.')[0]; return p ? p.charAt(0).toUpperCase() + p.slice(1) : ''; }
 
+// ---- Agradecimento padrão (entra sozinho se o texto do e-mail foi editado sem ele) ----
+const AGRADECIMENTO = 'Agradecemos a oportunidade de apresentar nosso trabalho e a atenção dedicada ao nosso time. Ficamos à disposição para esclarecer dúvidas e ajustar o que for necessário à rotina de vocês.';
+
+// ---- FUP 1 automático: mesmo ciclo do Kanban (proposta enviada → sub-etapa FUP, 1º FUP em 2 dias) ----
+// Responsável e emitente do lembrete = usuário logado que criou/enviou a proposta.
+const FUP_DIAS = 2;
+function dataBRT(dias){ return new Date(Date.now() - 3 * 3600000 + dias * 86400000).toISOString().slice(0, 10); } // data em Brasília
+function montarFup(user, para){
+  return { tipo: 'Tarefa', titulo: 'FUP 1', resp: consDoUsuario(user, ''), email: user, data: dataBRT(FUP_DIAS), hora: '09:00', dur: 30, part: '',
+    conteudo: 'Follow-up automático (playbook comercial) — proposta enviada por e-mail para ' + (para || []).join(', ') + '.', feito: false };
+}
+function tarefasDe(it){
+  try { const a = JSON.parse((it && (it.tarefasJson2 || it.tarefasJson)) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; }
+}
+// Lança a tarefa no calendário de quem enviou, com resumo + link do card. Falha aqui NÃO desfaz o envio: volta no resultado.
+async function agendarFup(user, t, card){
+  const res = { titulo: t.titulo, data: t.data, hora: t.hora, responsavel: t.email, agenda: null };
+  try {
+    const r = await AG.criarEvento({ organizador: user, tipo: t.tipo, titulo: t.titulo, inicioLocal: t.data + 'T' + t.hora, duracaoMin: t.dur,
+      responsavelEmail: t.email, participantes: '', conteudo: t.conteudo, card });
+    res.agenda = { ok: true, webLink: r.webLink || null };
+  } catch (e) {
+    res.agenda = { ok: false, error: AG.explicarErro(e, user) };
+  }
+  return res;
+}
+
 async function enviar(remetente, msg) {
   await g.graph('POST', '/users/' + encodeURIComponent(remetente) + '/sendMail', msg);
 }
@@ -76,7 +104,10 @@ module.exports = async function (context, req) {
       .filter(a => !paraSet.has(a) && a !== user);
 
     const sig = await A.obter(user, { log: (m) => context.log(m) });
-    const corpoHtml = montarHtml(b.corpo || '', sig);
+    // Agradecimento: se o texto foi apagado/editado sem ele, acrescenta o padrão ElevaLife
+    const corpoTxt = String(b.corpo || '').trim();
+    const corpoFinal = /agradec/i.test(corpoTxt) ? corpoTxt : (corpoTxt ? corpoTxt + '\n\n' : '') + AGRADECIMENTO;
+    const corpoHtml = montarHtml(corpoFinal, sig);
     const nomePdf = String(b.pdfNome || 'Proposta ElevaLife.pdf').replace(/[\\/:*?"<>|]/g, '-');
     const mk = (replyTo) => {
       const m = {
@@ -143,33 +174,49 @@ async function atualizarKanban(lead, b, user) {
     if (['VENDIDA', 'PERDIDA', 'PAUSADA'].includes(String(atual.status || '').toUpperCase())) {
       throw new Error('oportunidade está em ' + atual.status + ' — reative no Kanban ou crie uma nova');
     }
+    const iniciarFup = !(Number(atual.fupSeq) > 0); // 1ª proposta da oportunidade: abre o ciclo de FUP (igual ao Kanban)
+    let hist = histAppend(atual.histEventosJson, texto, por);
     const campos = {
-      status: 'EM NEGOCIAÇÃO', subEtapa: 'Proposta', prop: 'SIM', envio: hoje,
-      histEventosJson: histAppend(atual.histEventosJson, texto, por),
+      status: 'EM NEGOCIAÇÃO', prop: 'SIM', envio: hoje,
       alteradoEm: new Date().toISOString(), alteradoPor: por,
     };
+    let tarefaFup = null;
+    if (iniciarFup) {
+      tarefaFup = montarFup(user, lista(b.para));
+      campos.subEtapa = 'FUP'; campos.fupSeq = 1;
+      campos.tarefasJson2 = JSON.stringify(tarefasDe(atual).concat([tarefaFup]));
+      hist = histAppend(hist, 'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente', por);
+    }
+    campos.histEventosJson = hist;
     if (valor) campos.valor = valor;
     if (valorMensal) campos.valorMensal = valorMensal;
     if (numMeses) campos.numMeses = numMeses;
     if (serv) campos.serv = serv;
     if (lead.tipo) campos.tipo = lead.tipo;
     await g.updateItem(listId, it.id, campos);
-    return { ok: true, acao: 'atualizada', id: it.id, de: atual.status, para: 'EM NEGOCIAÇÃO · Proposta' };
+    const resFup = tarefaFup ? await agendarFup(user, tarefaFup, { id: it.id, cliente: atual.cliente || lead.cliente, unidade: atual.unidade || lead.unidade,
+      serv: campos.serv || atual.serv, valor: campos.valor || atual.valor, status: 'EM NEGOCIAÇÃO', subEtapa: 'FUP', cons: atual.cons,
+      contato: atual.nome || lead.nome, contatoEmail: atual.email || lista(b.para)[0], telefone: atual.tel || atual.telefone }) : null;
+    return { ok: true, acao: 'atualizada', id: it.id, de: atual.status, para: 'EM NEGOCIAÇÃO · ' + (tarefaFup ? 'FUP' : 'Proposta'), fup: resFup };
   }
 
   const d = new Date();
+  const tarefaFup = montarFup(user, lista(b.para)); // FUP 1 nasce junto com a oportunidade
   const rec = {
     y: d.getFullYear(), m: d.getMonth() + 1, dt: hoje,
     nome: String(lead.nome || '').trim(), cliente: String(lead.cliente || '').trim(),
     unidade: String(lead.unidade || '').trim(), fonte: String(lead.fonte || 'Proposta SIGE'),
     cons: consDoUsuario(user, lead.cons), serv, prop: 'SIM', valor, tipo: String(lead.tipo || 'N/A'),
-    envio: hoje, status: 'EM NEGOCIAÇÃO', subEtapa: 'Proposta', origemFunil: 'NOVO',
+    envio: hoje, status: 'EM NEGOCIAÇÃO', subEtapa: 'FUP', fupSeq: 1, origemFunil: 'NOVO',
     email: lista(b.para)[0] || '',
-    histEventosJson: histAppend('[]', 'Oportunidade criada pelo envio de proposta · ' + texto, por),
+    histEventosJson: histAppend(histAppend('[]', 'Oportunidade criada pelo envio de proposta · ' + texto, por), 'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente', por),
+    tarefasJson2: JSON.stringify([tarefaFup]),
   };
   if (valorMensal) rec.valorMensal = valorMensal;
   if (numMeses) rec.numMeses = numMeses;
   if (!rec.cliente) throw new Error('informe a empresa para criar a oportunidade');
   const created = await g.addItem(listId, toFields('leads', rec));
-  return { ok: true, acao: 'criada', id: created.id, para: 'EM NEGOCIAÇÃO · Proposta' };
+  const resFup = await agendarFup(user, tarefaFup, { id: created.id, cliente: rec.cliente, unidade: rec.unidade, serv, valor, status: rec.status,
+    subEtapa: 'FUP', cons: rec.cons, contato: rec.nome, contatoEmail: rec.email });
+  return { ok: true, acao: 'criada', id: created.id, para: 'EM NEGOCIAÇÃO · FUP', fup: resFup };
 }
