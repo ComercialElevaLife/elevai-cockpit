@@ -121,9 +121,26 @@ async function criarEvento(o) {
     end: { dateTime: end + ':00', timeZone: TZ },
     isReminderOn: true, reminderMinutesBeforeStart: (tipo === 'Reunião' || tipo === 'Ligação') ? 15 : 60,
     attendees,
+    categories: ['S.I.G.E.'],
   };
   if (tipo === 'Reunião') { ev.isOnlineMeeting = true; ev.onlineMeetingProvider = 'teamsForBusiness'; }
   if (o.dryRun) return { dryRun: true, organizador, evento: ev, link: cardUrl(card.id) };
+
+  // Edição: se a tarefa já tem evento no Outlook, atualiza o mesmo evento (em vez de criar outro).
+  if (o.eventId) {
+    const velhoBox = String(o.mailbox || '').trim().toLowerCase();
+    if (velhoBox && velhoBox !== dono) {
+      try { await excluirEvento({ organizador, mailbox: velhoBox, eventId: o.eventId }); } catch (e0) { /* segue e cria no novo responsável */ }
+    } else {
+      const atual = await eventoDoSige(dono, o.eventId, organizador);
+      if (atual) {
+        const upd = Object.assign({}, ev); delete upd.isOnlineMeeting; delete upd.onlineMeetingProvider; delete upd.categories;
+        await g.graph('PATCH', '/users/' + encodeURIComponent(dono) + '/events/' + encodeURIComponent(o.eventId), upd);
+        return { ok: true, atualizado: true, id: o.eventId, tipo, organizador, calendarioDe: dono };
+      }
+      // evento já não existe no Outlook: cai para a criação de um novo
+    }
+  }
 
   const caminho = '/users/' + encodeURIComponent(dono) + '/events';
   let created, semConvidados = false;
@@ -173,4 +190,33 @@ async function criarEvento(o) {
   };
 }
 
-module.exports = { criarEvento, buildBody, cardUrl, explicarErro, computeEnd, BASE };
+// Busca um evento criado pelo S.I.G.E. e confere se quem pede pode mexer nele.
+// Devolve o evento, ou null se ele já não existe no Outlook.
+async function eventoDoSige(mailbox, id, quem) {
+  const mb = String(mailbox || '').trim().toLowerCase();
+  if (!/^[^@\s]+@elevalife\.com\.br$/.test(mb) || !id) throw erro(400, 'Compromisso inválido.');
+  let e;
+  try { e = await g.graph('GET', '/users/' + encodeURIComponent(mb) + '/events/' + encodeURIComponent(id) + '?$select=id,categories,body,attendees,organizer'); }
+  catch (x) { if (x && x.status === 404) return null; throw x; }
+  if (!(e.categories || []).includes('S.I.G.E.')) throw erro(403, 'Este compromisso não foi criado pelo S.I.G.E.');
+  const c = String(quem || '').toLowerCase();
+  const corpo = String((e.body && e.body.content) || '').toLowerCase();
+  if (mb !== c && !corpo.includes(c)) throw erro(403, 'Sem permissão para alterar este compromisso.');
+  return e;
+}
+
+// Exclui o evento no Outlook (e, portanto, no calendário do Teams). Reunião com convidados vira cancelamento.
+async function excluirEvento(o) {
+  const mb = String(o.mailbox || '').trim().toLowerCase();
+  const e = await eventoDoSige(mb, o.eventId, o.organizador);
+  if (!e) return { ok: true, jaNaoExiste: true };
+  const base = '/users/' + encodeURIComponent(mb) + '/events/' + encodeURIComponent(o.eventId);
+  if ((e.attendees || []).length) {
+    try { await g.graph('POST', base + '/cancel', { comment: 'Cancelado no S.I.G.E. por ' + o.organizador }); return { ok: true, cancelado: true }; }
+    catch (x) { /* quem pede não é o organizador: apaga da agenda mesmo assim */ }
+  }
+  await g.graph('DELETE', base);
+  return { ok: true, excluido: true };
+}
+
+module.exports = { excluirEvento, eventoDoSige, criarEvento, buildBody, cardUrl, explicarErro, computeEnd, BASE };
