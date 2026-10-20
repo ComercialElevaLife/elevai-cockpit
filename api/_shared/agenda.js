@@ -62,6 +62,7 @@ function buildBody(o) {
       '<table role="presentation" style="border-collapse:collapse;margin:0 0 14px">' + tabela + '</table>' : '') +
     (o.conteudo ? '<p style="font-size:14px;line-height:1.6;margin:0 0 16px">' + nl2br(o.conteudo) + '</p>' : '') +
     '<p style="margin:0 0 8px"><a href="' + esc(url) + '" style="display:inline-block;background:#8b3a42;color:#fff;text-decoration:none;font-weight:700;font-size:13.5px;padding:10px 18px;border-radius:8px">Abrir o card no S.I.G.E.</a></p>' +
+    '<p style="font-size:12px;color:#5e2a30;margin:0 0 4px"><b>Como abrir:</b> no Outlook do computador, segure a tecla <b>Ctrl</b> e clique no botão. Se preferir, copie o endereço abaixo e cole no navegador.</p>' +
     '<p style="font-size:12px;color:#8a7a78;margin:0 0 14px;word-break:break-all">' + esc(url) + '</p>' +
     '<p style="font-size:12px;color:#8a7a78;margin:0;border-top:1px solid #eaddE0;padding-top:10px">Criado no S.I.G.E. por ' + esc(o.criador || '') + '.</p>' +
     '</div></div>';
