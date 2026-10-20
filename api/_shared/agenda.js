@@ -8,6 +8,7 @@
 //    agenda do emitente, para o compromisso não se perder, e avisa na resposta.
 // Requer no app Entra a permissão Graph "Calendars.ReadWrite" (Application) + consentimento.
 const g = require('./graph');
+const teams = require('./teams');
 
 const TZ = 'E. South America Standard Time'; // Brasília
 const BASE = String(process.env.SIGE_BASE_URL || 'https://sige-novasreceitas.elevalife.com.br').replace(/\/+$/, '');
@@ -152,8 +153,20 @@ async function criarEvento(o) {
       avisoEmail = { ok: true };
     } catch (e3) { avisoEmail = { ok: false, erro: String((e3 && e3.message) || e3).slice(0, 160) }; }
   }
+  // Aviso no Teams (sino de Atividade): responsável da tarefa, ou convidados da reunião. Melhor esforço.
+  let avisoTeams = null;
+  try {
+    const alvos = tipo === 'Reunião' ? (semConvidados ? [] : attendees.map(a => a.emailAddress.address)) : (dono !== organizador ? [dono] : []);
+    if (alvos.length) {
+      avisoTeams = await teams.avisarVarios(alvos.filter(x => String(x).toLowerCase() !== organizador), {
+        titulo: ev.subject,
+        resumo: (tipo === 'Reunião' ? 'Reunião de ' : 'Tarefa de ') + organizador + (card && (card.cliente || card.nome) ? ' · ' + (card.cliente || card.nome) : ''),
+        url: cardUrl(card && card.id),
+      });
+    }
+  } catch (e4) { avisoTeams = { enviados: 0, falhas: 1, erro: String((e4 && e4.message) || e4).slice(0, 160) }; }
   return {
-    ok: true, id: created.id, tipo, organizador, calendarioDe: dono, avisoEmail, semConvidados,
+    ok: true, id: created.id, tipo, organizador, calendarioDe: dono, avisoEmail, avisoTeams, semConvidados,
     convidados: semConvidados ? [] : attendees.map(a => a.emailAddress.address),
     webLink: created.webLink || null,
     joinUrl: (created.onlineMeeting && created.onlineMeeting.joinUrl) || null,
