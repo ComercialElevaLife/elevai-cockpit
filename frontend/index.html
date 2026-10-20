@@ -366,6 +366,7 @@ td .up{color:var(--ok);font-weight:700}
     var cp=(d&&d.clientPrincipal)||null;
     if(!cp){ gate.classList.add('ok'); return; } // sem login: a rota já teria redirecionado pro AAD
     var email=String(cp.userDetails||'').toLowerCase();
+    window.__meEmail=email; /* 20/10/2026 — usuário logado: é quem EMITE tarefas/reuniões/lembretes no calendário (ver scheduleTask) */
     var DOM='@elevalife.com.br';
     if(email.length>DOM.length && email.slice(-DOM.length)===DOM){ gate.classList.add('ok'); return; }
     document.getElementById('ag-ttl').textContent='Acesso restrito';
@@ -1152,13 +1153,13 @@ function updateBadge(ok){
 }
 
 /* ---- toast simples (rodape, 2s) ---- */
-function toast(msg){
+function toast(msg,ms){
   let t=document.getElementById('elevai-toast');
   if(!t){ t=document.createElement('div'); t.id='elevai-toast';
     t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#3A2A2E;color:#fff;font:600 13px Montserrat,system-ui,sans-serif;padding:10px 18px;border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.3);z-index:9999;opacity:0;transition:opacity .2s;pointer-events:none;max-width:80vw;text-align:center';
     document.body.appendChild(t); }
   t.textContent=msg; t.style.opacity='1';
-  clearTimeout(t._h); t._h=setTimeout(function(){t.style.opacity='0';},2000);
+  clearTimeout(t._h); t._h=setTimeout(function(){t.style.opacity='0';},ms||2000);
 }
 window.toast=toast;
 
@@ -3765,7 +3766,9 @@ window.setSubEtapa=setSubEtapa;
    não estiver aqui, o e-mail fica vazio de novo e o /api/agenda volta a rejeitar (400) até
    alguém adicionar a entrada correspondente. */
 var CONSULTOR_EMAILS={JB:'joao@elevalife.com.br',LS:'leonardo@elevalife.com.br',RP:'rafael@elevalife.com.br',MKT:'clara@elevalife.com.br',COM:'contato@elevalife.com.br'};
-function _consultorEmail(cons){ return CONSULTOR_EMAILS[String(cons||'').trim().toUpperCase()]||''; }
+/* 20/10/2026 — consultor fora da lista não deixa mais o e-mail vazio (o /api/agenda recusava e a tarefa sumia do calendário):
+   cai no usuário logado, que é quem está criando a tarefa. */
+function _consultorEmail(cons){ return CONSULTOR_EMAILS[String(cons||'').trim().toUpperCase()]||String(window.__meEmail||''); }
 /* 31/08/2026 — fluxo automático de FUP pós-proposta (Léo: "quando envia a proposta... deve ir
    automaticamente para FUP e subir uma nova tarefa de FUP 1"). Cria a tarefa igual ao fluxo manual
    (addTask), só que sem depender do formulário do drawer — usada tanto no início do fluxo
@@ -4448,12 +4451,12 @@ function scheduleTask(id,i,silent){const l=_allLeads().find(x=>x.id===id),t=(tas
   if(t.tipo==='WhatsApp'&&!silent)waOpen(id,i);
   if(!t.data){if(!silent)alert('Defina data e hora para agendar.');return;}
   const se=_startEnd(t);
-  const payload={tipo:t.tipo,titulo:(t.titulo||''),organizador:(t.email||''),responsavelEmail:(t.email||''),participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
+  const payload={tipo:t.tipo,titulo:(t.titulo||''),responsavelEmail:(t.email||''),cardId:l.spid,status:l.status,subEtapa:l.subEtapa,cons:l.cons,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
   fetch('/api/agenda',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r=>r.json().catch(()=>({}))).then(j=>{
-      if(j&&j.ok){ if(window.toast)window.toast(t.tipo==='Reunião'?'Reunião no Teams criada e convite enviado ✓':(t.tipo==='Ligação'?'Ligação agendada no calendário ✓':'Tarefa lançada no calendário do responsável ✓')); }
-      else { _agendaFallback(l,t,se,silent); }
-    }).catch(function(){ _agendaFallback(l,t,se,silent); });
+      if(j&&j.ok){ if(j.semConvidados&&window.toast)window.toast('⚠ Evento criado só na sua agenda: não consegui convidar os participantes (e-mail inválido?)',6000); else if(window.toast)window.toast(t.tipo==='Reunião'?'Reunião no Teams criada e convite enviado ✓':(t.tipo==='Ligação'?'Ligação agendada no calendário ✓':'Tarefa lançada no calendário do responsável ✓')); }
+      else { if(window.toast)window.toast('⚠ Não foi possível lançar no calendário: '+((j&&j.error)||'o servidor não respondeu'),8000); _agendaFallback(l,t,se,silent); }
+    }).catch(function(){ if(window.toast)window.toast('⚠ Não foi possível lançar no calendário: sem conexão com o servidor',8000); _agendaFallback(l,t,se,silent); });
 }
 function _agendaFallback(l,t,se,silent){
   var _cal=(window.getCalFlowUrl?window.getCalFlowUrl():'');
@@ -4540,11 +4543,24 @@ function _allLeads(){
   var extra=(STORE.leads||[]).filter(function(x){return x.inativo==='SIM';}).map(_mapLead);
   return LEADS.concat(extra);
 }
+/* 20/10/2026 — link do convite (/?card=<id>) abre o card direto. Espera os dados carregarem (crmRender roda a cada carga). */
+var _cardLinkFeito=false;
+function _abrirCardDoLink(){
+  if(_cardLinkFeito)return;
+  var sp=''; try{ sp=new URLSearchParams(location.search).get('card')||''; }catch(e){}
+  if(!sp){ _cardLinkFeito=true; return; }
+  var l=_allLeads().find(function(x){return x.spid===sp;});
+  if(!l)return; /* ainda carregando (ou card inexistente): tenta de novo na próxima carga */
+  _cardLinkFeito=true;
+  try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){}
+  openDrawer(l.id);
+}
 function crmRender(leads){
   LEADS=(leads||[]).map(_mapLead);
   tasks={}; LEADS.forEach(function(l){ if(l.tarefasJson){ try{ var a=JSON.parse(l.tarefasJson); if(Array.isArray(a))tasks[l.id]=a; }catch(e){} } });
   try{fillSelects();}catch(e){}
   render();
+  try{_abrirCardDoLink();}catch(e){}
 }
 function toggleCompact(){
   compact=!compact;
