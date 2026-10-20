@@ -4572,8 +4572,12 @@ function _mapLead(Lx,i){return {
    de colisão entre os dois grupos. */
 function _allLeads(){
   var extra=(STORE.leads||[]).filter(function(x){return x.inativo==='SIM';}).map(_mapLead);
-  return LEADS.concat(extra);
+  var all=LEADS.concat(extra);
+  /* 20/10/2026 — card aberto por link (/?card=<id>) mesmo fora dos filtros do Kanban */
+  if(_cardExtra && !all.some(function(x){return x.id===_cardExtra.id;})) all.push(_cardExtra);
+  return all;
 }
+var _cardExtra=null;
 /* 20/10/2026 — link do convite (/?card=<id>) abre o card direto. Espera os dados carregarem (crmRender roda a cada carga). */
 var _cardLinkFeito=false;
 function _abrirCardDoLink(){
@@ -4581,7 +4585,15 @@ function _abrirCardDoLink(){
   var sp=''; try{ sp=new URLSearchParams(location.search).get('card')||''; }catch(e){}
   if(!sp){ _cardLinkFeito=true; return; }
   var l=_allLeads().find(function(x){return x.spid===sp;});
-  if(!l)return; /* ainda carregando (ou card inexistente): tenta de novo na próxima carga */
+  if(!l){
+    /* fora dos filtros do Kanban (ex.: vendido em ano anterior): busca direto na base carregada */
+    var arr=STORE.leads||[]; if(!arr.length)return; /* base ainda carregando: tenta na próxima carga */
+    var idx=-1; for(var k=0;k<arr.length;k++){ if(String(arr[k].__id)===String(sp)){ idx=k; break; } }
+    if(idx<0){ _cardLinkFeito=true; try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){}
+      if(window.toast)window.toast('⚠ Card não encontrado: ele pode ter sido excluído ou o link está incorreto.',8000); return; }
+    _cardExtra=_mapLead(arr[idx],idx); l=_cardExtra;
+    if(l.tarefasJson){ try{ var ta=JSON.parse(l.tarefasJson); if(Array.isArray(ta))tasks[l.id]=ta; }catch(e){} }
+  }
   _cardLinkFeito=true;
   try{ history.replaceState(null,'',location.pathname+location.hash); }catch(e){}
   openDrawer(l.id);
