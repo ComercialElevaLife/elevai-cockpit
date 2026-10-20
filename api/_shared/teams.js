@@ -36,7 +36,7 @@ async function avisar(email, o) {
     const u = await g.graph('GET', '/users/' + encodeURIComponent(email) + '?$select=id');
     const uid = u && u.id; if (!uid) throw new Error('usuário não encontrado');
     const corpo = {
-      topic: { source: 'text', value: corta(o.titulo, 120), webUrl: o.url },
+      topic: { source: 'text', value: corta(o.titulo, 120), webUrl: 'https://teams.microsoft.com/l/entity/' + EXT_ID + '/sige?label=S.I.G.E.&webUrl=' + encodeURIComponent(o.url || 'https://sige-novasreceitas.elevalife.com.br/') }, /* Teams só aceita link do próprio Teams aqui */
       activityType: 'novaTarefa',
       previewText: { content: corta(o.resumo, 150) },
       templateParameters: [{ name: 'titulo', value: corta(o.titulo, 120) }],
