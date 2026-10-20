@@ -1221,7 +1221,7 @@ $('e-send').onclick=function(){
 /* 21/10/2026 — "Gerar proposta" no card do Kanban: abre a proposta já com cliente, unidade, serviços e a oportunidade do card. Preço continua vindo das calculadoras. */
   window.PropostasModule.abrirDoCard=function(c){
     c=c||{};
-    $('f-cliente').value=c.cliente||''; $('f-unid').value=c.unidade||'';
+    $('f-cliente').value=c.cliente||''; $('f-unid').value=/^n[aã]o informad/i.test(String(c.unidade||'').trim())?'':(c.unidade||'');
     var s=norm(c.serv||''), er=/ergonomia|aep|aet/.test(s), nr=/nr 1|nr1|nr 01|diagnostico/.test(s), gl=/ginastica|laboral/.test(s);
     function marca(id,val){ var e=$(id); if(!e||e.checked===val)return; e.checked=val; e.dispatchEvent(new Event('change',{bubbles:true})); }
     if(er||nr||gl){ marca('s-ergo',er); marca('s-nr1',nr); marca('s-gl',gl); }
