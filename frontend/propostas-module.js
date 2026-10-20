@@ -1087,7 +1087,7 @@ function resumoTexto(){
   r.push('• Relatórios, indicadores de acompanhamento e condições comerciais, detalhados no documento anexo.');
   return r.join('\n');
 }
-var leadsCache=null, leadsBusy=false, leadsQ=[], EMF={}, leadEsc=false; /* EMF: campos do e-mail que a pessoa editou à mão (não são sobrescritos) */
+var alvoCard=null, leadsCache=null, leadsBusy=false, leadsQ=[], EMF={}, leadEsc=false; /* EMF: campos do e-mail que a pessoa editou à mão (não são sobrescritos) */
 function eMsg(t,err){var m=$('e-msg');m.textContent=t;m.style.color=err?'#B3261E':'#8A7A78';}
 function juntaE(a){return a.length>1?a.slice(0,-1).join(', ')+' e '+a[a.length-1]:(a[0]||'');}
 function servTexto(){var s=[];if($('s-ergo').checked)s.push('Gestão de Ergonomia');if($('s-nr1').checked)s.push('Diagnóstico NR-1');if($('s-gl').checked)s.push('Ginástica Laboral');svcNomes().forEach(function(n){s.push(n);});return juntaE(s)||'serviços';}
@@ -1142,7 +1142,8 @@ function listarOportunidades(){
     achados.forEach(function(l){o+='<option value="'+l.__id+'"'+(pz(l)?' disabled':'')+'>'+(pz(l)?'(pausada · reative no Kanban para atualizar) ':'')+esc(l.cliente||'')+(l.unidade?' · '+esc(l.unidade):'')+' · '+esc(l.nome||'sem contato')+' · '+esc(l.status||'')+(l.subEtapa?' / '+esc(l.subEtapa):'')+(l.serv?' · '+esc(l.serv):'')+'</option>';});
     o+='<option value="__novo">➕ Criar nova oportunidade</option>';
     sel.innerHTML=o;
-    if(leadEsc&&antes&&sel.querySelector('option[value="'+antes+'"]'))sel.value=antes;
+    if(alvoCard&&sel.querySelector('option[value="'+alvoCard+'"]')){sel.value=alvoCard;alvoCard=null;}
+    else if(leadEsc&&antes&&sel.querySelector('option[value="'+antes+'"]'))sel.value=antes;
     else if(livres.length===1)sel.value=livres[0].__id;
     else if(!livres.length)sel.value='__novo';
     sel.onchange();
@@ -1217,7 +1218,18 @@ $('e-send').onclick=function(){
     eMsg(t,!k.ok||!!(fp&&fp.agenda&&!fp.agenda.ok));leadsCache=null;
   }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
-/* 20/10/2026 — CC adicional: lista suspensa com o time ElevaLife (organograma, /time-eleva.js) */
+/* 21/10/2026 — "Gerar proposta" no card do Kanban: abre a proposta já com cliente, unidade, serviços e a oportunidade do card. Preço continua vindo das calculadoras. */
+  window.PropostasModule.abrirDoCard=function(c){
+    c=c||{};
+    $('f-cliente').value=c.cliente||''; $('f-unid').value=c.unidade||'';
+    var s=norm(c.serv||''), er=/ergonomia|aep|aet/.test(s), nr=/nr 1|nr1|nr 01|diagnostico/.test(s), gl=/ginastica|laboral/.test(s);
+    function marca(id,val){ var e=$(id); if(!e||e.checked===val)return; e.checked=val; e.dispatchEvent(new Event('change',{bubbles:true})); }
+    if(er||nr||gl){ marca('s-ergo',er); marca('s-nr1',nr); marca('s-gl',gl); }
+    leadEsc=false; alvoCard=c.id?String(c.id):null; leadsCache=null;
+    listarOportunidades();
+    try{ $('f-cliente').scrollIntoView({block:'center'}); }catch(e){}
+  };
+  /* 20/10/2026 — CC adicional: lista suspensa com o time ElevaLife (organograma, /time-eleva.js) */
 (function(){
   var T=window.TIME_ELEVA||[], cc=$('e-cc'); if(!cc||!T.length)return;
   var s=document.createElement('select'); s.id='e-cc-sel'; s.className=cc.className; s.style.marginTop='6px';
