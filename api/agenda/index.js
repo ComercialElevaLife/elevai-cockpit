@@ -53,6 +53,6 @@ module.exports = async function (context, req) {
     });
     context.res = json(r.dryRun ? 200 : 201, r);
   } catch (e) {
-    context.res = json(e.status || 500, { ok: false, error: A.explicarErro(e, user || 'usuário'), detalhe: String((e && e.message) || e), body: e && e.body });
+    context.res = json(e.status || 500, { ok: false, error: A.explicarErro(e, (e && e.mailbox) || user || 'usuário'), detalhe: String((e && e.message) || e), body: e && e.body });
   }
 };
