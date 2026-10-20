@@ -4482,10 +4482,11 @@ function scheduleTask(id,i,silent){const l=_allLeads().find(x=>x.id===id),t=(tas
   if(t.tipo==='WhatsApp'&&!silent)waOpen(id,i);
   if(!t.data){if(!silent)alert('Defina data e hora para agendar.');return;}
   const se=_startEnd(t);
-  const payload={tipo:t.tipo,titulo:(t.titulo||''),responsavelEmail:(t.email||''),cardId:l.spid,status:l.status,subEtapa:l.subEtapa,cons:l.cons,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor};
+  const payload={tipo:t.tipo,titulo:(t.titulo||''),responsavelEmail:(t.email||''),cardId:l.spid,status:l.status,subEtapa:l.subEtapa,cons:l.cons,participantes:(t.part||t.email||''),inicioLocal:(t.data||'')+'T'+(t.hora||'09:00'),duracaoMin:se[2],conteudo:t.conteudo,cliente:l.cliente,unidade:l.unidade,servico:l.serv,valor:l.valor,eventId:(t.evId||''),mailbox:(t.evCal||'')};
   fetch('/api/agenda',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
     .then(r=>r.json().catch(()=>({}))).then(j=>{
-      if(j&&j.ok){ if(j.semConvidados&&window.toast)window.toast('⚠ Evento criado só na sua agenda: não consegui convidar os participantes (e-mail inválido?)',6000); else if(window.toast)window.toast(t.tipo==='Reunião'?'Reunião no Teams criada e convite enviado'+(j.avisoTeams&&j.avisoTeams.enviados>0?' (aviso no Teams)':'')+' ✓':(t.tipo==='Ligação'?'Ligação agendada no calendário ✓':(j.calendarioDe&&window.__meEmail&&String(j.calendarioDe).toLowerCase()!==String(window.__meEmail).toLowerCase()?'Tarefa lançada só na agenda de '+j.calendarioDe+(j.avisoEmail&&j.avisoEmail.ok?' (aviso por e-mail'+(j.avisoTeams&&j.avisoTeams.enviados>0?' + aviso no Teams':'')+' enviado)':(j.avisoTeams&&j.avisoTeams.enviados>0?' + aviso no Teams':''))+' ✓':'Tarefa lançada no seu calendário ✓'))); }
+      if(j&&j.ok&&j.id){ t.evId=j.id; t.evCal=j.calendarioDe||''; try{persistTasks(id);}catch(e){} } /* guarda o evento do Outlook na tarefa, p/ excluir/atualizar depois */
+      if(j&&j.ok){ if(j.atualizado){ if(window.toast)window.toast('Compromisso atualizado no Outlook e no Teams ✓'); return; } if(j.semConvidados&&window.toast)window.toast('⚠ Evento criado só na sua agenda: não consegui convidar os participantes (e-mail inválido?)',6000); else if(window.toast)window.toast(t.tipo==='Reunião'?'Reunião no Teams criada e convite enviado'+(j.avisoTeams&&j.avisoTeams.enviados>0?' (aviso no Teams)':'')+' ✓':(t.tipo==='Ligação'?'Ligação agendada no calendário ✓':(j.calendarioDe&&window.__meEmail&&String(j.calendarioDe).toLowerCase()!==String(window.__meEmail).toLowerCase()?'Tarefa lançada só na agenda de '+j.calendarioDe+(j.avisoEmail&&j.avisoEmail.ok?' (aviso por e-mail'+(j.avisoTeams&&j.avisoTeams.enviados>0?' + aviso no Teams':'')+' enviado)':(j.avisoTeams&&j.avisoTeams.enviados>0?' + aviso no Teams':''))+' ✓':'Tarefa lançada no seu calendário ✓'))); }
       else { if(window.toast)window.toast('⚠ Não foi possível lançar no calendário: '+((j&&j.error)||'o servidor não respondeu'),8000); _agendaFallback(l,t,se,silent); }
     }).catch(function(){ if(window.toast)window.toast('⚠ Não foi possível lançar no calendário: sem conexão com o servidor',8000); _agendaFallback(l,t,se,silent); });
 }
@@ -4515,7 +4516,14 @@ function toggleTask(id,i){
   openDrawer(id);render();
   if(t.feito&&!_wasDone&&/^FUP(\s|$)/i.test(t.titulo||''))_fupAbrirModal(id);
 }
-function delTask(id,i){tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
+function delTask(id,i){var _t=(tasks[id]||[])[i];
+  if(_t&&_t.evId){ /* exclui também o evento no Outlook (e no calendário do Teams) */
+    fetch('/api/agenda',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({acao:'excluir',eventId:_t.evId,mailbox:_t.evCal||''})})
+      .then(function(r){return r.json().catch(function(){return {};});})
+      .then(function(j){ if(window.toast)window.toast(j&&j.ok?'Compromisso removido do Outlook e do calendário do Teams ✓':'⚠ Tarefa excluída aqui, mas não consegui remover do Outlook: '+((j&&j.error)||'sem resposta'),j&&j.ok?4000:8000); })
+      .catch(function(){ if(window.toast)window.toast('⚠ Tarefa excluída aqui, mas sem conexão para remover do Outlook.',8000); });
+  }
+  tasks[id].splice(i,1);persistTasks(id);openDrawer(id);render();}
 /* 25/08/2026 — sincroniza `status`/`alteradoEm`/`alteradoPor` pro registro cru de STORE.leads
    também (não só no objeto `l` de uso único devolvido por _allLeads()), senão a troca pelo select
    do drawer se perde no próximo render(). */
