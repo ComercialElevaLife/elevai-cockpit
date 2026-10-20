@@ -4395,7 +4395,7 @@ function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.dat
   let ac=`<a href="#" onclick="toggleTask(${curId},${i});return false">${t.feito?'reabrir':'concluir'}</a> · <a href="#" onclick="delTask(${curId},${i});return false">excluir</a>`;
   if(t.tipo==='WhatsApp')ac+=` · <a href="#" onclick="waOpen(${curId},${i});return false">🟢 Abrir WhatsApp</a>`;
   else ac+=` · <a href="#" onclick="scheduleTask(${curId},${i});return false">📅 ${(window.getCalFlowUrl&&window.getCalFlowUrl())?'reenviar ao calendário':'baixar .ics'}</a>`;
-  return `<div class="task"><div class="t1">${ic} ${t.titulo||'(sem título)'} ${t.feito?'✅':''}</div><div class="t2">${t.tipo||'Tarefa'}${t.resp?' · '+t.resp:''}${quando?' · '+quando:''}${t.tipo==='Reunião'?' · '+(t.dur||30)+'min':''}</div>${t.conteudo?`<div class="t2">${t.conteudo}</div>`:''}<div class="t2">${ac}</div></div>`;}
+  return `<div class="task"><div class="t1">${ic} ${t.titulo||'(sem título)'} ${t.feito?'✅':''}</div><div class="t2">${t.tipo||'Tarefa'}${quando?' · '+quando:''}${t.tipo==='Reunião'?' · '+(t.dur||30)+'min':''}</div><div class="t2"><b>Criado por:</b> ${t.por||'não registrado'}</div><div class="t2"><b>Destinatários:</b> ${(t.tipo==='Reunião'?(t.part||t.email):(t.resp?t.resp+(t.email?' ('+t.email+')':''):t.email))||'—'}</div>${t.conteudo?`<div class="t2">${t.conteudo}</div>`:''}<div class="t2">${ac}</div></div>`;}
 function onTipo(){const b=el('t-rbox');if(b)b.style.display=(el('t-tipo').value==='Reunião')?'block':'none';}
 function persistTasks(id){try{var l=_allLeads().find(function(x){return x.id===id;});if(l&&window.persistLeadTasks)window.persistLeadTasks(l.spid,tasks[id]||[]);}catch(e){}}
 /* 21/08/2026 — recálculo automático (mensal × meses, padrão 12) no drawer do Kanban, igual ao
@@ -4468,7 +4468,7 @@ function addTask(id){const tipo=el('t-tipo')?el('t-tipo').value:'Tarefa';
      /api/agenda rejeita (400) e a tarefa não gera convite/lembrete de calendário. */
   var _lPre=_allLeads().find(function(x){return x.id===id;});
   var _emailCampo=el('t-email').value;
-  const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:_emailCampo||(_lPre?_consultorEmail(_lPre.cons):''),data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false};
+  const t={tipo,titulo:el('t-tit').value,resp:el('t-resp').value,email:_emailCampo||(_lPre?_consultorEmail(_lPre.cons):''),data:el('t-data').value,hora:el('t-hora').value||'09:00',dur:+(el('t-dur')&&el('t-dur').value||30),part:el('t-part')?el('t-part').value:'',conteudo:el('t-cont').value,feito:false,por:String(window.__meEmail||'')};
   if(!t.titulo){alert('Informe o título.');return;}(tasks[id]=tasks[id]||[]).push(t);scheduleTask(id,tasks[id].length-1,true);persistTasks(id);
   /* 31/08/2026 — Léo: "criei uma nova tarefa e não apareceu no histórico". addTask() nunca tocava
      em histEventosJson (só persistTasks(), que grava tarefasJson separadamente) — corrigido. */
