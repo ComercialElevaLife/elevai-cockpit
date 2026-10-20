@@ -812,6 +812,16 @@ function codListar(q){
 }
 
 /* ===== geração das lâminas ===== */
+  /* 20/10/2026 — slide final "Obrigado": contato (nome, telefone e e-mail) de quem está logado e gerando a proposta.
+     Nome e telefone vêm do time (/time-eleva.js) ou do cadastro da assinatura; sem telefone cadastrado, a linha não aparece. */
+  function contatoSlide(){
+    var SG=null; try{SG=SIG;}catch(e){}
+    var em=String((SG&&SG.email)||window.__meEmail||'').toLowerCase();
+    var p=(window.TIME_ELEVA||[]).filter(function(x){return x.e===em;})[0]||{};
+    var nome=(SG&&SG.tem&&SG.nome)||p.n||(SG&&SG.nome)||'';
+    var tel=p.t||(SG&&SG.tel)||'';
+    return [nome,tel,em].filter(Boolean).join('<br>');
+  }
 var T=window.PROP_TPL;
 function fill(h,ctx){return h.replace(/\{\{CLIENTE\}\}/g,ctx.cliente).replace(/\{\{VIDAS\}\}/g,ctx.vidas);}
 function tagp(t){return '<div class="tagp">'+t+'</div>';}
@@ -908,7 +918,7 @@ function gerar(){
   if(nr1on) S.push(T.nr1,nr1IndSlide(ctx),nr1Invest(ctx));
   if(gl) S.push(T.gl_how,T.gl_phases,teamGl(ctx),glVisits(ctx),T.gl_deliv,T.gl_plan,T.gl_ind,glIndSlide(ctx),T.gl_rep,glInvest(ctx));
   SVC_KEYS.forEach(function(k){if(svcOn(k))svcSlides(k,ctx).forEach(function(h){S.push(h);});});
-  conditions(ctx).forEach(function(c){S.push(c);});var cs=condSaude(ctx);if(cs)S.push(cs);S.push(T.end.replace('Proposta válida por 30 dias','Proposta válida por '+($('c-val').value||30)+' dias'));
+  conditions(ctx).forEach(function(c){S.push(c);});var cs=condSaude(ctx);if(cs)S.push(cs);S.push(T.end.replace('Proposta válida por 30 dias','Proposta válida por '+($('c-val').value||30)+' dias').replace('Leonardo Scaccabarozzi<br>(11) 97850-2159<br>leonardo@elevalife.com.br',contatoSlide()));
   var html=S.map(function(h,i){return fill(h,ctx).replace(/\{\{N\}\}/g,i+1);});
   $('preview').innerHTML=html.map(function(h){return '<div class="slot">'+h+'</div>';}).join('');
   $('preview').querySelectorAll('.pg').forEach(function(p){p.setAttribute('contenteditable','true');p.setAttribute('spellcheck','false');});
