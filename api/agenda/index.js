@@ -45,10 +45,14 @@ module.exports = async function (context, req) {
       context.res = json(401, { ok: false, error: 'login @elevalife.com.br necessário para criar o compromisso' }); return;
     }
     const b = req.body || {};
+    if (b.acao === 'excluir') { // apaga/cancela o evento do Outlook (e do Teams) quando a tarefa é excluída no S.I.G.E.
+      context.res = json(200, await A.excluirEvento({ organizador: user, mailbox: b.mailbox, eventId: b.eventId })); return;
+    }
     const card = await resumoDoCard(b);
     const r = await A.criarEvento({
       organizador: user, tipo: b.tipo, titulo: b.titulo, inicioLocal: b.inicioLocal, duracaoMin: b.duracaoMin,
       responsavelEmail: b.responsavelEmail || b.email, participantes: b.participantes, conteudo: b.conteudo,
+      eventId: b.eventId || '', mailbox: b.mailbox || '', // se vier eventId, atualiza o evento existente
       card, dryRun: b.dryRun === true,
     });
     context.res = json(r.dryRun ? 200 : 201, r);
