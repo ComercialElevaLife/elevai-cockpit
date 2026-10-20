@@ -1202,9 +1202,20 @@ $('e-send').onclick=function(){
     var k=j.kanban||{};
     var t='E-mail enviado'+(j.email&&j.email.fallback?' (pela caixa padrão, com resposta para você)':'')+'. ';
     t+=k.ok?('Kanban: oportunidade '+k.acao+' → '+k.para+'.'):('Atenção: o Kanban não foi atualizado ('+(k.error||'erro')+'). Atualize a oportunidade manualmente.');
-    eMsg(t,!k.ok);leadsCache=null;
+    var fp=k.fup;
+    if(fp){ t+=' '+fp.titulo+' criado para '+String(fp.data||'').split('-').reverse().join('/')+' às '+(fp.hora||'')+(fp.agenda&&fp.agenda.ok?' e lançado no seu calendário.':' — mas não foi possível lançar no calendário ('+((fp.agenda&&fp.agenda.error)||'erro')+'). A tarefa está no card do Kanban.'); }
+    eMsg(t,!k.ok||!!(fp&&fp.agenda&&!fp.agenda.ok));leadsCache=null;
   }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
+/* 20/10/2026 — CC adicional: lista suspensa com o time ElevaLife (organograma, /time-eleva.js) */
+(function(){
+  var T=window.TIME_ELEVA||[], cc=$('e-cc'); if(!cc||!T.length)return;
+  var s=document.createElement('select'); s.id='e-cc-sel'; s.className=cc.className; s.style.marginTop='6px';
+  s.innerHTML='<option value="">+ Adicionar ao CC (time ElevaLife)…</option>'+T.map(function(p){return '<option value="'+p.e+'">'+p.n+' — '+p.f+'</option>';}).join('');
+  s.onchange=function(){ var e=s.value; s.value=''; if(!e)return; var a=cc.value.split(/[;,\s]+/).filter(Boolean);
+    if(a.map(function(x){return x.toLowerCase();}).indexOf(e)<0)a.push(e); cc.value=a.join(', '); };
+  cc.parentNode.insertBefore(s,cc.nextSibling);
+})();
 aplicarModelo();
 sigRefresh();carregarLeads(atualizarListas);
 if($('f-cliente').value)listarOportunidades();
