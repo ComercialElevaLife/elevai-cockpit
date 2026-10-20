@@ -96,7 +96,11 @@ async function criarEvento(o) {
   const end = computeEnd(start, dur);
 
   // convidados: responsável + participantes (o emitente não se convida; sem repetir)
-  const seen = {}; seen[organizador] = 1;
+  // Tarefa, ligação e WhatsApp são de quem vai fazer: o compromisso nasce SÓ na agenda do responsável
+  // (não aparece na de quem criou). Reunião nasce na agenda de quem criou, com os convidados e o link do Teams.
+  const resp = String(o.responsavelEmail || '').trim().toLowerCase();
+  const dono = (tipo !== 'Reunião' && /^[^@\s]+@elevalife\.com\.br$/.test(resp)) ? resp : organizador;
+  const seen = {}; seen[organizador] = 1; seen[dono] = 1;
   const attendees = [];
   const push = a => {
     a = String(a || '').trim();
@@ -119,18 +123,19 @@ async function criarEvento(o) {
   if (tipo === 'Reunião') { ev.isOnlineMeeting = true; ev.onlineMeetingProvider = 'teamsForBusiness'; }
   if (o.dryRun) return { dryRun: true, organizador, evento: ev, link: cardUrl(card.id) };
 
-  const caminho = '/users/' + encodeURIComponent(organizador) + '/events';
+  const caminho = '/users/' + encodeURIComponent(dono) + '/events';
   let created, semConvidados = false;
   try {
     created = await g.graph('POST', caminho, ev);
   } catch (e) {
+    e.mailbox = dono;
     if (attendees.length && e.status === 400) {
       ev.attendees = []; semConvidados = true;
-      created = await g.graph('POST', caminho, ev); // se falhar de novo, o erro sobe
+      try { created = await g.graph('POST', caminho, ev); } catch (e2) { e2.mailbox = dono; throw e2; } // se falhar de novo, o erro sobe
     } else throw e;
   }
   return {
-    ok: true, id: created.id, tipo, organizador, semConvidados,
+    ok: true, id: created.id, tipo, organizador, calendarioDe: dono, semConvidados,
     convidados: semConvidados ? [] : attendees.map(a => a.emailAddress.address),
     webLink: created.webLink || null,
     joinUrl: (created.onlineMeeting && created.onlineMeeting.joinUrl) || null,
