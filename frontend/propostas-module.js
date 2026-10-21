@@ -627,7 +627,7 @@ function svcSlides(k,ctx){
     if($('eq-comp').checked)EQ.push({n:'Completos',v:parseMoney($('eq-comp-val').value)});
     if($('eq-exc').checked)EQ.push({n:'Exceto avançados',v:parseMoney($('eq-exc-val').value)});
   }
-  var eqAlvo=(k==='fisio'&&$('eq-alvo'))?$('eq-alvo').value:'1',eqObs=(k==='fisio'&&$('eq-obs'))?$('eq-obs').value.trim():'',nOp=0,ic2=[];
+  var eqAlvo=(k==='fisio'&&$('eq-alvo'))?$('eq-alvo').value:'1',eqObs=(k==='fisio'&&$('eq-obs'))?$('eq-obs').value.trim():'',nOp=0,ic2=[],gr=opts.map(function(){return [];});
   opts.forEach(function(o,i){
     var p=S.price(o),rows=svcRows(k,o).slice(0,3),unit=(k==='masso'&&o.modo==='Pontual')?'no período':'/ mês',anual=(k==='masso'&&o.modo==='Pontual')?'':BRL(manN(o,'man_anual')||p*12);
     if(k==='enf'||k==='med'){var c=calcEM(o,k==='med');rows=rows.concat([['Hora extra','diurna '+BRL(manN(o,'man_hed')||c.heD)+' · noturna '+BRL(manN(o,'man_hen')||c.heN)]]);}
@@ -638,9 +638,9 @@ function svcSlides(k,ctx){
         if(e.n!=='Completos')rw.push(['Não inclui','Baropodômetro e Eletromiógrafo de superfície']);
         if(eqObs)rw.push(['Observações',escH(eqObs)]);
         var pt=(p||0)+e.v;
-        ic2.push(investCard2('OPÇÃO '+(++nOp),titulo+' · '+(o.regime||'')+' + equip. '+(e.n==='Completos'?'completos':'exceto avançados'),rw,BRL(pt),unit,BRL(pt*12)));
+        var cc=investCard2('OPÇÃO '+(++nOp),titulo+' · '+(o.regime||'')+' + equip. '+(e.n==='Completos'?'completos':'exceto avançados'),rw,BRL(pt),unit,BRL(pt*12));ic2.push(cc);gr[i].push(cc);
       });
-    }else ic2.push(investCard2('OPÇÃO '+(++nOp),titulo,rows,BRL(p||0),unit,anual));
+    }else{var c0=investCard2('OPÇÃO '+(++nOp),titulo,rows,BRL(p||0),unit,anual);ic2.push(c0);gr[i].push(c0);}
   });
   ic2=ic2.join('');
   var eqT=EQ.length?1:0,eqCols=nOp;
@@ -649,7 +649,9 @@ function svcSlides(k,ctx){
   if(k==='fisio'&&eqT)nInv+='<br>Equipamentos disponibilizados pela ElevaLife, com o valor somado ao da opção indicada. Responsabilidade da contratante: infraestrutura básica (mesa, cadeira e maca).';
   if(k==='fisio'&&!eqT)nInv+='<br>Estrutura e insumos fornecidos pela ElevaLife: equipamentos e materiais de cinesioterapia e aparelhos de eletroterapia (TENS e ultrassom). Responsabilidade da contratante: infraestrutura básica (mesa, cadeira e maca).';
   if(k==='masso'||k==='enf'||k==='med')nInv+='<br>Refeições a cargo da contratante.';
-  out.push(pageWrap(head('Investimento · '+S.nome,'Opções de atendimento','',tag)+'<div class="grid" style="margin-top:22px;'+gridCols(eqCols)+'">'+ic2+'</div><p class="note">'+nInv+'</p>'+foot(ctx)));
+  /* 21/10/2026 — com equipamentos e mais de uma opção de profissional, uma lâmina por opção (ex.: CLT e PJ separadas). */
+  if(EQ.length&&opts.length>1){opts.forEach(function(o,i){out.push(pageWrap(head('Investimento · '+S.nome+' · '+(o.regime||('Opção '+(i+1))),'Opções de atendimento','',tag)+'<div class="grid" style="margin-top:22px;'+gridCols(gr[i].length)+'">'+gr[i].join('')+'</div><p class="note">'+nInv+'</p>'+foot(ctx)));});}
+  else out.push(pageWrap(head('Investimento · '+S.nome,'Opções de atendimento','',tag)+'<div class="grid" style="margin-top:22px;'+gridCols(eqCols)+'">'+ic2+'</div><p class="note">'+nInv+'</p>'+foot(ctx)));
   return out;
 }
 
