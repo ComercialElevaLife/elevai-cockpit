@@ -655,8 +655,9 @@ td .up{color:var(--ok);font-weight:700}
     <div style="padding:18px 20px">
       <p style="margin:0 0 14px;color:#8A7A78;font-size:12.5px">Escolha uma empresa já cadastrada — os contatos dela são carregados automaticamente. A oportunidade entra no Kanban em "Não enviada".</p>
       <form id="opForm" onsubmit="return opSalvar(event)" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px">
-        <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Empresa <span style="color:#B23A48">*</span><input id="op-empresa" list="op-dl-empresas" placeholder="Buscar empresa cadastrada" required oninput="opEmpChange()" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><span id="op-emp-msg" style="font-size:11px;color:#8A7A78"></span></label>
+        <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Empresa <span style="color:#B23A48">*</span><input id="op-empresa" autocomplete="off" placeholder="Digite para buscar (nome, razão social ou CNPJ)" required oninput="window._opEmpSel=null;opEmpChange()" onkeydown="opEmpKey(event)" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><span id="op-emp-msg" style="font-size:11px;color:#8A7A78"></span><div id="op-emp-dd"></div><div id="op-emp-quick"></div></label>
         <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Contato<select id="op-contato" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option value="">—</option></select></label>
+        <div id="op-con-quick" style="grid-column:1/3;margin-top:-6px"></div>
         <label style="display:flex;flex-direction:column;gap:4px">Origem<select id="op-origem" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"><option>NÃO SÓCIOS</option><option>SÓCIOS</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Consultor<input id="op-cons" list="op-dl-cons" style="padding:8px;border:1px solid #C99AA0;border-radius:8px"></label>
         <!-- 21/08/2026 — múltiplos serviços na mesma oportunidade (Fase C, recomendado ao Léo):
@@ -4644,7 +4645,7 @@ window.CRM={render:crmRender};
    por nao terem essa guarda incorreta). */
 function _opEmpresas(){ return (STORE&&STORE.empresas)||[]; }
 function _opContatos(){ return (STORE&&STORE.contatos)||[]; }
-function _opEmpresaByName(v){ v=(v||'').trim().toLowerCase(); return _opEmpresas().find(e=>String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===v); }
+/* _opEmpresaByName: redefinida abaixo (busca sem acento) */
 function opFillDatalists(){
   var dle=el('op-dl-empresas'); if(dle)dle.innerHTML=_opEmpresas().map(e=>'<option value="'+esc(e.cliente||e.razaoSocial||'')+'"></option>').join('');
   var uniq=k=>[...new Set((LEADS||[]).map(l=>l[k]).filter(x=>x&&x!=='NA'))].sort();
@@ -4652,11 +4653,12 @@ function opFillDatalists(){
   setdl('op-dl-cons',uniq('cons')); setdl('op-dl-serv',uniq('serv')); setdl('op-dl-fonte',uniq('fonte'));
 }
 function opNovaOportunidade(){
-  opFillDatalists();
+  opFillDatalists(); opRefreshBase();
   var f=el('opForm'); if(f)f.reset();
   var d=el('op-dt'); if(d)d.value=new Date().toISOString().slice(0,10);
   el('op-msg').textContent=''; el('op-emp-msg').textContent='';
   el('op-contato').innerHTML='<option value="">—</option>';
+  window._opEmpSel=null; ['op-emp-dd','op-emp-quick','op-con-quick'].forEach(function(id){var x=el(id); if(x)x.innerHTML='';});
   var sl=el('op-serv-list'); if(sl)sl.innerHTML=''; opAddServ();
   el('op-ov').style.display='flex';
   _bellSync();
@@ -4684,18 +4686,74 @@ function opFechar(){
   var o=el('op-ov'); if(o)o.style.display='none';
   _bellSync();
 }
+function _opNorm(s){ return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().trim(); }
+function _opNomeEmp(e){ return String(e.cliente||e.razaoSocial||''); }
+function _opEmpresaByName(v){ var n=_opNorm(v); if(!n)return undefined; var s=window._opEmpSel; if(s&&_opNorm(_opNomeEmp(s))===n)return s; return _opEmpresas().find(function(e){return _opNorm(_opNomeEmp(e))===n;}); }
+/* 21/10/2026 — Léo: a lista não autocompletava ("CLAR" não achava Clarius), às vezes vinha vazia e dava "empresa não encontrada". Agora: busca viva sem acento (nome, razão social, CNPJ), dados atualizados ao abrir, cadastro rápido de empresa e de contato no próprio modal. */
+async function opRefreshBase(){
+  try{ var er=await fetch('/api/empresas',{cache:'no-store'}); if(er&&er.ok){ var ej=await er.json(); if(ej&&ej.items)STORE.empresas=ej.items; } }catch(e){}
+  try{ var kr=await fetch('/api/contatos',{cache:'no-store'}); if(kr&&kr.ok){ var kj=await kr.json(); if(kj&&kj.items)STORE.contatos=kj.items; } }catch(e){}
+  var inp=el('op-empresa'), sel=el('op-contato');
+  if(inp&&inp.value&&sel&&sel.value==='')opEmpChange();
+}
 function opEmpChange(){
-  var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato');
+  var v=el('op-empresa').value, hit=_opEmpresaByName(v), msg=el('op-emp-msg'), sel=el('op-contato'), dd=el('op-emp-dd'), qk=el('op-emp-quick'), ck=el('op-con-quick');
+  var lk='font-size:12px;color:#8B3A42;font-weight:600';
   if(hit){
-    if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada'+(hit.cnpj?' · '+esc(hit.cnpj):'');}
-    var cons=_opContatos().filter(c=>(hit.__id&&String(c.empresaId||'')===String(hit.__id))||String(c.empresaNome||'').trim().toLowerCase()===String(hit.cliente||'').trim().toLowerCase());
-    sel.innerHTML='<option value="">— selecione o contato —</option>'+cons.map((c,i)=>'<option value="'+i+'">'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'(sem nome)')+(c.email?' · '+esc(c.email):'')+'</option>').join('');
+    dd.innerHTML=''; qk.innerHTML='';
+    if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ empresa cadastrada'+(hit.cnpj?' · '+hit.cnpj:'');}
+    var cons=_opContatos().filter(function(c){return (hit.__id&&String(c.empresaId||'')===String(hit.__id))||String(c.empresaNome||'').trim().toLowerCase()===String(hit.cliente||'').trim().toLowerCase();});
+    sel.innerHTML='<option value="">— selecione o contato —</option>'+cons.map(function(c,i){return '<option value="'+i+'">'+esc(((c.nome||'')+' '+(c.sobrenome||'')).trim()||'(sem nome)')+(c.email?' · '+esc(c.email):'')+'</option>';}).join('');
     sel._list=cons;
     if(!cons.length){ sel.innerHTML='<option value="">(nenhum contato cadastrado nesta empresa)</option>'; }
+    ck.innerHTML='<a href="#" onclick="opQuickCon();return false" style="'+lk+'">+ novo contato nesta empresa</a>';
   } else {
-    if(msg){ if(v){msg.style.color='#B0463F';msg.textContent='empresa não encontrada — use "+ nova empresa"';} else {msg.textContent='';} }
-    sel.innerHTML='<option value="">—</option>'; sel._list=[];
+    ck.innerHTML=''; sel.innerHTML='<option value="">—</option>'; sel._list=[];
+    var n=_opNorm(v), dig=String(v).replace(/\D/g,'');
+    var ms=n?_opEmpresas().filter(function(e){return _opNorm(e.cliente).indexOf(n)>=0||_opNorm(e.razaoSocial).indexOf(n)>=0||(dig.length>=4&&String(e.cnpj||'').replace(/\D/g,'').indexOf(dig)>=0);}).slice(0,8):[];
+    window._opMatches=ms;
+    dd.innerHTML=ms.length?('<div style="border:1px solid #C99AA0;border-radius:8px;background:#fff;margin-top:2px;max-height:210px;overflow:auto">'+ms.map(function(e,i){return '<div onmousedown="event.preventDefault();opPickEmp('+i+')" style="padding:7px 10px;cursor:pointer;border-bottom:1px solid #EADDE0;font-size:12.5px">'+esc(_opNomeEmp(e))+(e.cnpj?' <span style="color:#8A7A78">· '+esc(e.cnpj)+'</span>':'')+'</div>';}).join('')+'</div>'):'';
+    if(msg){ if(v.trim()){msg.style.color=ms.length?'#8A7A78':'#B0463F';msg.textContent=ms.length?'selecione uma das sugestões abaixo (Enter escolhe a primeira)':'nenhuma empresa encontrada com esse nome';} else {msg.textContent='';} }
+    qk.innerHTML=v.trim()?('<a href="#" onclick="opQuickEmp();return false" style="'+lk+';display:inline-block;margin-top:4px">+ cadastrar “'+esc(v.trim())+'” como nova empresa agora</a>'):'';
   }
+}
+function opPickEmp(i){ var e=(window._opMatches||[])[i]; if(!e)return; window._opEmpSel=e; el('op-empresa').value=_opNomeEmp(e); opEmpChange(); }
+function opEmpKey(ev){ if(ev.key==='Enter'){ var v=el('op-empresa').value; if(!_opEmpresaByName(v)&&(window._opMatches||[]).length){ ev.preventDefault(); opPickEmp(0); } } }
+async function opQuickEmp(){
+  var v=el('op-empresa').value.trim(); if(!v)return;
+  if(_opEmpresaByName(v)){ opEmpChange(); return; }
+  var m=el('op-emp-msg'); m.style.color='#8A7A78'; m.textContent='Cadastrando empresa...';
+  try{
+    var r=await fetch('/api/empresas',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({cliente:v,target:'NÃO TARGET'})});
+    var j=await r.json().catch(function(){return {};});
+    if(r.ok&&j.ok&&j.item){ STORE.empresas=(STORE.empresas||[]).concat([j.item]); window._opEmpSel=j.item; el('op-empresa').value=_opNomeEmp(j.item); opEmpChange(); m.style.color='#2E7D5B'; m.textContent='✓ empresa cadastrada agora (complete CNPJ e demais dados depois em Cadastro)'; return; }
+    m.style.color='#B0463F'; m.textContent='Não consegui cadastrar: '+(j.error||('HTTP '+r.status));
+  }catch(e){ m.style.color='#B0463F'; m.textContent='Falha de rede ao cadastrar: '+e.message; }
+}
+function opQuickCon(){
+  var ck=el('op-con-quick'); if(!ck)return;
+  var st='padding:7px;border:1px solid #C99AA0;border-radius:8px;font-size:12.5px;min-width:0';
+  ck.innerHTML='<div style="background:#F5EFEA;border:1px solid #EADDE0;border-radius:10px;padding:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px">'
+   +'<input id="oqc-nome" placeholder="Nome *" style="'+st+'"><input id="oqc-sob" placeholder="Sobrenome" style="'+st+'">'
+   +'<input id="oqc-email" placeholder="E-mail" style="'+st+'"><input id="oqc-tel" placeholder="Telefone" style="'+st+'">'
+   +'<div style="grid-column:1/3;display:flex;gap:12px;align-items:center"><button type="button" class="btn" onclick="opSaveCon()">Salvar contato</button><a href="#" onclick="opEmpChange();return false" style="font-size:12px;color:#8A7A78">cancelar</a><span id="oqc-msg" style="font-size:12px"></span></div></div>';
+  var f=el('oqc-nome'); if(f)f.focus();
+}
+async function opSaveCon(){
+  var hit=_opEmpresaByName(el('op-empresa').value), m=el('oqc-msg'); if(!hit)return;
+  var nome=el('oqc-nome').value.trim(), email=el('oqc-email').value.trim();
+  if(!nome){ m.style.color='#B0463F'; m.textContent='informe o nome'; return; }
+  m.style.color='#8A7A78'; m.textContent='Salvando...';
+  try{
+    var r=await fetch('/api/contatos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nome:nome,sobrenome:el('oqc-sob').value.trim(),email:email,telefone:el('oqc-tel').value.trim(),empresaId:String(hit.__id||''),empresaNome:_opNomeEmp(hit)})});
+    var j=await r.json().catch(function(){return {};});
+    if(r.ok&&j.ok&&j.item){
+      STORE.contatos=(STORE.contatos||[]).concat([j.item]); opEmpChange();
+      var sel=el('op-contato'), ix=(sel._list||[]).findIndex(function(c){return String(c.__id)===String(j.item.__id);}); if(ix>=0)sel.value=String(ix);
+      return;
+    }
+    m.style.color='#B0463F'; m.textContent='Não consegui salvar: '+(j.error||('HTTP '+r.status));
+  }catch(e){ m.style.color='#B0463F'; m.textContent='Falha de rede: '+e.message; }
 }
 function opNovaEmpresa(){ opFechar(); var b=document.querySelector('.nav button[data-v="cadastro"]'); if(b)b.click(); if(window.cadSubNav)cadSubNav('empresa'); }
 async function opSalvar(ev){
@@ -4737,6 +4795,7 @@ async function opSalvar(ev){
   btn.disabled=false; return false;
 }
 window.opNovaOportunidade=opNovaOportunidade;window.opFechar=opFechar;window.opEmpChange=opEmpChange;window.opNovaEmpresa=opNovaEmpresa;window.opSalvar=opSalvar;
+window.opPickEmp=opPickEmp;window.opEmpKey=opEmpKey;window.opQuickEmp=opQuickEmp;window.opQuickCon=opQuickCon;window.opSaveCon=opSaveCon;window.opRefreshBase=opRefreshBase;
 window.fupDecidir=fupDecidir;window._fupFecharModal=_fupFecharModal;
 window._fupMostrarMotivos=_fupMostrarMotivos;window._fupVoltarStep1=_fupVoltarStep1;window._fupOutroMotivo=_fupOutroMotivo;
 
