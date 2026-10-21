@@ -37,6 +37,11 @@ function requireDomain(context, req) {
   return false;
 }
 
+/* 21/10/2026 — desempenho: a leitura da lista inteira no SharePoint leva 1–3 s. Guarda a resposta por alguns segundos
+   (e junta pedidos simultâneos num só). Qualquer gravação (POST/PATCH/DELETE) apaga a cópia na hora. */
+const _getCache = {}; // kind -> { t, p }
+const GET_TTL_MS = 8000;
+
 function makeHandler(kind) {
   const def = LISTS[kind];
   return async function (context, req) {
@@ -44,9 +49,15 @@ function makeHandler(kind) {
       if (!requireDomain(context, req)) return;
       const { id: listId } = await g.ensureList(def); // provisão + garante colunas (inclui auditoria)
       const method = (req.method || 'GET').toUpperCase();
+      if (method !== 'GET') delete _getCache[kind];
 
       if (method === 'GET') {
-        const raw = await g.listItemsMeta(listId);
+        let c = _getCache[kind];
+        if (!c || Date.now() - c.t >= GET_TTL_MS) {
+          c = _getCache[kind] = { t: Date.now(), p: g.listItemsMeta(listId) };
+          const cc = c; cc.p.catch(() => { if (_getCache[kind] === cc) delete _getCache[kind]; });
+        }
+        const raw = await c.p;
         const items = raw.map(r => Object.assign({ __id: r.id }, fromFields(kind, r.fields)));
         context.res = json(200, { ok: true, kind, count: items.length, items });
         return;
@@ -64,6 +75,7 @@ function makeHandler(kind) {
         // de esquecer algum.
         if (kind === 'leads' && !rec.origemFunil) rec.origemFunil = 'NOVO';
         const created = await g.addItem(listId, toFields(kind, rec));
+        delete _getCache[kind];
         context.res = json(201, { ok: true, kind, id: created.id, item: Object.assign({ __id: created.id }, fromFields(kind, created.fields || {})) });
         return;
       }
@@ -80,6 +92,7 @@ function makeHandler(kind) {
         const itemId = body.id || body.__id || (req.query && req.query.id);
         if (!itemId) { context.res = json(400, { ok: false, error: 'faltou id do item' }); return; }
         await g.deleteItem(listId, itemId);
+        delete _getCache[kind];
         context.res = json(200, { ok: true, kind, deleted: itemId });
         return;
       }
@@ -113,6 +126,7 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   fields.alteradoEm = new Date().toISOString();
   fields.alteradoPor = readUser(req) || 'desconhecido';
   await g.updateItem(listId, itemId, fields);
+  delete _getCache[kind];
   context.res = json(200, { ok: true, kind, id: itemId, updated: fields });
 }
 
