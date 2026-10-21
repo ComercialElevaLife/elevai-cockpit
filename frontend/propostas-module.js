@@ -634,10 +634,11 @@ function svcSlides(k,ctx){
     var titulo=(k==='masso'?(o.modo==='Pontual'?'Ação pontual':'Atendimento recorrente'):(k==='enf'?o.prof:S.nome));
     if(EQ.length&&(eqAlvo==='all'||eqAlvo===String(i+1))){
       EQ.forEach(function(e){
-        var rw=rows.concat([['Equipamentos',escH(e.n==='Completos'?'Completos':'Exceto avançados (sem Baropodômetro e Eletromiógrafo de superfície)')]]);
+        var rw=rows.concat([['Valor dos profissionais',BRL(p||0)+' / mês'],['Equipamentos · '+(e.n==='Completos'?'completos':'exceto avançados'),'+ '+BRL(e.v)+' / mês']]);
+        if(e.n!=='Completos')rw.push(['Não inclui','Baropodômetro e Eletromiógrafo de superfície']);
         if(eqObs)rw.push(['Observações',escH(eqObs)]);
         var pt=(p||0)+e.v;
-        ic2.push(investCard2('OPÇÃO '+(++nOp),titulo+' + equipamentos',rw,BRL(pt),unit,BRL(pt*12)));
+        ic2.push(investCard2('OPÇÃO '+(++nOp),titulo+' · '+(o.regime||'')+' + equip. '+(e.n==='Completos'?'completos':'exceto avançados'),rw,BRL(pt),unit,BRL(pt*12)));
       });
     }else ic2.push(investCard2('OPÇÃO '+(++nOp),titulo,rows,BRL(p||0),unit,anual));
   });
