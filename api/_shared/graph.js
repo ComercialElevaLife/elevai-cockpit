@@ -12,6 +12,7 @@ const GRAPH = 'https://graph.microsoft.com/v1.0';
 let _tok = { value: null, exp: 0 };
 let _siteId = null;
 const _listCache = {}; // displayName -> listId
+const _colsOk = {}; // listId -> colunas já conferidas nesta instância
 
 async function getToken() {
   const now = Date.now();
@@ -132,7 +133,9 @@ async function ensureList(def) {
     });
     id = c.id; created = true; _listCache[def.displayName] = id;
   }
-  await ensureColumns(id, def.columns); // idempotente: repara listas antigas de schema mínimo
+  /* 21/10/2026 — desempenho: a checagem de colunas custa 1 chamada ao SharePoint e rodava em TODA requisição.
+     Agora roda 1 vez por lista a cada inicialização do servidor (um deploy reinicia e confere de novo). */
+  if (created || !_colsOk[id]) { await ensureColumns(id, def.columns); _colsOk[id] = true; } // idempotente: repara listas antigas de schema mínimo
   return { id, created };
 }
 
