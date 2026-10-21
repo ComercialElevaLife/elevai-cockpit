@@ -43,7 +43,7 @@ async function avisar(email, o) {
       else { try { await instalar(uid); inst = 'instalado agora'; } catch (ei) { inst = 'falha ao instalar: ' + corta((ei && ei.message) || ei, 110); } }
     } catch (el) { inst = 'checagem falhou: ' + corta((el && el.message) || el, 110); }
     const corpo = {
-      topic: { source: 'text', value: corta(o.titulo, 120), webUrl: 'https://teams.microsoft.com/l/entity/' + EXT_ID + '/sige?label=S.I.G.E.&webUrl=' + encodeURIComponent(o.url || 'https://sige-novasreceitas.elevalife.com.br/') }, /* Teams só aceita link do próprio Teams aqui */
+      topic: { source: 'text', value: corta(o.titulo, 120), webUrl: 'https://teams.microsoft.com/l/entity/' + EXT_ID + '/sige?label=S.I.G.E.&webUrl=' + encodeURIComponent(o.url || 'https://sige-novasreceitas.elevalife.com.br/') + '&context=' + encodeURIComponent(JSON.stringify({ subEntityId: (String(o.url || '').split('card=')[1] || '').split('&')[0] })) }, /* Teams só aceita link do próprio Teams aqui */
       activityType: 'novaTarefa',
       previewText: { content: corta(o.resumo, 150) },
       templateParameters: [{ name: 'titulo', value: corta(o.titulo, 120) }],
