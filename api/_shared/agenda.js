@@ -30,7 +30,8 @@ function computeEnd(startLocal, mins) {
 // Link que abre o card no S.I.G.E. (o id é o do item no SharePoint; só caracteres seguros)
 function cardUrl(id) {
   const s = String(id == null ? '' : id).trim();
-  return s ? BASE + '/?card=' + encodeURIComponent(s) : BASE + '/';
+  /* 21/10/2026 — o link passa pelo login (.auth/login/aad) com post_login_redirect_uri: se a sessão tiver expirado, o login devolve a pessoa ao card e não à tela inicial */
+  return s ? BASE + '/.auth/login/aad?post_login_redirect_uri=' + encodeURIComponent('/?card=' + encodeURIComponent(s)) : BASE + '/';
 }
 function moeda(v) {
   const n = Number(v);
