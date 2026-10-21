@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>S.I.G.E. — abrir card</title>
+<style>body{margin:0;font-family:Montserrat,Segoe UI,Arial,sans-serif;background:#F5EFEA;color:#3A2A2E;display:flex;align-items:center;justify-content:center;min-height:100vh}
+.c{background:#fff;border:1px solid #EADDE0;border-radius:14px;padding:32px;max-width:420px;text-align:center}
+h1{font-size:18px;color:#8B3A42;margin:0 0 8px}p{font-size:14px;color:#8A7A78;margin:0 0 20px}
+a.b{display:inline-block;background:#8B3A42;color:#fff;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:600;font-size:14px}</style></head>
+<body><div class="c"><h1>S.I.G.E. · Novas Receitas</h1>
+<p id="m">Abrindo o card no seu navegador…</p>
+<a class="b" id="go" href="https://sige-novasreceitas.elevalife.com.br/" target="_blank" rel="noopener">Abrir o S.I.G.E.</a></div>
+<script src="https://res.cdn.office.net/teams-js/2.31.1/js/MicrosoftTeams.min.js"></script>
+<script>
+(function(){
+var BASE='https://sige-novasreceitas.elevalife.com.br/';
+var q=new URLSearchParams(location.search).get('card')||'';
+function alvo(id){return id?BASE+'?card='+encodeURIComponent(id):BASE;}
+function pronto(id){var u=alvo(id);var a=document.getElementById('go');a.href=u;
+ document.getElementById('m').textContent=id?'Clique para abrir o card desta tarefa no S.I.G.E.':'Clique para abrir o S.I.G.E.';
+ try{microsoftTeams.app.openLink(u).then(function(){document.getElementById('m').textContent='Aberto no seu navegador.';}).catch(function(){});}catch(e){}
+ a.onclick=function(ev){try{ev.preventDefault();microsoftTeams.app.openLink(u).catch(function(){window.open(u,'_blank');});}catch(e){window.open(u,'_blank');}};}
+try{
+ microsoftTeams.app.initialize().then(function(){return microsoftTeams.app.getContext();}).then(function(c){
+  var id=q||(c&&c.page&&(c.page.subPageId||''))||'';pronto(id);
+ }).catch(function(){pronto(q);});
+}catch(e){pronto(q);}
+})();
+</script></body></html>
