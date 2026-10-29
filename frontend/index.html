@@ -3698,7 +3698,7 @@ function render(){
         ${(l.status==='EM NEGOCIAÇÃO'&&l.subEtapa)?`<div class="subtag" title="Sub-etapa da negociação">🔹 ${esc(l.subEtapa)}</div>`:''}
         <div class="row"><span class="tag ${ti.cls}" title="${ti.tit}"><b>${ti.lbl}</b> · ${l.serv||'—'}</span><span class="val">${brl(l.valor)}</span></div>
         <div class="row r2"><span class="meta">${l.cons||'—'} · ICP ${l.icp||'-'}</span>${nxHtml}</div>
-        <div class="row r3"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>`:''}</div>
+        <div class="row r3"><span class="meta" title="Data de entrada">📥 ${dcard(l.dt)||'—'}</span>${l.status==='VENDIDA'?`<span class="meta" title="Data da venda">✅ ${dcard(l.dataVenda||l.alteradoEm)||'—'}</span>${l.evidencia?'':'<span class="meta" style="color:#B23A48" title="Venda sem evidência de formalização (pedido, contrato ou e-mail)">⚠ sem evidência</span>'}`:''}</div>
       </div>`;
   };
   /* 24/09/2026 (v2) -- Léo: coluna virtual "🗄 REATIVAR (LEAD)" (filtro em cima de `inativo`,
@@ -4187,6 +4187,56 @@ function confirmarReverterStatus(id){
    de forçar voltar pro status congelado (mais previsível: o usuário está literalmente arrastando
    pra onde quer que ela vá). Se soltar na MESMA coluna do status congelado, só reativa mesmo (não
    dispara persistStatus à toa). */
+/* 29/10/2026 — Léo: "o certo era no Cockpit só dar como venda depois de formalizado". Ao mover para VENDIDA,
+   exige data de formalização + evidência (pedido, contrato, e-mail ou WhatsApp) e avisa quando já existe
+   venda parecida do mesmo cliente (mesma raiz de nome e valor até 2% de diferença). Vale para o arrasto no
+   Kanban e para o seletor de status do drawer. Vendas antigas não são afetadas (só aparece o selo "sem evidência"). */
+var _EVTIPOS=['Pedido de compra','Contrato assinado','E-mail de aprovação','WhatsApp','Outro'];
+function _vendaOk(l){return !!(l.dataVenda&&String(l.evidencia||'').trim()&&String(l.evidenciaTipo||'').trim());}
+function _normCli(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function _vendaDuplicadas(l){
+  var rc=_normCli(l.cliente).slice(0,7),v=+l.valor||0;
+  if(!v)return [];
+  return _allLeads().filter(function(x){
+    if(x.id===l.id||x.inativo==='SIM'||x.status!=='VENDIDA')return false;
+    if(_normCli(x.cliente).slice(0,7)!==rc)return false;
+    var xv=+x.valor||0; if(!xv)return false;
+    return Math.abs(xv-v)/Math.max(v,xv)<=0.02;
+  });
+}
+function _vendaPrecisaGate(l){return !_vendaOk(l)||(!l._dupOk&&_vendaDuplicadas(l).length>0);}
+function _gateVenda(l,onOk,onCancel){
+  var dups=_vendaDuplicadas(l),old=document.getElementById('gv-ov');if(old)old.remove();
+  var ov=document.createElement('div');ov.id='gv-ov';
+  ov.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(58,42,46,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var inp='width:100%;padding:8px 10px;border:1px solid #C99AA0;border-radius:8px;font:inherit;margin:4px 0 10px;box-sizing:border-box';
+  var h='<div style="background:#fff;border-radius:12px;max-width:520px;width:100%;padding:20px 22px;font:14px/1.45 Montserrat,Arial,sans-serif;color:#3A2A2E;max-height:90vh;overflow:auto">';
+  h+='<div style="font-weight:700;font-size:17px;color:#5E2A30;margin-bottom:4px">Registrar venda formalizada</div>';
+  h+='<div style="color:#8A7A78;font-size:12px;margin-bottom:12px">'+esc(l.cliente||'')+' · a venda só conta com a data de formalização e uma evidência.</div>';
+  if(dups.length){h+='<div style="background:#FBF1E3;border:1px solid #C9822B;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:13px"><b>Atenção: já existe venda parecida deste cliente.</b><ul style="margin:6px 0 6px 18px;padding:0">'+dups.map(function(x){return '<li>'+esc(x.cliente)+' · '+esc(x.serv||'')+' · R$ '+Math.round(+x.valor||0).toLocaleString('pt-BR')+' · '+esc(String(x.dataVenda||x.dt||'').slice(0,10))+'</li>';}).join('')+'</ul><label style="display:flex;gap:6px;align-items:flex-start"><input type="checkbox" id="gv-dup"> <span>Confirmo que é uma venda diferente, não uma duplicidade.</span></label></div>';}
+  h+='<label>Data da formalização<input type="date" id="gv-dt" value="'+esc(l.dataVenda||'')+'" style="'+inp+'"></label>';
+  h+='<label>Tipo de evidência<select id="gv-tp" style="'+inp+'"><option value="">Selecione…</option>'+_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>';
+  h+='<label>Número do pedido/contrato ou link do arquivo (print do e-mail ou WhatsApp)<input id="gv-ev" value="'+esc(l.evidencia||'')+'" style="'+inp+'" placeholder="Ex.: PC 092985 · contrato 10007000 · link do SharePoint"></label>';
+  h+='<div id="gv-err" style="color:#B23A48;font-size:12px;min-height:16px;margin-bottom:8px"></div>';
+  h+='<div style="display:flex;gap:8px;justify-content:flex-end"><button id="gv-cancel" style="padding:8px 14px;border:1px solid #C99AA0;background:#fff;border-radius:8px;cursor:pointer;font:inherit">Cancelar</button><button id="gv-ok" style="padding:8px 14px;border:0;background:#8B3A42;color:#fff;border-radius:8px;cursor:pointer;font:inherit;font-weight:600">Registrar venda</button></div></div>';
+  ov.innerHTML=h;document.body.appendChild(ov);
+  var $g=function(i){return document.getElementById(i);},fechar=function(){ov.remove();};
+  $g('gv-cancel').onclick=function(){fechar();if(onCancel)onCancel();};
+  $g('gv-ok').onclick=function(){
+    var dt=$g('gv-dt').value,tp=$g('gv-tp').value,ev=$g('gv-ev').value.trim(),er=$g('gv-err');
+    if(!dt){er.textContent='Informe a data da formalização.';return;}
+    if(!tp){er.textContent='Selecione o tipo de evidência.';return;}
+    if(!ev){er.textContent='Informe o número do pedido/contrato ou o link do arquivo.';return;}
+    if(dups.length&&!$g('gv-dup').checked){er.textContent='Confirme que não é uma venda duplicada.';return;}
+    var f={dataVenda:dt,evidenciaTipo:tp,evidencia:ev};
+    $g('gv-ok').disabled=true;
+    window.persistLeadFields(l.spid,f,function(){
+      Object.assign(l,f);l._dupOk=true;
+      var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});if(raw)Object.assign(raw,f);
+      fechar();onOk();
+    },function(){er.textContent='Não foi possível salvar. Tente de novo.';$g('gv-ok').disabled=false;});
+  };
+}
 function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   if(dragEmpresaId){ const eid=dragEmpresaId; dragEmpresaId=null; _criarOportunidadeDeEmpresa(eid,status); return; }
   const l=_allLeads().find(x=>x.id===dragId);
@@ -4196,6 +4246,7 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   const aplicarEfeitos=function(){
     _aplicarEfeitosStatus(l,era,status,function(){ render(); if(curId===l.id)openDrawer(l.id); });
   };
+  if(statusChanged&&status==='VENDIDA'&&_vendaPrecisaGate(l)){ _gateVenda(l,function(){ dragId=l.id; drop({preventDefault:function(){}},status,col); },function(){ render(); }); return; }
   if(statusChanged){
     l.status=status; manual[l.id]=status;
     if(status==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l);
@@ -4386,7 +4437,7 @@ function openDrawer(id){curId=id;
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Natureza da venda<select id="le-natureza"><option value="">Automático (${_natInfo(Object.assign({},l,{natureza:''})).lbl})</option>${['NOVA','UPSELL','CROSS'].map(o=>`<option value="${o}"${String(l.natureza||'')===o?' selected':''}>${_NAT[o].lbl}</option>`).join('')}</select></label>
-     <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
+     <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
      <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
      <label>Contato — tipo<select id="le-contatotipo">${['','Técnico','Comercial'].map(o=>`<option value="${o}"${String(l.contatoTipo||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
@@ -4459,7 +4510,7 @@ function saveLead(id){
   var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
   var g=function(x){var e=el(x);return e?e.value:'';};
   var _vf=g('le-fechamento');
-  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),natureza:g('le-natureza'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs'),
+  var f={cliente:g('le-cliente'),unidade:g('le-unidade'),nome:g('le-nome'),cons:g('le-cons'),serv:g('le-serv'),fonte:g('le-fonte'),campanha:g('le-campanha'),icp:g('le-icp'),tipo:g('le-tipo'),prop:g('le-prop'),tc:g('le-tc'),natureza:g('le-natureza'),evidenciaTipo:g('le-evtipo'),evidencia:g('le-evid'),envio:g('le-envio'),telefone:g('le-telefone'),email:g('le-email'),obs:g('le-obs'),
     cnpj:g('le-cnpj'),razaoSocial:g('le-razao'),endereco:g('le-endereco'),cnae:g('le-cnae'),grauRisco:g('le-grau'),contatoSobrenome:g('le-sobrenome'),contatoTipo:g('le-contatotipo'),origem:g('le-origem'),condPagamento:g('le-condpag'),codServico:g('le-codserv'),prazoMobilizacao:g('le-prazomob'),recebimento:g('le-receb'),valorFechamento:(_vf!==''?moneyNum('le-fechamento'):null)};
   if(_vf==='')delete f.valorFechamento;
   var _vm=g('le-valormensal'), _nm=g('le-nummeses');
@@ -4573,7 +4624,7 @@ function delTask(id,i){var _t=(tasks[id]||[])[i];
 /* 25/08/2026 — sincroniza `status`/`alteradoEm`/`alteradoPor` pro registro cru de STORE.leads
    também (não só no objeto `l` de uso único devolvido por _allLeads()), senão a troca pelo select
    do drawer se perde no próximo render(). */
-function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
+function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){ if(v==='VENDIDA'&&l.status!=='VENDIDA'&&_vendaPrecisaGate(l)){ _gateVenda(l,function(){ setStatus(id,v); },function(){ if(curId===id)openDrawer(id); render(); }); return; } const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
       /* 08/09/2026 — mesma correção do drop(): todos os efeitos automáticos (Proposta/Envio,
          Histórico, FUP 1, reativação de data) vão num único PATCH via _aplicarEfeitosStatus() —
@@ -4616,7 +4667,7 @@ function _mapLead(Lx,i){return {
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:(Lx.tarefasJson2||Lx.tarefasJson), nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
-    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda };}
+    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda, evidenciaTipo:Lx.evidenciaTipo, evidencia:Lx.evidencia };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por
