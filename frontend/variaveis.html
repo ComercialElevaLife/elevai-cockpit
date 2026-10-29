@@ -63,12 +63,19 @@ var TIERS=[[0,0],[.8,1500],[1,3000],[1.2,4500],[1.5,6000]];
 var TRIM=[['2025-T4',2,0],['2026-T1',2,1],['2026-T2',0,3],['2026-T3',0,3],['2026-T4',0,1]];
 var FATORES=[['PROPRIA','Própria (100%)'],['INDIRETA','Indireta (50%)'],['NAO_PAGA','Sem comissão'],['FORA','Não é minha'],['IGNORAR','Ignorar']];
 var S=[];
+var SORT={k:'d',dir:1};
+var COLS=[['d','Data','l'],['cliente','Cliente','l'],['serv','Serviço','l'],['tipo','Tipo',''],['valor','Valor',''],['cons','Consultor','l'],['tc','Cliente','l'],['fonte','Fonte','l'],['taxa','Taxa',''],['fator','Como conta','l'],['_c','Comissão (A)','']];
+(function(){var st=document.createElement('style');st.textContent='th[data-k]{cursor:pointer;user-select:none;white-space:nowrap}th[data-k]:hover{color:#8B3A42}';document.head.appendChild(st)})();
 var $=function(id){return document.getElementById(id)};
 function brl(n){return 'R$ '+Math.round(n).toLocaleString('pt-BR')}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
 function qOf(d){var y=d.slice(0,4),m=+d.slice(5,7);return y+'-T'+Math.ceil(m/3)}
 function taxa(s){if(s.serv==='ENF'||s.serv==='MED TRAB')return P.saude;return s.tipo==='P'?P.pont:P.rec}
 function fat(s){return s.fator==='PROPRIA'?1:s.fator==='INDIRETA'?P.ind:0}
+function fl(f){for(var i=0;i<FATORES.length;i++)if(FATORES[i][0]===f)return FATORES[i][1];return f}
+function com(s){return s.fator==='IGNORAR'?0:(s.zf&&(s.fator==='PROPRIA'||s.fator==='INDIRETA')?s.valor*taxa(s)*P.zfA:s.valor*taxa(s)*fat(s))}
+function sv(s,k){if(k==='taxa')return taxa(s);if(k==='_c')return com(s);if(k==='valor')return s.valor;if(k==='fator')return fl(s.fator);return s[k]==null?'':s[k]}
+function pct1(x){return (x*100).toFixed(1).replace('.',',').replace(',0','')+'%'}
 function calc(zf){
   var out=[];
   TRIM.forEach(function(t){
@@ -99,13 +106,16 @@ function render(){
    +'<div class="kpi"><span>Total estimado · ZF a '+Math.round(P.zfB*100)+'%</span><b>'+brl(soma(B,'total'))+'</b></div>'
    +'<div class="kpi"><span>Extra acima do garantido (A / B)</span><b>'+brl(soma(A,'total')-gar)+' / '+brl(soma(B,'total')-gar)+'</b></div>';
   $('tbTrim').innerHTML=tabela(A,'Cenário A · ZF a '+Math.round(P.zfA*100)+'%')+'<div style="height:14px"></div>'+tabela(B,'Cenário B · ZF a '+Math.round(P.zfB*100)+'%');
-  var h='<table><tr><th class="l">Data</th><th class="l">Cliente</th><th class="l">Serviço</th><th>Tipo</th><th>Valor</th><th class="l">Consultor</th><th class="l">Como conta</th><th>Comissão (A)</th></tr>';
-  S.forEach(function(s,i){
-    var c=(s.fator==='IGNORAR'?0:(s.zf&&(s.fator==='PROPRIA'||s.fator==='INDIRETA')?s.valor*taxa(s)*P.zfA:s.valor*taxa(s)*fat(s)));
+  var idx=S.map(function(_,i){return i});
+  idx.sort(function(a,b){var x=sv(S[a],SORT.k),y=sv(S[b],SORT.k);var r=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),'pt-BR');return (r*SORT.dir)||(S[a].d<S[b].d?-1:S[a].d>S[b].d?1:0)});
+  var h='<table><tr>'+COLS.map(function(c){return '<th class="'+c[2]+'" data-k="'+c[0]+'" title="Clique para ordenar">'+c[1]+(SORT.k===c[0]?(SORT.dir>0?' ▲':' ▼'):'')+'</th>'}).join('')+'</tr>';
+  idx.forEach(function(i){
+    var s=S[i],c=com(s);
     var opt=FATORES.map(function(f){return '<option value="'+f[0]+'"'+(f[0]===s.fator?' selected':'')+'>'+f[1]+'</option>'}).join('');
-    h+='<tr><td class="l">'+s.d.slice(8,10)+'/'+s.d.slice(5,7)+'/'+s.d.slice(0,4)+'</td><td class="l">'+esc(s.cliente)+(s.zf?' <span class="pill">cenários A/B</span>':'')+'</td><td class="l">'+esc(s.serv)+'</td><td>'+esc(s.tipo)+'</td><td>'+brl(s.valor)+'</td><td class="l">'+esc(s.cons||'')+'</td><td class="l"><select data-i="'+i+'">'+opt+'</select></td><td>'+brl(c)+'</td></tr>';
+    h+='<tr><td class="l">'+s.d.slice(8,10)+'/'+s.d.slice(5,7)+'/'+s.d.slice(0,4)+'</td><td class="l">'+esc(s.cliente)+(s.zf?' <span class="pill">cenários A/B</span>':'')+'</td><td class="l">'+esc(s.serv)+'</td><td>'+esc(s.tipo)+'</td><td>'+brl(s.valor)+'</td><td class="l">'+esc(s.cons||'')+'</td><td class="l">'+esc(s.tc||'')+'</td><td class="l">'+esc(s.fonte||'')+'</td><td>'+pct1(taxa(s))+'</td><td class="l"><select data-i="'+i+'">'+opt+'</select></td><td>'+brl(c)+'</td></tr>';
   });
   $('tbVendas').innerHTML=h+'</table>';
+  Array.prototype.forEach.call(document.querySelectorAll('#tbVendas th[data-k]'),function(el){el.onclick=function(){var k=el.getAttribute('data-k');if(SORT.k===k)SORT.dir=-SORT.dir;else{SORT.k=k;SORT.dir=(k==='valor'||k==='_c'||k==='taxa')?-1:1}render()}});
   Array.prototype.forEach.call(document.querySelectorAll('#tbVendas select'),function(el){el.onchange=function(){salvar(+el.getAttribute('data-i'),el.value)}});
 }
 function salvar(i,f){
