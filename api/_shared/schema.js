@@ -87,6 +87,9 @@ const LISTS = {
       // 29/10/2026 — Léo: natureza da venda para o Kanban/indicadores: NOVA (cliente novo, Comercial) | UPSELL | CROSS (cliente ativo, Operações).
       // Vazio = o frontend sugere automaticamente (cliente NOVO -> NOVA; ATUAL -> UPSELL se já havia venda do mesmo serviço, senão CROSS).
       { name: 'natureza', type: 'text' },
+      // 29/10/2026 — Léo: venda só vale com formalização comprovada. Tipo da evidência (Pedido de compra | Contrato assinado | E-mail | WhatsApp | Outro) e número do pedido/contrato ou link do arquivo (print).
+      { name: 'evidenciaTipo', type: 'text' },
+      { name: 'evidencia', type: 'text' },
       // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
       // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
       // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
