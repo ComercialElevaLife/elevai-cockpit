@@ -47,6 +47,8 @@ select,input{font:inherit;padding:4px 6px;border:1px solid var(--soft);border-ra
   <div id="msg">Carregando…</div>
   <div id="app" hidden>
     <div class="kpis" id="kpis"></div>
+    <div class="card"><h2>Notas fiscais emitidas · o que você já recebeu</h2><div class="scroll" id="tbNotas"></div>
+      <p class="note">A garantia mensal (R$ 7.325 sem carro até fevereiro/2026 · R$ 6.325 com carro de março/2026 em diante) é um adiantamento do variável: entra na conta como já recebido. As notas de pendências anteriores pagaram bônus de períodos antes de 01/11/2025 e não abatem o variável deste período.</p></div>
     <div class="card"><h2>Apuração por trimestre</h2><div class="scroll" id="tbTrim"></div>
       <p class="note">Vale, em cada trimestre, o maior entre o variável apurado (comissão + bônus) e o piso do variável. Comissão por competência (trimestre do fechamento); a regra paga em 4 parcelas trimestrais.</p></div>
     <div class="card"><h2>Vendas e classificação</h2>
@@ -54,6 +56,22 @@ select,input{font:inherit;padding:4px 6px;border:1px solid var(--soft);border-ra
       <div class="scroll" id="tbVendas"></div></div>
     <div class="card"><h2>Premissas</h2><div id="prem" class="scroll"></div>
       <p class="note">Ajustes feitos aqui valem só nesta tela, enquanto ela estiver aberta.</p></div>
+    <div class="card"><h2>Como a conta é feita</h2>
+      <p class="note" style="color:var(--ink)"><b>Renda.</b> Fixo de R$ 4.500 sem carro e R$ 3.500 com carro (carro oficial a partir de março/2026). A renda garantida é R$ 7.325 sem carro e R$ 6.325 com carro; a diferença (R$ 2.825 por mês) é o variável garantido, pago por adiantamento.</p>
+      <p class="note" style="color:var(--ink)"><b>Comissão</b>, sobre o valor dos 12 meses vendidos (vale mesmo que o cliente cancele ou haja troca de pessoa): 1,5% em gestão recorrente (inclui fisioterapia, na mesma regra da ginástica laboral) · 3% em diagnósticos e treinamentos pontuais (AET, AIP, eventos, palestras) · 1% em saúde ocupacional (enfermagem e medicina do trabalho). Vendas de sócios, indicação, marketing ou evento pagam 50%. Upsell e cross-sell feitos pela operação não pagam comissão.</p>
+      <p class="note" style="color:var(--ink)"><b>Bônus trimestral</b> sobre a meta da área de R$ 1 milhão por trimestre: 80% = R$ 1.500 · 100% = R$ 3.000 · 120% = R$ 4.500 · 150% = R$ 6.000. A meta soma todas as vendas do trimestre, inclusive as que não pagam comissão.</p>
+      <p class="note" style="color:var(--ink)"><b>Apuração.</b> Em cada trimestre vale o maior entre comissão mais bônus e o piso do variável (garantia menos fixo). O direito total é fixo mais esse valor. <b>Saldo a receber = direito total menos a garantia já recebida.</b> Não há devolução se o variável apurado ficar abaixo da garantia.</p>
+      <p class="note" style="color:var(--ink)"><b>Casos tratados:</b> Imerys de abril conta como upsell (sem comissão) e as anteriores são vendas próprias · Givaudan não é upsell · Bartira conta só a venda pontual de R$ 53.653 (diagnósticos e treinamentos).</p></div>
+    <div class="card"><h2>Pontos a validar com o Rafael</h2>
+      <p class="note" style="color:var(--ink)">Sugestões de leitura, não definições. O cenário A usa a ZF a 50% e o B a 100%, até o Rafael decidir.</p>
+      <ol style="margin:6px 0 0 18px;padding:0;color:var(--ink)">
+        <li><b>Como a garantia é conferida:</b> mês a mês, trimestre a trimestre ou no período todo? Esta tela usa por trimestre.</li>
+        <li><b>O bônus</b> conta dentro da garantia ou vem por cima? Esta tela considera dentro.</li>
+        <li><b>ZF:</b> vale 50% ou 100% na comissão?</li>
+        <li><b>Meta</b> proporcional nos trimestres incompletos (nov/dez de 2025)? Nunca foi discutido.</li>
+        <li><b>Retroatividade:</b> contar desde 01/11/2025, como sugestão.</li>
+        <li><b>Base da comissão:</b> venda de 12 meses, não o valor pago mês a mês, como sugestão.</li>
+      </ol></div>
   </div>
 </main>
 <script>
@@ -63,6 +81,17 @@ var TIERS=[[0,0],[.8,1500],[1,3000],[1.2,4500],[1.5,6000]];
 var TRIM=[['2025-T4',2,0],['2026-T1',2,1],['2026-T2',0,3],['2026-T3',0,3],['2026-T4',0,1]];
 var FATORES=[['PROPRIA','Própria (100%)'],['INDIRETA','Indireta (50%)'],['NAO_PAGA','Sem comissão'],['FORA','Não é minha'],['IGNORAR','Ignorar']];
 var S=[];
+var NOTAS=[["Out/2025",18,7325,"F"],["Nov/2025",19,7325,"G"],["Dez/2025",20,7325,"G"],["Dez/2025",21,2000,"P"],["Jan/2026",22,7325,"G"],["Jan/2026",23,2000,"P"],["Fev/2026",24,7325,"G"],["Fev/2026",25,2000,"P"],["Mar/2026",26,6325,"G"],["Abr/2026",27,6325,"G"],["Mai/2026",28,6325,"G"],["Jun/2026",29,3004.13,"P"],["Jun/2026",30,6325,"G"],["Jul/2026",31,6325,"G"],["Ago/2026",32,6325,"G"],["Set/2026",33,6325,"G"],["Out/2026",34,6325,"G"]];
+var NAT={G:"Garantia mensal · conta no cálculo",P:"Pendências anteriores · fora do cálculo",F:"Anterior a 01/11/2025 · fora do período"};
+function recN(k){return NOTAS.reduce(function(a,n){return a+(n[3]===k?n[2]:0)},0)}
+function brl2(n){return "R$ "+n.toLocaleString("pt-BR",{minimumFractionDigits:2,maximumFractionDigits:2})}
+function notasHtml(){
+  var h="<table><tr><th class='l'>Competência</th><th>Nota</th><th>Valor</th><th class='l'>Natureza</th></tr>";
+  NOTAS.forEach(function(n){h+="<tr"+(n[3]==="G"?"":" class='mut'")+"><td class='l'>"+n[0]+"</td><td>"+n[1]+"</td><td>"+brl2(n[2])+"</td><td class='l'>"+NAT[n[3]]+"</td></tr>"});
+  h+="<tr class='tot'><td class='l'>Garantia recebida (nov/2025 a out/2026)</td><td></td><td>"+brl2(recN("G"))+"</td><td class='l'>Entra na conta</td></tr>";
+  h+="<tr class='tot'><td class='l'>Pendências anteriores pagas</td><td></td><td>"+brl2(recN("P"))+"</td><td class='l'>Fora da conta</td></tr></table>";
+  return h;
+}
 var SORT={k:'d',dir:1};
 var COLS=[['d','Data','l'],['cliente','Cliente','l'],['serv','Serviço','l'],['tipo','Tipo',''],['valor','Valor',''],['cons','Consultor','l'],['tc','Cliente','l'],['fonte','Fonte','l'],['taxa','Taxa',''],['fator','Como conta','l'],['_c','Comissão (A)','']];
 (function(){var st=document.createElement('style');st.textContent='th[data-k]{cursor:pointer;user-select:none;white-space:nowrap}th[data-k]:hover{color:#8B3A42}';document.head.appendChild(st)})();
@@ -101,10 +130,12 @@ function tabela(r,rot){
 }
 function render(){
   var A=calc(P.zfA),B=calc(P.zfB),gar=TRIM.reduce(function(a,t){return a+t[1]*P.garantido+t[2]*(P.garantido-(P.fixoSem-P.fixoCom))},0);
-  $('kpis').innerHTML='<div class="kpi"><span>Renda garantida no período (sem carro '+brl(P.garantido)+' · com carro '+brl(P.garantido-(P.fixoSem-P.fixoCom))+')</span><b>'+brl(gar)+'</b></div>'
-   +'<div class="kpi"><span>Total estimado · ZF a '+Math.round(P.zfA*100)+'%</span><b>'+brl(soma(A,'total'))+'</b></div>'
-   +'<div class="kpi"><span>Total estimado · ZF a '+Math.round(P.zfB*100)+'%</span><b>'+brl(soma(B,'total'))+'</b></div>'
-   +'<div class="kpi"><span>Extra acima do garantido (A / B)</span><b>'+brl(soma(A,'total')-gar)+' / '+brl(soma(B,'total')-gar)+'</b></div>';
+  var rec=recN("G"),sA=Math.max(0,soma(A,"total")-rec),sB=Math.max(0,soma(B,"total")-rec);
+  $("kpis").innerHTML="<div class='kpi'><span>Garantia já recebida (notas nov/2025 a out/2026)</span><b>"+brl(rec)+"</b></div>"
+   +"<div class='kpi'><span>Direito total · ZF a "+Math.round(P.zfA*100)+"%</span><b>"+brl(soma(A,"total"))+"</b></div>"
+   +"<div class='kpi'><span>Direito total · ZF a "+Math.round(P.zfB*100)+"%</span><b>"+brl(soma(B,"total"))+"</b></div>"
+   +"<div class='kpi' style='border-color:var(--wine)'><span>Saldo a receber · A / B</span><b>"+brl(sA)+" / "+brl(sB)+"</b></div>";
+  $("tbNotas").innerHTML=notasHtml();
   $('tbTrim').innerHTML=tabela(A,'Cenário A · ZF a '+Math.round(P.zfA*100)+'%')+'<div style="height:14px"></div>'+tabela(B,'Cenário B · ZF a '+Math.round(P.zfB*100)+'%');
   var idx=S.map(function(_,i){return i});
   idx.sort(function(a,b){var x=sv(S[a],SORT.k),y=sv(S[b],SORT.k);var r=(typeof x==='number'&&typeof y==='number')?x-y:String(x).localeCompare(String(y),'pt-BR');return (r*SORT.dir)||(S[a].d<S[b].d?-1:S[a].d>S[b].d?1:0)});
