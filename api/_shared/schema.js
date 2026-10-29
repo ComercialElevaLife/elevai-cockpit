@@ -84,6 +84,9 @@ const LISTS = {
       // Preenchida automaticamente quando o lead entra em VENDIDA; editável manualmente depois
       // (drawer do Kanban), pra corrigir histórico lançado com data errada.
       { name: 'dataVenda', type: 'text' },
+      // 29/10/2026 — Léo: natureza da venda para o Kanban/indicadores: NOVA (cliente novo, Comercial) | UPSELL | CROSS (cliente ativo, Operações).
+      // Vazio = o frontend sugere automaticamente (cliente NOVO -> NOVA; ATUAL -> UPSELL se já havia venda do mesmo serviço, senão CROSS).
+      { name: 'natureza', type: 'text' },
       // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
       // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
       // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
