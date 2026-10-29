@@ -59,12 +59,13 @@ function padrao(x) {
 
 async function carregarVendas() {
   const mapa = new Map();
-  for (const kind of ['vendas', 'leads']) {
+  for (const kind of ['leads', 'vendas']) {
     const { id } = await g.ensureList(LISTS[kind]);
     const raw = await g.listItemsMeta(id);
     for (const r of raw) {
       const x = fromFields(kind, r.fields);
       if (kind === 'leads' && x.status !== 'VENDIDA') continue;
+      if (x.inativo === 'SIM') continue; // backlog/duplicata marcada no Cockpit: fora de tudo
       if (!x.cliente || x.serv === 'N/A' || x.tipo === 'N/A' || !x.valor) continue;
       const d = String((kind === 'leads' ? (x.dataVenda || x.dt) : x.dt) || '');
       if (d < '2025-11-01') continue;
@@ -72,7 +73,7 @@ async function carregarVendas() {
       const item = { k, cliente: x.cliente, unidade: x.unidade, serv: x.serv, tipo: x.tipo, valor: Number(x.valor), d, cons: x.cons, origem: x.origem, tc: x.tc, fonte: x.fonte };
       const ant = mapa.get(k);
       if (!ant) mapa.set(k, item);
-      else for (const f of Object.keys(item)) if (ant[f] == null || ant[f] === '') ant[f] = item[f]; // junta campos vazios
+      else for (const f of Object.keys(item)) if (ant[f] == null || ant[f] === '') ant[f] = item[f]; // junta campos vazios (o Cockpit novo, lido primeiro, prevalece sobre a tabela antiga)
     }
   }
   return Array.from(mapa.values());
