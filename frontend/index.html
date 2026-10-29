@@ -434,6 +434,11 @@ td .up{color:var(--ok);font-weight:700}
       <!-- 27/10/2026 — Léo: acesso rápido ao Painel CS (Customer Success). Abre em nova aba (link, não iframe); o painel é hospedado fora da conta da ElevaLife (GitHub Pages de jbarbosa84). -->
       <button type="button" class="navgroup-btn" onclick="window.open('https://jbarbosa84.github.io/painel-cs/','_blank','noopener')"><span class="ic">🤝</span><span class="lbl">Painel CS</span></button>
     </div>
+    <!-- 29/10/2026 — Léo: tela Variáveis (remuneração). O botão só aparece para 3 e-mails; a trava real está na API (/api/variaveis). -->
+    <div class="navgroup toplvl" id="navgroup-variaveis" style="display:none">
+      <button type="button" class="navgroup-btn" onclick="window.location.href='/variaveis.html'"><span class="ic">💰</span><span class="lbl">Variáveis</span></button>
+    </div>
+    <script>(function(){var P=['leonardo@elevalife.com.br','rafael@elevalife.com.br','joao@elevalife.com.br'],n=0;(function t(){var e=window.__meEmail;if(e===undefined){if(n++<40)setTimeout(t,300);return;}if(P.indexOf(e)>-1){document.getElementById('navgroup-variaveis').style.display='';}})();})();</script>
     <!-- 20/08/2026 — Ajuda ao Usuário: área própria, fora de Novas Receitas/Operações, pois o Manual
          é do sistema todo, não de uma área específica. -->
     <div class="navgroup toplvl" id="navgroup-ajuda">
