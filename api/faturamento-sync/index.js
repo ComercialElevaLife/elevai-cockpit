@@ -109,6 +109,21 @@ module.exports = async function (context, req) {
 
     const p = req.body || {};
     const erro = function (m) { context.res = json(400, { ok: false, error: m }); };
+    if (p.modo === 'reverter') {
+      const lidR = s(p.leadId).trim();
+      if (!lidR) return erro('Falta o id do lead.');
+      const ctsR = await itensRaw(lidC);
+      const alvo = ctsR.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === lidR && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
+      const stR = alvo ? s(alvo.f.Status) : '';
+      const blq = !alvo ? 'Nenhum lançamento do SIGE encontrado para este lead.' : (!live ? 'Gravação desligada (App Setting FAT_SYNC_LIVE).' : ((stR !== 'Provisório' && stR !== 'Retido') ? 'Este lançamento está "' + stR + '": só dá para reverter Provisório ou Retido. Ajuste com o Financeiro.' : ((escolhas && escolhas.indexOf('Encerrado') < 0) ? 'A lista Status de FAT_Contratos não tem "Encerrado".' : '')));
+      if (blq) { context.res = json(200, { ok: true, modo: 'reverter', reverteu: false, bloqueio: blq }); return; }
+      const sidR = await siteId();
+      await g.graph('PATCH', '/sites/' + sidR + '/lists/' + lidC + '/items/' + alvo.id + '/fields', { Status: 'Encerrado', ValidacaoStatus: 'Revertida pelo SIGE' });
+      context.log('[faturamento-sync] REVERTEU lead=' + lidR + ' contrato=' + alvo.id + ' por=' + quem(req));
+      const tR = await avisarTeams('↩️ SIGE reverteu o lançamento do lead ' + lidR + ' (Nº ' + s(alvo.f.Title) + ', v' + (Number(alvo.f.Versao) || 1) + ' marcada como Encerrada). Nada foi apagado.');
+      context.res = json(200, { ok: true, modo: 'reverter', reverteu: true, contratoId: alvo.id, teams: tR });
+      return;
+    }
     const leadId = s(p.leadId).trim(), clienteId = s(p.clienteId).trim();
     const servico = s(p.servico).trim(), numero = s(p.numero).trim();
     const valor = Number(p.valor) || 0;
@@ -126,7 +141,7 @@ module.exports = async function (context, req) {
     const doCli = cts.filter(function (c) { return s(c.f.ClienteId) === clienteId; });
     const base = p.contratoBaseId ? doCli.find(function (c) { return c.id === s(p.contratoBaseId); }) : null;
     if (p.contratoBaseId && !base) return erro('Contrato base não pertence a esse cliente.');
-    const ja = cts.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === leadId; });
+    const ja = cts.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === leadId && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
 
     const tipo = s(p.evidenciaTipo), ref = s(p.evidenciaRef);
     const forte = FORTE.indexOf(tipo) >= 0, real = numReal(numero);
@@ -142,7 +157,20 @@ module.exports = async function (context, req) {
     const entraVigente = nivel === 1 && statusInfo.aceitaVigente;
     const statusFinal = nivel === 3 ? 'Retido' : (entraVigente ? 'Vigente' : 'Provisório');
     const versao = doCli.reduce(function (m, c) { return Math.max(m, Number(c.f.Versao) || 0); }, 0) + 1;
-    const copiar = base ? its.filter(function (i) { return s(i.f.ContratoId) === base.id; }) : [];
+    const copiarTodos = base ? its.filter(function (i) { return s(i.f.ContratoId) === base.id; }) : [];
+    const nk = function (x) { return s(x).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/gestao de academia/g, 'gestao da academia').trim(); };
+    const ajustes = Array.isArray(p.ajustes) ? p.ajustes.filter(function (a) { return a && s(a.servico) && (a.acao === 'encerrar' || a.acao === 'reajustar'); }) : [];
+    const ajLinhas = [], novosValores = {}, excluir = {};
+    ajustes.forEach(function (a) {
+      const k = nk(a.servico);
+      const alvos = copiarTodos.filter(function (i) { const t = nk(i.f.Title); return t && (t.indexOf(k) >= 0 || k.indexOf(t) >= 0); });
+      if (!alvos.length) { ajLinhas.push('Ajuste NÃO aplicado: não achei o item "' + s(a.servico) + '" no contrato base.'); return; }
+      alvos.forEach(function (i) {
+        if (a.acao === 'encerrar') { excluir[i.id] = true; ajLinhas.push('Item "' + s(i.f.Title) + '" encerrado' + (a.data ? ' em ' + fmtBR(a.data) : '') + ': não é copiado para a nova Versão.'); }
+        else if (Number(a.valorNovo) > 0) { novosValores[i.id] = Number(a.valorNovo); ajLinhas.push('Item "' + s(i.f.Title) + '": valor mensal passa a ' + moeda(a.valorNovo) + (a.desde ? ' (a partir de ' + s(a.desde) + ')' : '') + ' na nova Versão.'); }
+      });
+    });
+    const copiar = copiarTodos.filter(function (i) { return !excluir[i.id]; });
     const nomesCol = colC.map(function (c) { return c.name; });
     const faltam = COLS_NOVAS.filter(function (n) { return nomesCol.indexOf(n) < 0; });
 
@@ -160,6 +188,7 @@ module.exports = async function (context, req) {
       'Item novo: "' + servico + '" · ' + moeda(valor) + '/mês' + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + '.',
       'Rastreio: Origem=SIGE · lead ' + leadId + ' · evidência ' + (tipo || '—') + '.'
     ];
+    ajLinhas.forEach(function (x) { linhas.push(x); });
     if (nivel === 1) linhas.push(entraVigente ? 'Nível 1: pedido/contrato com Nº real e valor conferido com o documento (' + moeda(valorDoc) + ', tolerância ' + moeda(TOL) + '). Entra como Vigente.' : 'Nível 1, mas a lista Status não aceita "Vigente": entra como Provisório.');
     if (forte && real && !valorDoc && !ret.length) linhas.push('Falta o valor do documento (pedido/contrato) para conferir: entra como Provisório até o Financeiro validar.');
     if (ret.length) linhas.push('Retido por: ' + ret.join('; ') + '.');
@@ -178,13 +207,13 @@ module.exports = async function (context, req) {
     const novo = await g.graph('POST', '/sites/' + sid + '/lists/' + lidC + '/items', { fields: campos });
     const novoId = String(novo.id);
     let n = 0;
-    for (const i of copiar) { const f = limpa(i.f); f.ContratoId = novoId; await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: f }); n++; }
+    for (const i of copiar) { const f = limpa(i.f); f.ContratoId = novoId; if (novosValores[i.id]) f.ValorMensal = novosValores[i.id]; await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: f }); n++; }
     const fi = { Title: servico, ContratoId: novoId, ClienteId: clienteId, ValorMensal: valor, Ordem: n + 1 };
     if (p.oc) fi.NumPedido = s(p.oc); if (p.cod) fi.CodigoServicoNF = s(p.cod); if (Number(p.prazo)) fi.PrazoFaturamento = Number(p.prazo);
     await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: fi });
     context.log('[faturamento-sync] gravou lead=' + leadId + ' contrato=' + novoId + ' v' + versao + ' status=' + statusFinal + ' por=' + quem(req));
     const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + s(cli.f.Title) + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
-    context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t });
+    context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t, ajustes: ajLinhas });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String((e && e.message) || e).slice(0, 300) });
   }
