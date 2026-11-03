@@ -104,7 +104,7 @@ module.exports = async function (context, req) {
     const colC = await colunas(lidC);
     const colStatus = colC.find(function (c) { return c.name === 'Status'; });
     const escolhas = colStatus && colStatus.choice ? (colStatus.choice.choices || []) : null;
-    const statusInfo = { tipo: escolhas ? 'escolha' : 'texto', escolhas: escolhas, aceitaProvisorio: !escolhas || escolhas.indexOf('Provisório') >= 0, aceitaRetido: !escolhas || escolhas.indexOf('Retido') >= 0 };
+    const statusInfo = { tipo: escolhas ? 'escolha' : 'texto', escolhas: escolhas, aceitaProvisorio: !escolhas || escolhas.indexOf('Provisório') >= 0, aceitaRetido: !escolhas || escolhas.indexOf('Retido') >= 0, aceitaVigente: !escolhas || escolhas.indexOf('Vigente') >= 0 };
     if (req.method === 'GET') { context.res = json(200, { ok: true, live: live, statusContratos: statusInfo, colunasContratos: colC.map(function (c) { return c.name; }) }); return; }
 
     const p = req.body || {};
@@ -112,6 +112,8 @@ module.exports = async function (context, req) {
     const leadId = s(p.leadId).trim(), clienteId = s(p.clienteId).trim();
     const servico = s(p.servico).trim(), numero = s(p.numero).trim();
     const valor = Number(p.valor) || 0;
+    const valorDoc = Number(p.valorDocumento) || 0; // valor mensal lido do pedido/contrato assinado (opcional; sem ele nunca entra como Vigente)
+    const TOL = (process.env.FAT_TOLERANCIA !== undefined && process.env.FAT_TOLERANCIA !== '' && Number(process.env.FAT_TOLERANCIA) >= 0) ? Number(process.env.FAT_TOLERANCIA) : 1;
     if (!leadId) return erro('Falta o id do lead.');
     if (!clienteId) return erro('Cliente não encontrado no Faturamento: cadastre o cliente lá (a criação automática de cliente é uma fase futura).');
     if (!servico || /^(AF|AE|GL|ACAD|GR)$/i.test(servico) || /^servi.o a confirmar$/i.test(servico)) return erro('Informe o nome do serviço (ex.: o Resumo do projeto), não só o código (AF, GL, ACAD, AE, GR).');
@@ -134,8 +136,11 @@ module.exports = async function (context, req) {
     if (forte && !real) ret.push('evidência é pedido/contrato, mas falta o Nº real');
     if (real && cts.some(function (c) { return s(c.f.Title).trim().toUpperCase() === numero.toUpperCase() && s(c.f.ClienteId) !== clienteId; })) ret.push('o Nº ' + numero + ' já existe em outro cliente');
     if (!real && !/^PROV/i.test(numero)) ret.push('Nº provisório deve começar com PROV-');
-    const nivel = ret.length ? 3 : (forte ? 1 : 2);
-    const statusFinal = nivel === 3 ? 'Retido' : 'Provisório';
+    const confere = valorDoc > 0 && Math.abs(valor - valorDoc) <= TOL;
+    if (forte && real && valorDoc > 0 && !confere) ret.push('valor do documento (' + moeda(valorDoc) + ') difere do valor mensal lançado (' + moeda(valor) + ') além da tolerância de ' + moeda(TOL));
+    const nivel = ret.length ? 3 : ((forte && real && confere) ? 1 : 2);
+    const entraVigente = nivel === 1 && statusInfo.aceitaVigente;
+    const statusFinal = nivel === 3 ? 'Retido' : (entraVigente ? 'Vigente' : 'Provisório');
     const versao = doCli.reduce(function (m, c) { return Math.max(m, Number(c.f.Versao) || 0); }, 0) + 1;
     const copiar = base ? its.filter(function (i) { return s(i.f.ContratoId) === base.id; }) : [];
     const nomesCol = colC.map(function (c) { return c.name; });
@@ -145,17 +150,18 @@ module.exports = async function (context, req) {
     campos.Title = numero; campos.ClienteId = clienteId; campos.Versao = versao; campos.Status = statusFinal;
     if (p.ini) campos.Inicio = s(p.ini); if (p.fim) campos.Fim = s(p.fim);
     campos.Origem = 'SIGE'; campos.LeadId = leadId; campos.EvidenciaTipo = tipo; campos.EvidenciaRef = ref;
-    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : 'Aguardando validação'; campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = s(cli.f.Title);
-    if (nomesCol.indexOf('Observacoes') >= 0) campos.Observacoes = 'Lançado pelo SIGE (lead ' + leadId + ') como ' + statusFinal + ': aguardando validação do Financeiro. Não fatura até mudar o Status para Vigente.' + (quemNome(req) ? ' Lançado por ' + quemNome(req) + '.' : '');
+    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : (entraVigente ? 'Validada automaticamente' : 'Aguardando validação'); campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = s(cli.f.Title);
+    if (nomesCol.indexOf('Observacoes') >= 0) campos.Observacoes = 'Lançado pelo SIGE (lead ' + leadId + ') como ' + statusFinal + (entraVigente ? ': valor conferido com o documento (' + moeda(valorDoc) + ', tolerância ' + moeda(TOL) + ').' : ': aguardando validação do Financeiro. Não fatura até mudar o Status para Vigente.') + (quemNome(req) ? ' Lançado por ' + quemNome(req) + '.' : '');
 
     const linhas = [
       'Cliente: ' + s(cli.f.Title) + ' (existente, não é alterado).',
       base ? 'Contrato: nova Versão v' + versao + ' do contrato Nº ' + s(base.f.Title) + ' (v' + (Number(base.f.Versao) || 1) + ' continua como está), copiando ' + copiar.length + ' item(ns).' : 'Contrato: novo, v' + versao + '.',
-      'Nº: ' + numero + ' · Status: ' + statusFinal + ' (não fatura) · Vigência: ' + (fmtBR(campos.Inicio) || 'a informar') + ' a ' + (fmtBR(campos.Fim) || 'a informar') + '.',
+      'Nº: ' + numero + ' · Status: ' + statusFinal + (entraVigente ? '' : ' (não fatura)') + ' · Vigência: ' + (fmtBR(campos.Inicio) || 'a informar') + ' a ' + (fmtBR(campos.Fim) || 'a informar') + '.',
       'Item novo: "' + servico + '" · ' + moeda(valor) + '/mês' + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + '.',
       'Rastreio: Origem=SIGE · lead ' + leadId + ' · evidência ' + (tipo || '—') + '.'
     ];
-    if (nivel === 1) linhas.push('Nível 1 (pedido/contrato com Nº real): a entrada direta como Vigente é a Fase 4; por enquanto entra como Provisório.');
+    if (nivel === 1) linhas.push(entraVigente ? 'Nível 1: pedido/contrato com Nº real e valor conferido com o documento (' + moeda(valorDoc) + ', tolerância ' + moeda(TOL) + '). Entra como Vigente.' : 'Nível 1, mas a lista Status não aceita "Vigente": entra como Provisório.');
+    if (forte && real && !valorDoc && !ret.length) linhas.push('Falta o valor do documento (pedido/contrato) para conferir: entra como Provisório até o Financeiro validar.');
     if (ret.length) linhas.push('Retido por: ' + ret.join('; ') + '.');
     if (faltam.length) linhas.push('Colunas que seriam criadas em FAT_Contratos: ' + faltam.join(', ') + '.');
     const bloqueio = ja ? 'Este lead já foi lançado no Faturamento (contrato id ' + ja.id + ', v' + (Number(ja.f.Versao) || 1) + ').' :
@@ -177,7 +183,7 @@ module.exports = async function (context, req) {
     if (p.oc) fi.NumPedido = s(p.oc); if (p.cod) fi.CodigoServicoNF = s(p.cod); if (Number(p.prazo)) fi.PrazoFaturamento = Number(p.prazo);
     await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: fi });
     context.log('[faturamento-sync] gravou lead=' + leadId + ' contrato=' + novoId + ' v' + versao + ' status=' + statusFinal + ' por=' + quem(req));
-    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + s(cli.f.Title) + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês. Não fatura até o Financeiro conferir e mudar o Status para Vigente.' + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
+    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + s(cli.f.Title) + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
     context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String((e && e.message) || e).slice(0, 300) });
