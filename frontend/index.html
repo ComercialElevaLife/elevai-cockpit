@@ -1092,7 +1092,7 @@ td .up{color:var(--ok);font-weight:700}
     <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
     <label>Pré-visualização (é exatamente este texto que vai ao Teams)<textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="testarMarcacoesTeams()" title="Posta no canal uma mensagem de TESTE para conferir as marcações (@). Depois você apaga no Teams.">🧪 Testar marcações</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
 </div></div>
 
 <script>
@@ -3438,7 +3438,8 @@ function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n
   }else{h+='nenhum contrato ativo nem venda anterior localizados na base';
     if(n.k!=='NOVA')h+='<br><span style="color:#C9822B">⚠ Natureza '+esc(n.lbl)+', mas o cliente não aparece na base: conferir o cadastro de contratos.</span>';}
   return h+_cvFatHtml(l)+_cvFatSimHtml(l);}
-function _cvBlocos(l,saud){
+function _cvBlocos(l,saud,mark){
+  if(mark)_cvEnts=[];
   var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var foc=focais.length?focais.join('; '):'A confirmar';
   var resumo=_cvV('cv-resumo')||(_cvEst(_cvV('cv-tipo'))==='C'?_cvV('cv-tipo'):'')||'A confirmar';
@@ -3451,6 +3452,7 @@ function _cvBlocos(l,saud){
     '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
     '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
     _cvViaDupla(l),
+    _cvBlocoResp(l,mark),
     '**💰 BUDGET**\n- **Valor Contratado:** Detalhamento financeiro disponível com o Comercial/Financeiro.',
     'Agradeço o apoio de todos e desejo sucesso nessa nova operação.',
     nome
@@ -3524,10 +3526,50 @@ function copiarDadosVenda(){
   var ok=function(){if(typeof toast==='function')toast('Dados copiados ✓ (formato JSON para o sistema de implantação)');};
   if(navigator.clipboard)navigator.clipboard.writeText(t).then(ok,function(){alert(t);});else alert(t);
 }
-function _cvCard(blocos){
+function _cvCard(blocos,ents){
   var body=blocos.map(function(b,i){var o={type:'TextBlock',wrap:true,text:b.replace(/\n/g,'\n\n')};if(i===0){o.size='Large';o.weight='Bolder';}else o.spacing='Medium';return o;});
-  return {type:'message',attachments:[{contentType:'application/vnd.microsoft.card.adaptive',content:{type:'AdaptiveCard','$schema':'http://adaptivecards.io/schemas/adaptive-card.json',version:'1.4',body:body}}]};
+  return {type:'message',attachments:[{contentType:'application/vnd.microsoft.card.adaptive',content:Object.assign({type:'AdaptiveCard','$schema':'http://adaptivecards.io/schemas/adaptive-card.json',version:'1.4',body:body},(ents&&ents.length)?{msteams:{entities:ents}}:{})}]};
 }
+/* 03/11/2026 — Léo: responsável pelo projeto (por pilar/serviço) e ciência (João e Rafael) no comunicado, com marcação (@) no Teams.
+   AF/GL/Fisio = Dhanilo Cruz · Ergonomia/AET = Alexandre Berloffa · Enfermagem/QM (Massoterapia)/Med Trab = Cristiano Goulart. Nomes vêm do time-eleva.js (se existir); sem pilar reconhecido, fica "A confirmar" e não marca ninguém. */
+var _CV_PESSOAS={dhanilo:['Dhanilo Cruz','dhanilo@elevalife.com.br'],alexandre:['Alexandre Berloffa','alexandre.berloffa@elevalife.com.br'],cristiano:['Cristiano Goulart','cristiano@elevalife.com.br'],joao:['João Barbosa','joao@elevalife.com.br'],rafael:['Rafael Piacenti','rafael@elevalife.com.br']};
+var _cvEnts=[];
+function _cvPessoa(k){var p=_CV_PESSOAS[k],n=p[0];try{(window.TIME_ELEVA||[]).forEach(function(t){if(String(t.e).toLowerCase()===p[1])n=t.n;});}catch(e){}return {nome:n,email:p[1]};}
+function _cvSemAcento(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function _cvRespKey(l){
+  var t=_cvSemAcento([_cvV('cv-area'),_cvV('cv-tipo'),(l&&l.serv)||''].join(' '));
+  if(/ergo|\baet\b|\baep\b/.test(t))return 'alexandre';
+  if(/enferm|\benf\b|masso|quick|\bqm\b|medicina|med\.? ?trab|medtrab|saude ocupacional/.test(t))return 'cristiano';
+  if(/fisio|atividade|ginastica|laboral|\bgl\b|\baf\b/.test(t))return 'dhanilo';
+  return '';
+}
+function _cvAt(k,mark){var p=_cvPessoa(k);if(!mark)return '@'+p.nome;_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});return '<at>'+p.nome+'</at>';}
+function _cvBlocoResp(l,mark){
+  var k=_cvRespKey(l);
+  return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+'\n- **Para ciência:** '+_cvAt('joao',mark)+' e '+_cvAt('rafael',mark);
+}
+/* Teste das marcações: posta no canal uma mensagem "TESTE — pode apagar". Por padrão marca só quem clica; os 5 nomes só se confirmar. */
+function testarMarcacoesTeams(){
+  if(window.getModoTeste&&window.getModoTeste()){if(typeof toast==='function')toast('🧪 Modo teste ligado: nada é enviado ao Teams. Desligue para testar as marcações.');return;}
+  var u=window.getTeamsWebhook?window.getTeamsWebhook():'';
+  if(!u){alert('Webhook do Teams não configurado (⚙ Automação).');return;}
+  if(!confirm('Enviar ao canal do Teams uma mensagem de TESTE de marcação (@) marcando só você?\n\nDepois, apague a mensagem no Teams (⋯ > Excluir).'))return;
+  var todos=confirm('Marcar TAMBÉM os 5 nomes do comunicado (Dhanilo, Alexandre, Cristiano, João e Rafael)?\n\nOK = eles recebem notificação.\nCancelar = só você.');
+  _cvUsuario(function(usr){
+    _cvEnts=[];
+    var eu=usr&&usr.email?usr.email:'',nome=(usr&&usr.nome)||'Você';
+    try{(window.TIME_ELEVA||[]).forEach(function(t){if(String(t.e).toLowerCase()===String(eu).toLowerCase())nome=t.n;});}catch(e){}
+    var linhas=['🧪 **TESTE DE MARCAÇÃO — pode apagar esta mensagem**','Se o nome abaixo apareceu destacado (e você recebeu notificação de menção), o formato funciona.'];
+    if(eu){_cvEnts.push({type:'mention',text:'<at>'+nome+'</at>',mentioned:{id:eu,name:nome}});linhas.push('Marcação de quem testou: <at>'+nome+'</at>');}
+    if(todos){['dhanilo','alexandre','cristiano','joao','rafael'].forEach(function(k){linhas.push('- '+_cvAt(k,true));});}
+    linhas.push('Para apagar: passe o mouse na mensagem > ⋯ > Excluir.');
+    var card=_cvCard(linhas,_cvEnts);
+    fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(card)}).then(function(r){
+      if(typeof toast==='function')toast(r.ok?'Teste enviado ✓ Confira o canal e apague a mensagem depois.':'Falha ao enviar o teste (resposta '+r.status+').');
+    }).catch(function(){if(typeof toast==='function')toast('Resultado desconhecido: confira o canal no Teams.');});
+  });
+}
+window.testarMarcacoesTeams=testarMarcacoesTeams;
 function enviarComunicacaoVenda(){
   var l=_cvLead();if(!l||_cvBusy)return;
   if(window.getModoTeste&&window.getModoTeste()){if(typeof toast==='function')toast('🧪 Modo teste: comunicado NÃO enviado ao Teams.');return;}
@@ -3541,7 +3583,7 @@ function enviarComunicacaoVenda(){
   _cvBusy=true;var btn=el('cv-send');if(btn)btn.disabled=true;
   _cvUsuario(function(usr){
     cvRender();
-    var card=_cvCard(_cvBlocos(l,_cvSaud()));
+    var bl=_cvBlocos(l,_cvSaud(),true);var card=_cvCard(bl,_cvEnts);
     var fim=function(){_cvBusy=false;if(btn)btn.disabled=false;};
     var ctl=new AbortController(),to=setTimeout(function(){ctl.abort();},20000);
     fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(card),signal:ctl.signal}).then(function(r){
