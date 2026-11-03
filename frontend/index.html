@@ -3398,7 +3398,10 @@ function _cvFatSim(l){
   pl.push('Item novo: "'+serv+'" · '+_cvMoeda(valor)+'/mês'+(oc?' · PO '+oc:' · sem PO')+(cod?' · cód. NF '+cod:'')+(prazo?' · prazo '+prazo:'')+'.');
   pl.push('Rastreio: Origem=SIGE · lead '+(l.id||l._sid||'—')+' · evidência '+(tipo||'—')+(ref?' ('+ref+')':'')+' · validação '+(nivel===1?'automática (a conferir)':(nivel===2?'aguardando validação':'retida'))+'.');
   pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
-  return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl};
+  var iso=function(d){var q=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d||'').trim());return q?q[3]+'-'+q[2]+'-'+q[1]:'';};
+  var servOk=!!serv&&!/^(AF|AE|GL|ACAD|GR)$/i.test(serv.trim())&&!/^servi.o a confirmar$/i.test(serv.trim());
+  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref};
+  return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl,dados:dados,servOk:servOk};
 }
 function _cvFatSimHtml(l){
   var s=_cvFatSim(l); if(!s)return '';
@@ -3408,8 +3411,26 @@ function _cvFatSimHtml(l){
   if(s.motivos.length)h+='<div style="margin-top:4px;color:#B23A48"><b>Motivos da retenção:</b>'+ul(s.motivos)+'</div>';
   h+='<div style="margin-top:4px"><b>O que seria gravado:</b>'+ul(s.plano)+'</div>';
   if(s.avisos.length)h+='<div style="margin-top:4px;color:#8A7A78"><b>Observações:</b>'+ul(s.avisos)+'</div>';
+  if(window._CVSIM_LIVE===undefined&&!window._CVSIM_BUSY){window._CVSIM_BUSY=1;fetch('/api/faturamento-sync').then(function(r){return r.json();}).then(function(j){window._CVSIM_LIVE=!!(j&&j.live);window._CVSIM_INFO=j;}).catch(function(){window._CVSIM_LIVE=false;}).then(function(){window._CVSIM_BUSY=0;if(_cvId)cvRender();});}
+  var pode=!!s.dados.clienteId&&s.servOk;
+  h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+(s.dados.clienteId?'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.':'Cliente não encontrado no Faturamento: não dá para lançar.')+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':'Provisório')+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
   return h+'</details>';
 }
+function cvSimEnviar(modo){
+  var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.dados.clienteId||!s.servOk)return;
+  if(modo==='gravar'&&!confirm('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.'))return;
+  box.textContent='Enviando…';
+  fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:modo},s.dados))})
+   .then(function(r){return r.json();})
+   .then(function(j){
+     var h;
+     if(!j||!j.ok)h='<span style="color:#B23A48">'+esc(String((j&&j.error)||'Erro ao validar.'))+'</span>';
+     else{h='<b style="color:'+(j.gravou?'#2E7D5B':'#8A7A78')+'">'+(j.gravou?'GRAVADO no Faturamento':'Teste: nada foi gravado')+'</b>'+(j.bloqueio?'<br><span style="color:#C9822B">'+esc(j.bloqueio)+'</span>':'')+'<ul style="margin:4px 0 0 18px;padding:0">'+(j.linhas||[]).map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';}
+     window._CVSIM_HTML=h;box.innerHTML=h;
+   })
+   .catch(function(){box.innerHTML='<span style="color:#B23A48">Falha de conexão.</span>';});
+}
+window.cvSimEnviar=cvSimEnviar;
 function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n.lbl)+'</b>'+(n.auto?' (automática)':' (definida no lead)')+' · ';
   if(a.ativo){h+='cliente ativo na base: '+a.ct.length+' contrato(s)'+(a.vd.length?' e '+a.vd.length+' venda(s) anterior(es)':'');
     if(a.ct.length)h+='<br><span style="color:#8A7A78">'+a.ct.map(function(c){return esc((c.servico||'—')+(c.unidade?' · '+c.unidade:'')+(c.status?' · '+c.status:''));}).join('<br>')+'</span>';
