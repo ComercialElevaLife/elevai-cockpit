@@ -4191,7 +4191,45 @@ function confirmarReverterStatus(id){
    exige data de formalização + evidência (pedido, contrato, e-mail ou WhatsApp) e avisa quando já existe
    venda parecida do mesmo cliente (mesma raiz de nome e valor até 2% de diferença). Vale para o arrasto no
    Kanban e para o seletor de status do drawer. Vendas antigas não são afetadas (só aparece o selo "sem evidência"). */
-var _EVTIPOS=['Pedido de compra','Contrato assinado','E-mail de aprovação','WhatsApp','Outro'];
+var _EVTIPOS=['Pedido de compra','Contrato assinado','E-mail de aprovação','WhatsApp','Print de tela','Outro'];
+/* 03/11/2026 — Léo: print de tela (JPEG/PNG) como evidência. O arquivo vai para o SharePoint (POST /api/evidencia) e o card guarda só "print:<nome>". */
+function _evLink(v){v=String(v||'');return v.indexOf('print:')===0?'<a href="/api/evidencia?n='+encodeURIComponent(v.slice(6))+'" target="_blank" rel="noopener" style="font-size:12px;color:#8B3A42">Ver print anexado</a>':'';}
+function _evComprimir(file,cb){
+  var rd=new FileReader();
+  rd.onerror=function(){cb('Não foi possível ler o arquivo.');};
+  rd.onload=function(){
+    var url=rd.result;
+    if(file.size<=1500000){cb(null,url.split(',')[1]);return;}
+    var im=new Image();
+    im.onerror=function(){cb('Imagem inválida.');};
+    im.onload=function(){
+      var k=Math.min(1,1800/Math.max(im.width,im.height)),c=document.createElement('canvas');
+      c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+      var x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(im,0,0,c.width,c.height);
+      cb(null,c.toDataURL('image/jpeg',0.85).split(',')[1]);
+    };
+    im.src=url;
+  };
+  rd.readAsDataURL(file);
+}
+window.evPick=function(inp,tipoId,evId,msgId,leadId){
+  var f=inp.files&&inp.files[0],msg=document.getElementById(msgId);
+  if(!f)return;
+  if(f.type!=='image/jpeg'&&f.type!=='image/png'){msg.style.color='#B23A48';msg.textContent='Use uma imagem JPEG ou PNG.';inp.value='';return;}
+  msg.style.color='#8A7A78';msg.textContent='Enviando print…';
+  _evComprimir(f,function(err,b64){
+    if(err){msg.style.color='#B23A48';msg.textContent=err;return;}
+    fetch('/api/evidencia',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({lead:String(leadId||''),mime:f.type,b64:b64})})
+      .then(function(r){return r.json().catch(function(){return {};});})
+      .then(function(j){
+        if(!j||!j.ok){msg.style.color='#B23A48';msg.textContent=(j&&j.error)||'Não foi possível enviar o print. Tente de novo.';return;}
+        document.getElementById(evId).value='print:'+j.nome;
+        var tp=document.getElementById(tipoId);if(tp&&(!tp.value||tp.value==='Outro'))tp.value='Print de tela';
+        msg.style.color='#2F7D4F';msg.innerHTML='Print anexado. '+_evLink('print:'+j.nome);
+      })
+      .catch(function(){msg.style.color='#B23A48';msg.textContent='Falha de conexão ao enviar o print.';});
+  });
+};
 function _vendaOk(l){return !!(l.dataVenda&&String(l.evidencia||'').trim()&&String(l.evidenciaTipo||'').trim());}
 function _normCli(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function _vendaDuplicadas(l){
@@ -4217,6 +4255,7 @@ function _gateVenda(l,onOk,onCancel){
   h+='<label>Data da formalização<input type="date" id="gv-dt" value="'+esc(l.dataVenda||'')+'" style="'+inp+'"></label>';
   h+='<label>Tipo de evidência<select id="gv-tp" style="'+inp+'"><option value="">Selecione…</option>'+_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>';
   h+='<label>Número do pedido/contrato ou link do arquivo (print do e-mail ou WhatsApp)<input id="gv-ev" value="'+esc(l.evidencia||'')+'" style="'+inp+'" placeholder="Ex.: PC 092985 · contrato 10007000 · link do SharePoint"></label>';
+  h+='<label>Ou anexe o print da tela (JPEG ou PNG) — ex.: cliente confirmou por e-mail<input type="file" id="gv-file" accept="image/jpeg,image/png" style="'+inp+'" onchange="evPick(this,\'gv-tp\',\'gv-ev\',\'gv-evmsg\',\''+String(l.spid||l.id||'').replace(/[^A-Za-z0-9]/g,'')+'\')"><span id="gv-evmsg" style="font-size:11px;color:#8A7A78">'+_evLink(l.evidencia)+'</span></label>';
   h+='<div id="gv-err" style="color:#B23A48;font-size:12px;min-height:16px;margin-bottom:8px"></div>';
   h+='<div style="display:flex;gap:8px;justify-content:flex-end"><button id="gv-cancel" style="padding:8px 14px;border:1px solid #C99AA0;background:#fff;border-radius:8px;cursor:pointer;font:inherit">Cancelar</button><button id="gv-ok" style="padding:8px 14px;border:0;background:#8B3A42;color:#fff;border-radius:8px;cursor:pointer;font:inherit;font-weight:600">Registrar venda</button></div></div>';
   ov.innerHTML=h;document.body.appendChild(ov);
@@ -4226,7 +4265,7 @@ function _gateVenda(l,onOk,onCancel){
     var dt=$g('gv-dt').value,tp=$g('gv-tp').value,ev=$g('gv-ev').value.trim(),er=$g('gv-err');
     if(!dt){er.textContent='Informe a data da formalização.';return;}
     if(!tp){er.textContent='Selecione o tipo de evidência.';return;}
-    if(!ev){er.textContent='Informe o número do pedido/contrato ou o link do arquivo.';return;}
+    if(!ev){er.textContent='Informe o número do pedido/contrato, o link do arquivo ou anexe o print.';return;}
     if(dups.length&&!$g('gv-dup').checked){er.textContent='Confirme que não é uma venda duplicada.';return;}
     var f={dataVenda:dt,evidenciaTipo:tp,evidencia:ev};
     $g('gv-ok').disabled=true;
@@ -4437,7 +4476,7 @@ function openDrawer(id){curId=id;
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Natureza da venda<select id="le-natureza"><option value="">Automático (${_natInfo(Object.assign({},l,{natureza:''})).lbl})</option>${['NOVA','UPSELL','CROSS'].map(o=>`<option value="${o}"${String(l.natureza||'')===o?' selected':''}>${_NAT[o].lbl}</option>`).join('')}</select></label>
-     <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
+     <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>Print da tela (JPEG ou PNG)<input type="file" id="le-evfile" accept="image/jpeg,image/png" onchange="evPick(this,'le-evtipo','le-evid','le-evmsg','${esc(l.spid||l.id)}')"><span id="le-evmsg" style="font-size:11px;color:#8A7A78">${_evLink(l.evidencia)}</span></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
      <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
      <label>Contato — tipo<select id="le-contatotipo">${['','Técnico','Comercial'].map(o=>`<option value="${o}"${String(l.contatoTipo||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
