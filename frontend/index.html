@@ -3203,9 +3203,15 @@ function _festa(){
   try{
     if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
     var AC=window.AudioContext||window.webkitAudioContext;
-    if(AC){var a=new AC(),t0=a.currentTime;
-      [523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){var o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t0+i*.11);g.gain.linearRampToValueAtTime(.18,t0+i*.11+.02);g.gain.exponentialRampToValueAtTime(.001,t0+i*.11+.7);o.connect(g);g.connect(a.destination);o.start(t0+i*.11);o.stop(t0+i*.11+.75);});
-      [.5,.9,1.3,1.7,2.1,2.4].forEach(function(d){var n=a.createBuffer(1,a.sampleRate*.25,a.sampleRate),c=n.getChannelData(0);for(var k=0;k<c.length;k++)c[k]=(Math.random()*2-1)*Math.pow(1-k/c.length,3);var s=a.createBufferSource(),g=a.createGain();s.buffer=n;g.gain.value=.22;s.connect(g);g.connect(a.destination);s.start(t0+d);});
+    if(AC){var a=new AC(),t0=a.currentTime,dur=3.6,sr=a.sampleRate;
+      /* palmas: ~170 palmas curtas (ruído filtrado) espalhadas por 3,6 s, com densidade que sobe e desce */
+      var nb=a.createBuffer(1,Math.floor(sr*.08),sr),nd=nb.getChannelData(0);for(var k=0;k<nd.length;k++)nd[k]=(Math.random()*2-1)*Math.pow(1-k/nd.length,2.2);
+      for(var i=0;i<170;i++){
+        var u=Math.random(),tt=dur*(u<.5?Math.sqrt(u/2):1-Math.sqrt((1-u)/2)),env=Math.sin(Math.PI*Math.min(1,tt/dur))*.7+.3;
+        var s=a.createBufferSource(),f=a.createBiquadFilter(),g=a.createGain();
+        s.buffer=nb;s.playbackRate.value=.8+Math.random()*.6;f.type='bandpass';f.frequency.value=1200+Math.random()*2800;f.Q.value=.9;
+        g.gain.value=(.25+Math.random()*.35)*env;s.connect(f);f.connect(g);g.connect(a.destination);s.start(t0+tt);
+      }
       setTimeout(function(){try{a.close();}catch(e){}},4000);
     }
     var cv=document.createElement('canvas');cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:100000;pointer-events:none';
