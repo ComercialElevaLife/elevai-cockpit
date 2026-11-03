@@ -1050,7 +1050,8 @@ td .up{color:var(--ok);font-weight:700}
 <div class="ov" id="ov-venda"><div class="mdl" style="max-width:760px">
   <div class="mh"><h3>📣 Comunicado de nova venda</h3><button class="x" onclick="document.getElementById('ov-venda').classList.remove('on')">&times;</button></div>
   <div class="mb">
-    <div id="cv-status" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#F5EFEA;color:#3A2A2E"></div>
+    <div id="fv-res"></div><div id="fv-toggle" style="margin:0 0 6px"></div>
+<div id="cv-status" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#F5EFEA;color:#3A2A2E"></div>
     <div id="cv-ativo" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#fff;border:1px solid #EADDE0;color:#3A2A2E"></div>
     <p class="hint" style="margin:0 0 6px">O que o Cockpit já sabe veio preenchido. Complete o que faltar: campos vazios saem como "A confirmar". O orçamento nunca vai no comunicado. A saudação é calculada na hora do envio (horário de Brasília).</p>
     <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
@@ -1094,7 +1095,7 @@ td .up{color:var(--ok);font-weight:700}
     <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
     <label>Pré-visualização (é exatamente este texto que vai ao Teams)<textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="testarMarcacoesTeams()" title="Posta no canal uma mensagem de TESTE para conferir as marcações (@). Depois você apaga no Teams.">🧪 Testar marcações</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="testarMarcacoesTeams()" title="Posta no canal uma mensagem de TESTE para conferir as marcações (@). Depois você apaga no Teams.">🧪 Testar marcações</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="fv-go" onclick="fluxoVendaRodar()" title="Grava a ficha no card, lança no Faturamento, envia o comunicado ao Teams e abre a Implantação, tudo de uma vez. Se faltar campo obrigatório, nada é disparado e o campo é destacado.">▶ Fechar venda e disparar tudo</button><button class="btn gh" id="cv-send" onclick="enviarComunicacaoVenda()" title="Avulso: só o comunicado ao Teams">Só o Teams</button></div>
 </div></div>
 
 <script>
@@ -3254,6 +3255,8 @@ function notifyTeams(l){
   /* 03/11/2026 — em vez do cartão simples + confirm(), abre a pré-visualização do comunicado padrão (nada sai sem o usuário ver). */
   if(window.trigNovaVenda&&!window.trigNovaVenda())return;
   abrirComunicacaoVenda(l.id);
+  /* 03/11/2026 — fluxo único: dispara tudo; se faltar campo obrigatório, destaca e não dispara nada. */
+  setTimeout(function(){fluxoVendaRodar();},800);
 }
 function reenviarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; abrirComunicacaoVenda(id); }
 function retratarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?'))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
@@ -3555,6 +3558,159 @@ function _cvFatSimHtml(l){
   h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+(s.dados.clienteId?'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.':'Cliente não encontrado no Faturamento: não dá para lançar.')+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':(s.nivel===1?'Vigente':'Provisório'))+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
   return h+'</details>';
 }
+/* ===== 03/11/2026 — FLUXO ÚNICO DA VENDA (Léo): marcou VENDIDA, o SIGE dispara tudo — ficha salva no card, Faturamento, comunicado no Teams e Implantação — e mostra um resumo.
+   Campos obrigatórios ficam destacados em vermelho; o que já está preenchido (vindo do card ou da ficha) some e só os pendentes aparecem.
+   Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
+var _FV={passos:{},busy:false};
+var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
+var _FV_FICHA=['resumo','volume','escopo','inicio','horarios','focais','fat','docs'];
+(function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
+function _fvFaltam(){return _FV_REQ.filter(function(r){return !_cvV(r[0]);});}
+function _fvMarcar(falt){
+  [].slice.call(document.querySelectorAll('#ov-venda .fv-falta')).forEach(function(e){e.classList.remove('fv-falta');});
+  var ov=el('ov-venda');if(ov)ov.classList.add('fv-compacto');
+  falt.forEach(function(r){var e=el(r[0]);if(e){e.classList.add('fv-falta');var lb=e.closest&&e.closest('label');if(lb)lb.classList.remove('fv-pronto');}});
+  if(falt.some(function(r){return /^ft-/.test(r[0]);})){var bx=el('ft-box');if(bx)bx.open=true;}
+  var p=falt.length?el(falt[0][0]):null;if(p){try{p.scrollIntoView({block:'center',behavior:'smooth'});p.focus();}catch(e){}}
+}
+function _fvCompactar(){
+  var ov=el('ov-venda');if(!ov)return;
+  var n=0;
+  [].slice.call(ov.querySelectorAll('input[id^="cv-"],textarea[id^="cv-"],input[id^="ft-"]')).forEach(function(e){
+    if(/^(cv-out|cv-ass|cv-status|cv-ativo|cv-chk)$/.test(e.id))return;
+    var lb=e.closest&&e.closest('label');if(!lb)return;
+    var tem=!!String(e.value||'').trim();
+    lb.classList.toggle('fv-pronto',tem);if(tem)n++;
+  });
+  ov.classList.add('fv-compacto');
+  var t=el('fv-toggle');if(t)t.innerHTML='<a href="#" onclick="fvMostrarTudo();return false" style="color:#8B3A42;font-size:12px">'+(ov.classList.contains('fv-compacto')?'Mostrar os '+n+' campos já preenchidos (vindos do card e da ficha)':'Esconder campos já preenchidos')+'</a>';
+}
+function fvMostrarTudo(){var ov=el('ov-venda');if(!ov)return;ov.classList.toggle('fv-compacto');var t=el('fv-toggle');if(t){var n=ov.querySelectorAll('.fv-pronto').length;t.innerHTML='<a href="#" onclick="fvMostrarTudo();return false" style="color:#8B3A42;font-size:12px">'+(ov.classList.contains('fv-compacto')?'Mostrar os '+n+' campos já preenchidos (vindos do card e da ficha)':'Esconder campos já preenchidos')+'</a>';}}
+/* ficha salva no card + escrita de volta nos campos do card (fonte única) */
+function _fvCamposCard(l){
+  var fi={};_FV_FICHA.forEach(function(k){fi[k]=_cvV('cv-'+k);});
+  var c={vendaFicha:JSON.stringify(fi),ftDados:JSON.stringify(_ftLer())};
+  var end=_cvV('cv-endereco');if(end&&end!==String(l.endereco||''))c.endereco=end;
+  var mob=_cvV('cv-mob');if(mob&&mob!==String(l.prazoMobilizacao||''))c.prazoMobilizacao=mob;
+  var v=_cvNumBR(_cvV('ft-valor'));if(v>0&&v!==Number(l.valorMensal||0))c.valorMensal=v;
+  var cod=_cvV('ft-cod');if(cod&&cod!==String(l.codServico||''))c.codServico=cod;
+  return c;
+}
+function _fvFichaAplicar(l){
+  var fi=_ftJ(l.vendaFicha)||{};
+  _FV_FICHA.forEach(function(k){if(fi[k]){var e=el('cv-'+k);if(e)e.value=fi[k];}});
+}
+var _fvT=null;
+function _fvAuto(){
+  clearTimeout(_fvT);
+  _fvT=setTimeout(function(){
+    var l=_cvLead();if(!l||!l.spid||!window.persistLeadFields)return;
+    var c=_fvCamposCard(l);
+    if(String(l.vendaFicha||'')===c.vendaFicha&&String(l.ftDados||'')===c.ftDados&&Object.keys(c).length===2)return;
+    window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);},function(){});
+  },900);
+}
+function _fvCarregar(l){
+  var o=_ftJ(l.fluxoVenda)||{};_FV.passos=o.passos||{};_FV.busy=false;
+  var ov=el('ov-venda');if(ov&&!ov._fvIn){ov._fvIn=1;ov.addEventListener('change',_fvAuto);ov.addEventListener('input',function(e){var t=e.target;if(t&&t.classList&&t.classList.contains('fv-falta')&&String(t.value||'').trim())t.classList.remove('fv-falta');});}
+  _fvCompactar();_fvResumo();
+}
+var _FV_ROT={ficha:'Ficha salva no card',fat:'Faturamento',teams:'Comunicado no Teams',impl:'Implantação'};
+function _fvResumo(falt){
+  var box=el('fv-res'),l=_cvLead();if(!box||!l)return;
+  var P=_FV.passos,h='',ks=['ficha','fat','teams','impl'],tem=ks.some(function(k){return P[k];});
+  if(falt&&falt.length){h+='<div style="border:1px solid #B23A48;background:#FFF3F3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#B23A48">Nada foi disparado: faltam '+falt.length+' campo(s) obrigatório(s), destacados em vermelho abaixo.</b><ul style="margin:4px 0 0 18px;padding:0">'+falt.map(function(r){return '<li>'+esc(r[1])+'</li>';}).join('')+'</ul></div>';}
+  if(tem){
+    var cor={ok:'#2E7D5B',aviso:'#C9822B',erro:'#B23A48'},ic={ok:'✓',aviso:'⚠',erro:'✗'};
+    h+='<div style="border:1px solid #EADDE0;background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b>Fluxo da venda</b>'+(_FV.busy?' <span style="color:#8A7A78">(em andamento…)</span>':'')+'<ul style="list-style:none;margin:4px 0 0;padding:0">';
+    ks.forEach(function(k){var p=P[k];if(!p)return;h+='<li style="margin:3px 0"><b style="color:'+cor[p.s]+'">'+ic[p.s]+'</b> <b>'+_FV_ROT[k]+'</b> — '+esc(p.msg||'')+(k==='impl'&&p.url?' <a href="'+esc(p.url)+'" target="_blank" rel="noopener" style="color:#8B3A42">Abrir Implantação</a>':'')+'</li>';});
+    h+='</ul><div style="margin-top:6px"><button class="btn gh" type="button" style="font-size:11px;padding:2px 8px" onclick="fvReverterFat()">Desfazer lançamento no Faturamento</button> <button class="btn gh" type="button" style="font-size:11px;padding:2px 8px" onclick="retratarVenda(_cvId)">Retratar aviso no Teams</button> <button class="btn gh" type="button" style="font-size:11px;padding:2px 8px" onclick="fluxoVendaRodar()">Rodar de novo o que falhou</button></div></div>';
+  }
+  box.innerHTML=h;
+}
+function _fvFim(l){
+  _FV.busy=false;var b=el('fv-go');if(b)b.disabled=false;
+  var c={fluxoVenda:JSON.stringify({em:new Date().toISOString(),passos:_FV.passos})};
+  if(window.persistLeadFields&&l.spid)window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);},function(){});
+  _fvResumo();
+}
+function _fvPasso(l,k,fn){
+  return new Promise(function(res){
+    var p=_FV.passos[k];
+    if(p&&(p.s==='ok'||(k==='impl'&&p.s))){res();return;}
+    _FV.passos[k]={s:'aviso',msg:'em andamento…'};_fvResumo();
+    try{fn(function(r){_FV.passos[k]=r;_fvResumo();res();});}
+    catch(e){_FV.passos[k]={s:'erro',msg:String((e&&e.message)||e).slice(0,120)};_fvResumo();res();}
+  });
+}
+function _fvFicha(l,done){
+  var c=_fvCamposCard(l);
+  window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);done({s:'ok',msg:'Ficha, endereço, mobilização, valor e código do serviço gravados no card (uma fonte só).'});},function(){done({s:'erro',msg:'Não consegui salvar no card.'});});
+}
+function _fvFat(l,done){
+  _cvFatLer(function(){
+    var s=_cvFatSim(l);
+    if(!s){done({s:'erro',msg:'Faturamento indisponível agora (leitura falhou). Rode de novo em instantes.'});return;}
+    if(!s.dados.clienteId){done({s:'erro',msg:'Cliente não encontrado no Faturamento: cadastre o cliente lá (ou confira nome/CNPJ no card).'});return;}
+    if(!s.servOk){done({s:'erro',msg:'Informe o nome do serviço no "Resumo do projeto" (não só AF, GL, ACAD, AE ou GR).'});return;}
+    var ajustes=(typeof _AD!=='undefined'&&_AD&&_AD.res)?_AD.res.servicos.filter(function(x){return x.acao==='encerrar'||x.acao==='reajustar';}).map(function(x){return {servico:x.servico,acao:x.acao,data:x.data||'',desde:x.desde||'',valorNovo:x.valorNovo||0};}):[];
+    var go=function(live){
+      fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:live?'gravar':'teste',ajustes:ajustes},s.dados))})
+        .then(function(r){return r.json();}).then(function(j){
+          if(!j||!j.ok){done({s:'erro',msg:String((j&&j.error)||'Erro no servidor.')});return;}
+          if(j.gravou){done({s:'ok',msg:'Gravado como '+(j.plano&&j.plano.status||'—')+' (Nº '+s.dados.numero+'); Financeiro avisado no Teams.'+(ajustes.length?' Ajustes do aditamento aplicados: '+(j.ajustes||[]).join(' · '):'')});return;}
+          if(/já foi lançado/i.test(j.bloqueio||'')){done({s:'ok',msg:'Já estava lançado antes. Nada novo foi gravado.'});return;}
+          done({s:'aviso',msg:(j.bloqueio||'Nada foi gravado.')});
+        }).catch(function(e){done({s:'erro',msg:'Falha de rede ao falar com o servidor.'});});
+    };
+    if(window._CVSIM_LIVE!==undefined){go(window._CVSIM_LIVE);return;}
+    fetch('/api/faturamento-sync').then(function(r){return r.json();}).then(function(j){window._CVSIM_LIVE=!!(j&&j.live);go(window._CVSIM_LIVE);}).catch(function(){go(false);});
+  });
+}
+function _fvTeams(l,usr,done){
+  if(l.comunicadoEm){done({s:'ok',msg:'Já enviado em '+_cvQuando(l.comunicadoEm)+'. Não reenviei.'});return;}
+  if(window.getModoTeste&&window.getModoTeste()){done({s:'aviso',msg:'Modo teste ligado: comunicado NÃO enviado ao Teams.'});return;}
+  var u=window.getTeamsWebhook?window.getTeamsWebhook():'';
+  if(!u){done({s:'erro',msg:'Webhook do Teams não configurado (⚙ Automação).'});return;}
+  cvRender();
+  var bl=_cvBlocos(l,_cvSaud(),true),card=_cvCard(bl,_cvEnts);
+  var ctl=new AbortController(),to=setTimeout(function(){ctl.abort();},20000);
+  fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(card),signal:ctl.signal}).then(function(r){
+    clearTimeout(to);
+    if(!r.ok){done({s:'erro',msg:'Falha ao enviar (resposta '+r.status+').'});return;}
+    var f={comunicadoEm:new Date().toISOString(),comunicadoPor:(usr&&usr.email)||''};
+    window.persistLeadFields(l.spid,f,function(){Object.assign(l,f);},function(){});
+    done({s:'ok',msg:'Comunicado enviado ao canal, com responsável e ciência marcados (aceito pelo fluxo).'});
+  }).catch(function(){clearTimeout(to);done({s:'aviso',msg:'Resultado desconhecido: confira o canal antes de reenviar.'});});
+}
+function _fvImpl(l,done){
+  window._IMPL_URL='';enviarParaImplantacao();
+  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda: confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
+}
+function fluxoVendaRodar(){
+  var l=_cvLead();if(!l||_FV.busy)return;
+  cvRender();
+  var falt=_fvFaltam();
+  if(falt.length){_fvMarcar(falt);_fvResumo(falt);return;}
+  [].slice.call(document.querySelectorAll('#ov-venda .fv-falta')).forEach(function(e){e.classList.remove('fv-falta');});
+  _FV.busy=true;var b=el('fv-go');if(b)b.disabled=true;_fvResumo();
+  _cvUsuario(function(usr){
+    _fvPasso(l,'ficha',function(d){_fvFicha(l,d);})
+      .then(function(){return _fvPasso(l,'fat',function(d){_fvFat(l,d);});})
+      .then(function(){return _fvPasso(l,'teams',function(d){_fvTeams(l,usr,d);});})
+      .then(function(){return _fvPasso(l,'impl',function(d){_fvImpl(l,d);});})
+      .then(function(){_fvFim(l);});
+  });
+}
+function fvReverterFat(){
+  var l=_cvLead();if(!l)return;
+  if(!confirm('Desfazer o lançamento deste lead no Faturamento? A Versão provisória/retida será marcada como Encerrada (nada é apagado). Só funciona enquanto o Financeiro não a tornou Vigente.'))return;
+  fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'reverter',leadId:String(l.id||l._sid||'')})}).then(function(r){return r.json();}).then(function(j){
+    if(j&&j.reverteu){delete _FV.passos.fat;_fvFim(l);if(typeof toast==='function')toast('Lançamento revertido no Faturamento ✓');}
+    else if(typeof toast==='function')toast((j&&(j.bloqueio||j.error))||'Não foi possível reverter.');
+  }).catch(function(){if(typeof toast==='function')toast('Falha de rede ao reverter.');});
+}
+window.fluxoVendaRodar=fluxoVendaRodar;window.fvMostrarTudo=fvMostrarTudo;window.fvReverterFat=fvReverterFat;
 function cvSimEnviar(modo){
   var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.dados.clienteId||!s.servOk)return;
   if(modo==='gravar'&&!confirm(s.nivel===1?'Gravar no Faturamento como VIGENTE (valor conferido com o documento)? Se a lista Status não aceitar Vigente, entra como Provisório. O Financeiro será avisado.':('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.')))return;
@@ -3637,8 +3793,10 @@ function abrirComunicacaoVenda(id){
   (function(){var d=_ftDados(l);_FT_CAMPOS.forEach(function(k){g('ft-'+k,d[k]);});
     var bx=el('ft-box');if(bx)bx.open=!!_ftAlterado(l);})();
   g('cv-ass',(_cvU&&_cvU.nome)||'');
+  _fvFichaAplicar(l);
   var ov=el('ov-venda'); if(ov){ov.classList.add('on');if(!ov._cvIn){ov._cvIn=1;ov.addEventListener('input',cvRender);}}
   cvRender();
+  _fvCarregar(l);
   _cvFatLer(function(){if(_cvId===id)cvRender();});
   _cvUsuario(function(u){if(u&&_cvId===id&&!_cvV('cv-ass')){g('cv-ass',u.nome);}cvRender();});
 }
@@ -3748,7 +3906,7 @@ function enviarParaImplantacao(){
   var tipo=_cvV('cv-tipo');
   var D={v:1,programa:(l.cliente||'')+(tipo?' / '+tipo:''),empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',cnae:l.cnae||'',grauRisco:String(l.grauRisco||'').replace(/[^0-9]/g,'').slice(0,1),uf:uf,area:_CV_AREA_PAINEL[cod]||'',endereco:end,jornada:_cvV('cv-horarios'),unidade:_cvUn(l)};
   var b=btoa(unescape(encodeURIComponent(JSON.stringify(D)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-  window.open('https://elevalife-sistemas.github.io/painel-implantacao-servicos/#nova='+b,'_blank','noopener');
+  window._IMPL_URL='https://elevalife-sistemas.github.io/painel-implantacao-servicos/#nova='+b;window.open(window._IMPL_URL,'_blank','noopener');
   if(typeof toast==='function')toast('Painel de Implantação aberto. Faça o login (se pedir) e revise o formulário.');
 }
 window.enviarParaImplantacao=enviarParaImplantacao;
