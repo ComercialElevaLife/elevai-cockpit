@@ -3359,13 +3359,64 @@ function cvUsarFat(){
   if(typeof toast==='function')toast('Nº e vigência do Faturamento preenchidos. Confira e use "Salvar dados do contrato".');
 }
 window.cvUsarFat=cvUsarFat;
+/* 03/11/2026 — Fase 2 da integração com o Faturamento: SIMULAÇÃO. Calcula o nível (1 direto, 2 provisório, 3 retido) e mostra o que SERIA gravado. Não grava nada. */
+var _CV_EV_FORTE=['Pedido de compra','Contrato assinado'];
+function _cvNumBR(s){var x=String(s==null?'':s).replace(/[^\d,.-]/g,'');if(x.indexOf(',')>-1)x=x.replace(/\./g,'').replace(',','.');var n=parseFloat(x);return isNaN(n)?0:n;}
+function _cvMoeda(n){return 'R$ '+Number(n||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function _cvFatSim(l){
+  var f=_FATC; if(!f||!f.ok)return null;
+  var m=_cvFatMatch(l), ft={}; try{ft=JSON.parse(l.ftDados||'{}')||{};}catch(e){}
+  var gv=function(id,k){var e=el(id);return String(e?e.value:(ft[k]||'')).trim();};
+  var ctr=gv('ft-ctr','ctr'),oc=gv('ft-oc','oc'),ini=gv('ft-ini','ini'),fim=gv('ft-fim','fim'),cod=gv('ft-cod','cod'),prazo=gv('ft-prazo','prazo');
+  var valor=_cvNumBR(gv('ft-valor','valor'))||Number(l.valorMensal)||0;
+  var tipo=l.evidenciaTipo||'',ref=l.evidencia||'';
+  var forte=_CV_EV_FORTE.indexOf(tipo)>-1,temEv=!!(tipo&&ref);
+  var numOk=_cvNumOk(ctr)&&!/^PROV/i.test(ctr);
+  var ct=_cvFatContrato(m),nat=_natInfo(l).k,ret=[],av=[];
+  if(!temEv)ret.push('sem evidência da venda registrada no lead');
+  if(!(valor>0))ret.push('valor mensal ausente ou zerado');
+  if(m.clientes.length>1)ret.push('mais de um cliente do Faturamento corresponde (possível duplicidade)');
+  if(numOk){var outro=f.contratos.filter(function(c){return String(c.numero||'').trim().toUpperCase()===ctr.toUpperCase()&&m.clientes.every(function(x){return x.id!==c.clienteId;});});if(outro.length)ret.push('o Nº '+ctr+' já existe em outro cliente do Faturamento');}
+  if(forte&&!numOk)ret.push('a evidência é pedido/contrato, mas falta o Nº real');
+  var nivel=ret.length?3:(forte?1:2);
+  if(nivel===1)av.push('Conferência do valor com o documento e com a proposta (tolerância R$ 1,00) ainda não é automática: entra na Fase 4. Até lá, tratar como nível 2.');
+  if(nivel===2){av.push('Evidência por '+(tipo||'—')+': entra como provisório e vira definitivo quando chegar o pedido de compra ou contrato com o mesmo valor.');}
+  if(nivel<3&&!numOk)av.push('Nº real do contrato ainda não informado: seria usado o provisório e o Financeiro completa depois.');
+  if(nivel<3&&!ini&&!fim&&!(ct&&(ct.inicio||ct.fim)))av.push('Vigência não informada: o Financeiro completa depois.');
+  var pl=[],cli=m.clientes.length===1?m.clientes[0]:null;
+  if(cli)pl.push('Cliente: usar o existente "'+(cli.nome||cli.razao)+'" (nada é alterado nele).');
+  else if(m.clientes.length)pl.push('Cliente: ambíguo, nada seria gravado até o Financeiro escolher.');
+  else pl.push('Cliente: criar "'+(l.razaoSocial||l.cliente||'—')+'"'+(l.cnpj?' · CNPJ '+l.cnpj:'')+' (conferir antes se não é duplicado).');
+  var numFinal=numOk?ctr:((ct&&_cvNumOk(ct.numero))?ct.numero:(ctr||'PROV-'+_cvNorm(l.cliente||'X').replace(/\s+/g,'-')+'-'+new Date().getFullYear()));
+  var st=nivel===1?'Vigente':(nivel===2?'Provisório (não fatura)':'Retido (não fatura) e alerta ao Financeiro');
+  var atuais=ct?m.itens.filter(function(i){return i.contratoId===ct.id;}):[];
+  if(ct&&nat!=='NOVA')pl.push('Contrato: criar a Versão v'+((Number(ct.versao)||1)+1)+' do contrato existente (Nº '+(_cvNumOk(ct.numero)?ct.numero:'ainda não informado')+'), copiando os '+atuais.length+' item(ns) atuais. A versão atual não é alterada.');
+  else pl.push('Contrato: criar contrato novo (v1).');
+  pl.push('Nº nesta versão: '+numFinal+' · Status: '+st+'.');
+  pl.push('Vigência: '+(ini||(ct&&ct.inicio?_cvData(ct.inicio):'não informada'))+' a '+(fim||(ct&&ct.fim?_cvData(ct.fim):'não informada'))+'.');
+  var serv=_cvV('cv-resumo')||_cvTxt(_cvV('cv-tipo'))||'Serviço a confirmar';
+  pl.push('Item novo: "'+serv+'" · '+_cvMoeda(valor)+'/mês'+(oc?' · PO '+oc:' · sem PO')+(cod?' · cód. NF '+cod:'')+(prazo?' · prazo '+prazo:'')+'.');
+  pl.push('Rastreio: Origem=SIGE · lead '+(l.id||l._sid||'—')+' · evidência '+(tipo||'—')+(ref?' ('+ref+')':'')+' · validação '+(nivel===1?'automática (a conferir)':(nivel===2?'aguardando validação':'retida'))+'.');
+  pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
+  return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl};
+}
+function _cvFatSimHtml(l){
+  var s=_cvFatSim(l); if(!s)return '';
+  var cor=s.nivel===1?'#2E7D5B':(s.nivel===2?'#C9822B':'#B23A48');
+  var ul=function(a){return '<ul style="margin:4px 0 0 18px;padding:0">'+a.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul>';};
+  var h='<details'+(window._CVSIM_OPEN?' open':'')+' ontoggle="window._CVSIM_OPEN=this.open" style="margin-top:8px"><summary style="cursor:pointer"><b>Simulação do envio ao Faturamento</b> · <b style="color:'+cor+'">Nível '+s.nivel+'</b> ('+esc(s.rotulo)+') · <i>nada é gravado</i></summary>';
+  if(s.motivos.length)h+='<div style="margin-top:4px;color:#B23A48"><b>Motivos da retenção:</b>'+ul(s.motivos)+'</div>';
+  h+='<div style="margin-top:4px"><b>O que seria gravado:</b>'+ul(s.plano)+'</div>';
+  if(s.avisos.length)h+='<div style="margin-top:4px;color:#8A7A78"><b>Observações:</b>'+ul(s.avisos)+'</div>';
+  return h+'</details>';
+}
 function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n.lbl)+'</b>'+(n.auto?' (automática)':' (definida no lead)')+' · ';
   if(a.ativo){h+='cliente ativo na base: '+a.ct.length+' contrato(s)'+(a.vd.length?' e '+a.vd.length+' venda(s) anterior(es)':'');
     if(a.ct.length)h+='<br><span style="color:#8A7A78">'+a.ct.map(function(c){return esc((c.servico||'—')+(c.unidade?' · '+c.unidade:'')+(c.status?' · '+c.status:''));}).join('<br>')+'</span>';
     if(n.k==='NOVA')h+='<br><span style="color:#B23A48">⚠ O cliente já está na base, mas a natureza está como Nova venda. Conferir (Upsell/Cross-sell).</span>';
   }else{h+='nenhum contrato ativo nem venda anterior localizados na base';
     if(n.k!=='NOVA')h+='<br><span style="color:#C9822B">⚠ Natureza '+esc(n.lbl)+', mas o cliente não aparece na base: conferir o cadastro de contratos.</span>';}
-  return h+_cvFatHtml(l);}
+  return h+_cvFatHtml(l)+_cvFatSimHtml(l);}
 function _cvBlocos(l,saud){
   var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var foc=focais.length?focais.join('; '):'A confirmar';
