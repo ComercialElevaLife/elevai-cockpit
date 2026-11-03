@@ -1086,6 +1086,7 @@ td .up{color:var(--ok);font-weight:700}
         <label>Aprovador da medição<input id="ft-aprov"></label>
         <label>E-mail do aprovador<input id="ft-aprovmail"></label>
       </div>
+      <div style="margin-top:8px;border-top:1px dashed #e3d9d6;padding-top:6px"><b style="font-size:12px">📎 Aditamento ao contrato (PDF)</b> <span style="color:#8A7A78;font-size:11.5px">— lido só neste navegador; o texto do contrato não é enviado a ninguém. Por enquanto só mostra o que o documento diz (não grava).</span><div style="margin-top:4px"><input type="file" id="ad-file" accept="application/pdf,.pdf" onchange="adLer(this)"></div><div id="ad-res" style="font-size:12px;margin-top:6px"></div></div>
       <div id="ft-status" style="font-size:12px;margin-top:8px"></div>
       <div style="margin-top:6px"><button class="btn gh" type="button" onclick="ftSalvar()" title="Grava estes campos no lead (histórico e base de edição)">💾 Salvar dados do contrato</button></div>
     </details>
@@ -3360,6 +3361,140 @@ function cvUsarFat(){
   if(typeof toast==='function')toast('Nº e vigência do Faturamento preenchidos. Confira e use "Salvar dados do contrato".');
 }
 window.cvUsarFat=cvUsarFat;
+/* 03/11/2026 — Fase 5a: leitura de aditamento (PDF) NO NAVEGADOR. Não grava nada. */
+var _AD_MES={janeiro:1,fevereiro:2,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+var _AD_SERV=['Ginástica Laboral','Gestão da Academia','Gestão de Academia','Fisioterapia','Ergonomia','Enfermagem','Medicina do Trabalho','Massoterapia','Quick Massage','Terapias','Assistente ADM'];
+function _adSemAc(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function _adMoeda(n){return 'R$ '+Number(n||0).toFixed(2).replace('.',',').replace(/\B(?=(\d{3})+(?!\d))/g,'.');}
+function _adNum(s){var x=String(s||'').replace(/\./g,'').replace(',','.');var n=parseFloat(x);return isNaN(n)?0:n;}
+/* itens do pdf.js -> texto corrido (agrupa por linha pelo y; ordena por x) */
+function adTextoDeItens(paginas){
+  return paginas.map(function(items){
+    var linhas=[];
+    items.forEach(function(it){
+      if(!it.str||!it.str.trim())return;
+      var y=Math.round(it.transform[5]/3),x=it.transform[4],L=null;
+      for(var i=0;i<linhas.length;i++){if(Math.abs(linhas[i].y-y)<=1){L=linhas[i];break;}}
+      if(!L){L={y:y,p:[]};linhas.push(L);}
+      L.p.push({x:x,s:it.str});
+    });
+    linhas.sort(function(a,b){return b.y-a.y;});
+    return linhas.map(function(L){return L.p.sort(function(a,b){return a.x-b.x;}).map(function(p){return p.s;}).join(' ');}).join('\n');
+  }).join('\n');
+}
+function _adData(txt){
+  var m=/(\d{1,2})\s*(?:º|°)?\s+de\s+([A-Za-zçÇãÃéÉ]+)\s+de\s+(\d{4})/i.exec(txt);
+  if(m){var mes=_AD_MES[_adSemAc(m[2])];if(mes)return {d:+m[1],m:mes,a:+m[3]};}
+  m=/(\d{2})\/(\d{2})\/(\d{4})/.exec(txt);
+  return m?{d:+m[1],m:+m[2],a:+m[3]}:null;
+}
+function _adIso(d){return d?d.a+'-'+('0'+d.m).slice(-2)+'-'+('0'+d.d).slice(-2):'';}
+function adParse(texto,opts){
+  opts=opts||{};
+  var flat=String(texto||'').replace(/\s+/g,' ').replace(/(\d)-\s+(\d{2})\b/g,'$1-$2').trim();
+  var out={cnpjs:[],vigencia:{inicio:'',fim:''},assinadoEm:'',servicos:[],avisos:[]};
+  var re=/\d{2}\.\d{3}\.\d{3}\/\d{4}-\d{2}/g,m,vistos={};
+  while((m=re.exec(flat))){if(m[0]===(opts.cnpjProprio||'15.447.255/0001-74'))continue;if(!vistos[m[0]]){vistos[m[0]]=1;out.cnpjs.push(m[0]);}}
+  var mi=/in[ií]cio de vig[eê]ncia em ([^;,.]{6,30}?\d{4})/i.exec(flat),mf=/t[eé]rmino previsto em ([^;,.]{6,30}?\d{4})/i.exec(flat);
+  if(mi)out.vigencia.inicio=_adIso(_adData(mi[1]));
+  if(mf)out.vigencia.fim=_adIso(_adData(mf[1]));
+  var ms=/S[ãa]o Paulo,\s*(\d{1,2} de [A-Za-zç]+ de \d{4})/i.exec(flat);
+  if(ms)out.assinadoEm=_adIso(_adData(ms[1]));
+  var norm=function(x){return _adSemAc(x).replace(/gestao de academia/g,'gestao da academia');};
+  var nomes=(opts.servicos||[]).concat(_AD_SERV).map(function(n){return /gestao de academia/.test(_adSemAc(n))?'Gestão da Academia':n;}),usados={};
+  var frases=flat.split(/(?<=[.;:])\s+(?=(?:[a-z]\)|\d+(?:\.\d+)*\.|[A-ZÀ-Ú]))/);
+  var VERBO_SAI=/(exclu[ií]d|exclu[ií]ram|descontinu|encerrando-se|encerramento|deixa de ser devido)/,VERBO_FICA=/(permanecendo|permanecer[aá]|mantido|mantendo|continuidade)/;
+  nomes.forEach(function(nome){
+    var key=norm(nome);if(!key||usados[key])return;
+    var s={servico:nome,acao:'manter',data:'',valorAntigo:0,valorNovo:0,desde:'',trecho:''},achou=false;
+    frases.forEach(function(fr){
+      var fn=norm(fr),p=fn.indexOf(key);if(p<0)return;
+      achou=true;if(!s.trecho)s.trecho=fr.slice(0,220);
+      var corte=fn.search(VERBO_FICA),antes=corte>=0?fn.slice(0,corte):fn;
+      if(VERBO_SAI.test(antes)&&antes.indexOf(key)>=0&&!/nao sofrer/.test(antes)){
+        var ds=[],rd=/(\d{1,2})\s*(?:º|°)?\s+de\s+([A-Za-zçãé]+)\s+de\s+(\d{4})/gi,q;
+        var frAntes=corte>=0?fr.slice(0,corte):fr;
+        while((q=rd.exec(frAntes))){var mm=_AD_MES[_adSemAc(q[2])];if(mm)ds.push({d:+q[1],m:mm,a:+q[3]});}
+        var dev=/deixa de ser devido,?\s+a partir de/.test(antes);
+        if(s.acao!=='encerrar'||(!s.data&&ds.length)){
+          s.acao='encerrar';s.trecho=fr.slice(0,220);
+          if(ds.length&&!s.data){var dd=ds[ds.length-1];if(dev){var dt=new Date(Date.UTC(dd.a,dd.m-1,dd.d-1));dd={a:dt.getUTCFullYear(),m:dt.getUTCMonth()+1,d:dt.getUTCDate()};}s.data=_adIso(dd);}
+        }
+      }
+      var rj=/passar[aá]\s+de\s+R\$\s?([\d.]+,\d{2})[\s\S]{0,120}?para\s+R\$\s?([\d.]+,\d{2})/i.exec(fr);
+      if(rj&&s.acao!=='encerrar'){s.acao='reajustar';s.valorAntigo=_adNum(rj[1]);s.valorNovo=_adNum(rj[2]);}
+    });
+    if(achou){usados[key]=1;out.servicos.push(s);}
+  });
+  /* reajuste costuma citar o serviço só como "serviços residuais (Gestão da Academia...)" na cláusula do preço: se achamos 'passará de..para' e nenhum serviço ficou como reajustar, atribui ao único serviço mantido */
+  var rj2=/passar[aá]\s+de\s+R\$\s?([\d.]+,\d{2})[\s\S]{0,120}?para\s+R\$\s?([\d.]+,\d{2})/i.exec(flat);
+  if(rj2&&!out.servicos.some(function(x){return x.acao==='reajustar';})){
+    var mant=out.servicos.filter(function(x){return x.acao==='manter';});
+    if(mant.length===1){mant[0].acao='reajustar';mant[0].valorAntigo=_adNum(rj2[1]);mant[0].valorNovo=_adNum(rj2[2]);
+      var af2=/a partir de ([A-Za-zçãé]+)\s*\/?\s*(?:de\s*)?(\d{4})/i.exec(flat.slice(Math.max(0,rj2.index-150),rj2.index+30));
+      if(af2&&_AD_MES[_adSemAc(af2[1])])mant[0].desde=af2[2]+'-'+('0'+_AD_MES[_adSemAc(af2[1])]).slice(-2);}
+    else out.avisos.push('Encontrei um reajuste (de '+_adMoeda(_adNum(rj2[1]))+' para '+_adMoeda(_adNum(rj2[2]))+') mas não consegui ligar a um único serviço: escolha manualmente.');
+  }
+  if(!out.servicos.length)out.avisos.push('Não reconheci nenhum nome de serviço no texto: preencha manualmente.');
+  if(flat.length<300)out.avisos.push('Quase não há texto no PDF (pode ser imagem escaneada): preencha manualmente.');
+  return out;
+}
+
+/* ===== 03/11/2026 — Fase 5a: aditamento (PDF) — leitura NO NAVEGADOR, sem gravar nada. O texto do contrato não sai deste computador. ===== */
+var _AD=null,_ADP=false;
+function _adPdfjs(ok,erro){
+  if(_ADP&&window.pdfjsLib){ok();return;}
+  var s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+  s.onload=function(){
+    fetch('https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js').then(function(r){return r.text();}).then(function(t){
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc=URL.createObjectURL(new Blob([t],{type:'text/javascript'}));_ADP=true;ok();
+    }).catch(erro);
+  };
+  s.onerror=erro;document.head.appendChild(s);
+}
+function adLer(inp){
+  var f=inp&&inp.files&&inp.files[0],box=el('ad-res'),l=_cvLead();if(!f||!box||!l)return;
+  if(!/\.pdf$/i.test(f.name)&&f.type!=='application/pdf'){box.innerHTML='<span style="color:#B23A48">Escolha um arquivo PDF.</span>';return;}
+  if(f.size>15*1024*1024){box.innerHTML='<span style="color:#B23A48">PDF acima de 15 MB.</span>';return;}
+  box.textContent='Lendo o PDF neste navegador…';
+  var falha=function(e){box.innerHTML='<span style="color:#B23A48">Não consegui ler o PDF ('+esc(String((e&&e.message)||e||'erro').slice(0,80))+'). Preencha manualmente.</span>';};
+  _adPdfjs(function(){
+    var fr=new FileReader();
+    fr.onerror=falha;
+    fr.onload=function(){
+      window.pdfjsLib.getDocument({data:new Uint8Array(fr.result)}).promise.then(function(doc){
+        var ps=[],i;for(i=1;i<=doc.numPages;i++)ps.push(doc.getPage(i).then(function(p){return p.getTextContent();}).then(function(c){return c.items;}));
+        return Promise.all(ps);
+      }).then(function(paginas){
+        var m=_cvFatMatch(l),ct=_cvFatContrato(m),nomes=ct?m.itens.filter(function(x){return x.contratoId===ct.id;}).map(function(x){return x.servico;}).filter(Boolean):[];
+        var res=adParse(adTextoDeItens(paginas),{servicos:nomes});
+        _AD={arquivo:f.name,res:res};_adRender();
+      }).catch(falha);
+    };
+    fr.readAsArrayBuffer(f);
+  },falha);
+}
+function adEd(i,c,v){if(_AD&&_AD.res.servicos[i]){var s=_AD.res.servicos[i];if(c==='valorNovo')s[c]=_cvNumBR(v);else s[c]=v;_adRender();}}
+function _adRender(){
+  var box=el('ad-res'),l=_cvLead();if(!box||!_AD||!l)return;
+  var r=_AD.res,dig=function(x){return String(x||'').replace(/\D/g,'');},h='';
+  var cli=(_FATC&&_FATC.ok)?(_FATC.clientes||[]).filter(function(c){return r.cnpjs.some(function(j){return dig(c.cnpj)===dig(j);});})[0]:null;
+  h+='<div><b>Arquivo:</b> '+esc(_AD.arquivo)+(r.assinadoEm?' · documento de '+esc(_cvData(r.assinadoEm)):'')+'</div>';
+  h+='<div><b>CNPJ no documento (exceto ElevaLife):</b> '+(r.cnpjs.length?esc(r.cnpjs.join(' · ')):'<span style="color:#C9822B">não encontrado</span>')+(cli?' → no Faturamento: <b>'+esc(cli.nome||cli.razao||'')+'</b>':(r.cnpjs.length?' <span style="color:#C9822B">(não encontrado no Faturamento: conferir)</span>':''))+'</div>';
+  h+='<div><b>Vigência do contrato citada:</b> '+esc(r.vigencia.inicio?_cvData(r.vigencia.inicio):'?')+' a '+esc(r.vigencia.fim?_cvData(r.vigencia.fim):'?')+'</div>';
+  var sel=function(i,v){return '<select onchange="adEd('+i+',\'acao\',this.value)" style="font-size:12px">'+[['manter','Mantido'],['encerrar','Encerrado'],['reajustar','Valor novo']].map(function(o){return '<option value="'+o[0]+'"'+(o[0]===v?' selected':'')+'>'+o[1]+'</option>';}).join('')+'</select>';};
+  h+='<table style="border-collapse:collapse;margin-top:6px;width:100%;font-size:12px"><tr style="text-align:left;color:#8A7A78"><th>Serviço</th><th>O que o aditamento diz</th><th>Até / a partir de</th><th>Valor novo (R$/mês)</th></tr>';
+  r.servicos.forEach(function(s,i){
+    var dado=s.acao==='encerrar'?'<input value="'+esc(s.data)+'" onchange="adEd('+i+',\'data\',this.value)" placeholder="aaaa-mm-dd" style="width:105px;font-size:12px">':(s.acao==='reajustar'?'<input value="'+esc(s.desde)+'" onchange="adEd('+i+',\'desde\',this.value)" placeholder="aaaa-mm" style="width:80px;font-size:12px">':'—');
+    var val=s.acao==='reajustar'?'<input value="'+esc(String(s.valorNovo||'').replace('.',','))+'" onchange="adEd('+i+',\'valorNovo\',this.value)" style="width:90px;font-size:12px" inputmode="decimal">'+(s.valorAntigo?' <span style="color:#8A7A78">(antes '+esc(_cvMoeda(s.valorAntigo))+')</span>':''):'—';
+    h+='<tr style="border-top:1px solid #EADDE0"><td style="padding:3px 6px 3px 0"><b>'+esc(s.servico)+'</b></td><td>'+sel(i,s.acao)+'</td><td>'+dado+'</td><td>'+val+'</td></tr>';
+  });
+  h+='</table>';
+  if(r.avisos.length)h+='<ul style="margin:6px 0 0 18px;padding:0;color:#C9822B">'+r.avisos.map(function(a){return '<li>'+esc(a)+'</li>';}).join('')+'</ul>';
+  h+='<div style="margin-top:6px;color:#8A7A78">Esta é só a leitura do PDF (Fase 5a): nada foi gravado nem enviado. Confira com o documento; a gravação da nova Versão no Faturamento vem na próxima etapa.</div>';
+  box.innerHTML=h;
+}
+window.adLer=adLer;window.adEd=adEd;
 /* 03/11/2026 — Fase 2 da integração com o Faturamento: SIMULAÇÃO. Calcula o nível (1 direto, 2 provisório, 3 retido) e mostra o que SERIA gravado. Não grava nada. */
 var _CV_EV_FORTE=['Pedido de compra','Contrato assinado'];
 function _cvNumBR(s){var x=String(s==null?'':s).replace(/[^\d,.-]/g,'');if(x.indexOf(',')>-1)x=x.replace(/\./g,'').replace(',','.');var n=parseFloat(x);return isNaN(n)?0:n;}
