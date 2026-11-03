@@ -90,6 +90,9 @@ const LISTS = {
       // 29/10/2026 — Léo: venda só vale com formalização comprovada. Tipo da evidência (Pedido de compra | Contrato assinado | E-mail | WhatsApp | Outro) e número do pedido/contrato ou link do arquivo (print).
       { name: 'evidenciaTipo', type: 'text' },
       { name: 'evidencia', type: 'text' },
+      // 03/11/2026 — Léo: comunicado de nova venda ao Teams. Quando e por quem foi enviado (trava contra envio repetido e histórico mínimo).
+      { name: 'comunicadoEm', type: 'text' },
+      { name: 'comunicadoPor', type: 'text' },
       // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
       // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
       // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
