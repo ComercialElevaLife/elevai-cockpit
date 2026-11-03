@@ -1047,28 +1047,30 @@ td .up{color:var(--ok);font-weight:700}
      exigidas etc.) é preenchido aqui na hora — mesmos campos que faltam pra Fase C e a integração
      com o Painel de Implantação (ver elevai-integracao-painel-implantacao.md), só que capturados
      manualmente por enquanto em vez de virar campo permanente do cadastro. -->
-<div class="ov" id="ov-venda"><div class="mdl" style="max-width:640px">
-  <div class="mh"><h3>📣 Nova comunicação de venda</h3><button class="x" onclick="document.getElementById('ov-venda').classList.remove('on')">&times;</button></div>
+<div class="ov" id="ov-venda"><div class="mdl" style="max-width:760px">
+  <div class="mh"><h3>📣 Comunicado de nova venda</h3><button class="x" onclick="document.getElementById('ov-venda').classList.remove('on')">&times;</button></div>
   <div class="mb">
-    <p class="hint" style="margin:0 0 6px">Preencha o que faltar (o resto já veio do cadastro) e clique em "Gerar texto". Depois é só copiar e colar no Teams.</p>
+    <div id="cv-status" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#F5EFEA;color:#3A2A2E"></div>
+    <p class="hint" style="margin:0 0 6px">O que o Cockpit já sabe veio preenchido. Complete o que faltar: campos vazios saem como "A confirmar". O orçamento nunca vai no comunicado. A saudação é calculada na hora do envio (horário de Brasília).</p>
     <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
-      <label>Área do projeto<input id="cv-area" placeholder="ex.: Ergonomia"></label>
-      <label>Resumo breve do serviço<input id="cv-resumo" placeholder="ex.: Avaliações ergonômicas mensais"></label>
-      <label>Volume de entrega<input id="cv-volume" placeholder="ex.: 40h/mês ou 150 avaliações"></label>
-      <label>Cargo desejado<input id="cv-cargo" placeholder="ex.: Técnico em Segurança do Trabalho"></label>
-      <label>Data de início<input id="cv-inicio" placeholder="dd/mm/aaaa ou 'A alinhar'" value="A alinhar"></label>
-      <label>Dias da semana<input id="cv-dias" placeholder="ex.: Seg a Sex"></label>
-      <label>Horário — entrada<input id="cv-hent" placeholder="ex.: 08:00"></label>
-      <label>Horário — saída<input id="cv-hsai" placeholder="ex.: 17:00"></label>
-      <label style="grid-column:1/3">Endereço (com sigla da unidade, se houver)<input id="cv-endereco"></label>
+      <label>Pilar / área<input id="cv-area" placeholder="ex.: Ergonomia"></label>
+      <label>Serviço específico<input id="cv-tipo" placeholder="ex.: Ginástica Laboral"></label>
+      <label style="grid-column:1/3">Resumo do projeto<input id="cv-resumo" placeholder="ex.: Ginástica Laboral nas unidades de Joinville"></label>
+      <label>Volume de entrega<input id="cv-volume" placeholder="ex.: 2 profissionais, 40h/mês"></label>
+      <label>Detalhamento do escopo<input id="cv-escopo" placeholder="ex.: sessões de 15 min por setor"></label>
+      <label>Data de início<input id="cv-inicio" placeholder="dd/mm/aaaa ou A confirmar"></label>
+      <label>Mobilização<input id="cv-mob" placeholder="ex.: 30 dias após o pedido"></label>
+      <label style="grid-column:1/3">Endereço de execução<input id="cv-endereco"></label>
+      <label style="grid-column:1/3">Horários / frequência<input id="cv-horarios" placeholder="ex.: Seg a Sex, 08:00 às 17:00"></label>
     </div>
-    <label>Pontos focais (Cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
-    <label>Documentação exigida<textarea id="cv-docs" rows="2" placeholder="ex.: ASO, PPRA, PCMSO, CREF, Integração..."></textarea></label>
-    <label>Observações/materiais (EPI, uniforme, controle de ponto etc.)<textarea id="cv-obs" rows="2"></textarea></label>
-    <div style="display:flex;gap:8px;margin:8px 0"><button class="btn" onclick="gerarTextoComunicacao()">Gerar texto</button></div>
-    <label>Texto pronto (copie e cole no Teams)<textarea id="cv-out" rows="16" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
+    <label>Pontos focais (cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
+    <label>Requisitos de faturamento<textarea id="cv-fat" rows="2" placeholder="ex.: NF até dia 25, portal Ariba"></textarea></label>
+    <label>Requisitos operacionais (portais, cadastros, documentação, EPI, uniforme...)<textarea id="cv-docs" rows="2"></textarea></label>
+    <label>Assinatura<input id="cv-ass"></label>
+    <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
+    <label>Pré-visualização (é exatamente este texto que vai ao Teams)<textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados para o sistema de implantação">{ } Copiar dados</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
 </div></div>
 
 <script>
@@ -3225,75 +3227,146 @@ function _festa(){
   }catch(e){}
 }
 function notifyTeams(l){
-  if(window.getModoTeste&&window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: aviso de venda NÃO enviado ao Teams.'); return; }
+  /* 03/11/2026 — em vez do cartão simples + confirm(), abre a pré-visualização do comunicado padrão (nada sai sem o usuário ver). */
   if(window.trigNovaVenda&&!window.trigNovaVenda())return;
-  var TEAMS_URL=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!TEAMS_URL)return;
-  if(!confirm('Avisar o time no Teams sobre a venda de '+(l.cliente||'—')+'?'))return;
-  _teamsPost(_teamsVendaCard(l));
+  abrirComunicacaoVenda(l.id);
 }
-function reenviarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Reenviar/atualizar o aviso desta venda ('+(l.cliente||'')+') no Teams?'))return; _teamsPost(_teamsVendaCard(l)).then(function(ok){ if(typeof toast==='function')toast(ok?'Aviso reenviado ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
+function reenviarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; abrirComunicacaoVenda(id); }
 function retratarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?'))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
 window.reenviarVenda=reenviarVenda;window.retratarVenda=retratarVenda;
 /* 21/08/2026 — "Nova comunicação de venda" (P7): gera o texto no modelo exato trazido pelo Léo,
    pronto pra copiar/colar no Teams (não posta sozinho — regra dele: "apenas entregue o texto pronto
    para ser copiado"). Guarda o id do lead atual em _cvId enquanto a janela está aberta. */
-let _cvId=null;
+/* 03/11/2026 — Léo: padrão oficial do comunicado de nova venda (passagem de bastão Comercial -> Operações).
+   Ao marcar VENDIDA abre esta pré-visualização (nada sai sozinho). Saudação por Brasília, orçamento protegido, assinatura = usuário logado,
+   trava contra reenvio (comunicadoEm/comunicadoPor no lead) e dados estruturados (copiarDadosVenda) para o sistema de implantação. */
+let _cvId=null,_cvU=null,_cvBusy=false;
+function _cvSaudHora(h){h=+h;if(h===24)h=0;return (h>=5&&h<12)?'Bom dia':((h>=12&&h<18)?'Boa tarde':'Boa noite');}
+function _cvSaud(d){var h=new Intl.DateTimeFormat('pt-BR',{hour:'numeric',hour12:false,timeZone:'America/Sao_Paulo'}).format(d||new Date());return _cvSaudHora(parseInt(h,10))+', Time!';}
+function _cvNomeDe(email){var e=String(email||'').toLowerCase(),M={'leonardo@elevalife.com.br':'Leonardo Scaccabarozzi','rafael@elevalife.com.br':'Rafael Piacenti','joao@elevalife.com.br':'João'};if(M[e])return M[e];return e.split('@')[0].split('.').map(function(w){return w?w.charAt(0).toUpperCase()+w.slice(1):'';}).filter(Boolean).join(' ');}
+function _cvUsuario(cb){if(_cvU){cb(_cvU);return;}fetch('/.auth/me').then(function(r){return r.json();}).then(function(d){var cp=d&&d.clientPrincipal,em=(cp&&cp.userDetails)||'';_cvU={email:em,nome:_cvNomeDe(em)};cb(_cvU);}).catch(function(){cb(null);});}
+function _cvData(d){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(d||''));return m?m[3]+'/'+m[2]+'/'+m[1]:String(d||'');}
+function _cvQuando(iso){try{return new Date(iso).toLocaleString('pt-BR',{timeZone:'America/Sao_Paulo',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});}catch(e){return String(iso||'');}}
+function _cvV(id){var e=el(id);return e?String(e.value||'').trim():'';}
+function _cvEst(v){v=String(v||'').trim();if(!v||/^(a confirmar|n[aã]o informado)$/i.test(v))return 'P';if(/^n[aã]o aplic[aá]vel/i.test(v))return 'NA';return 'C';}
+function _cvTxt(v){return _cvEst(v)==='P'?'A confirmar':String(v).trim();}
+function _cvLead(){return _allLeads().find(function(x){return x.id===_cvId;});}
+var _CV_SERV={ERGO:'Ergonomia',GL:'Ginástica Laboral',FISIO:'Fisioterapia',ENF:'Enfermagem do Trabalho',AET:'AET','MED TRAB':'Medicina do Trabalho',FONO:'Fonoaudiologia'};
+function _cvServ(v){return String(v||'').split(/\s*[;,]\s*/).map(function(x){return _CV_SERV[x.trim().toUpperCase()]||x.trim();}).filter(Boolean).join(' / ');}
+function _cvUn(l){var u=String(l.unidade||'').trim();return /^(NA|—|-|n[aã]o informado)$/i.test(u)?'':u;}
+function _cvCliUn(l){var u=_cvUn(l);return (l.cliente||'—')+(u?' — '+u:'');}
+function _cvBlocos(l,saud){
+  var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  var foc=focais.length?focais.join('; '):'A confirmar';
+  var resumo=_cvV('cv-resumo')||(_cvEst(_cvV('cv-tipo'))==='C'?_cvV('cv-tipo'):'')||'A confirmar';
+  var nome=_cvV('cv-ass')||(_cvU&&_cvU.nome)||'';
+  return [
+    '🚀 **NOVA VENDA: '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
+    saud,
+    'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.\n\nAbaixo, os detalhes para o start da operação:',
+    '**📋 ESCOPO TÉCNICO**\n- **Tipo de Serviço:** '+_cvTxt(_cvV('cv-tipo'))+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
+    '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
+    '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
+    '**💰 BUDGET**\n- **Valor Contratado:** Detalhamento financeiro disponível com o Comercial/Financeiro.',
+    'Agradeço o apoio de todos e desejo sucesso nessa nova operação.',
+    nome
+  ].filter(function(b){return b!=='';});
+}
+function _cvChecklist(l){
+  var f=_cvV,foc=f('cv-focais');
+  var it=[['Cliente e unidade',l.cliente?'C':'P'],['Serviço contratado',_cvEst(f('cv-tipo'))],['Escopo e volume',(_cvEst(f('cv-volume'))==='P'||_cvEst(f('cv-escopo'))==='P')?'P':'C'],['Data de início',_cvEst(f('cv-inicio'))],['Endereço',_cvEst(f('cv-endereco'))],['Horários e frequência',_cvEst(f('cv-horarios'))],['Ponto focal',_cvEst(foc)],['Faturamento',_cvEst(f('cv-fat'))],['Requisitos operacionais',_cvEst(f('cv-docs'))],['Valor (protegido)','C']];
+  return it;
+}
+function cvRender(){
+  var l=_cvLead();if(!l)return;
+  var out=el('cv-out');if(out)out.value=_cvBlocos(l,_cvSaud()).join('\n\n');
+  var cor={C:['#2E7D5B','Completo'],P:['#C9822B','Pendente'],NA:['#8A7A78','Não aplicável'],D:['#B23A48','Divergente']};
+  var chk=el('cv-chk');if(chk)chk.innerHTML=_cvChecklist(l).map(function(x){var c=cor[x[1]];return '<span style="font-size:11px;border:1px solid '+c[0]+';color:'+c[0]+';border-radius:999px;padding:2px 9px;background:#fff">'+esc(x[0])+': '+c[1]+'</span>';}).join('');
+  var st=el('cv-status');
+  if(st){var t='';
+    if(l.comunicadoEm)t+='✔ Comunicado já enviado em '+_cvQuando(l.comunicadoEm)+(l.comunicadoPor?' por '+esc(l.comunicadoPor):'')+'. Um novo envio pede confirmação.';
+    else t+='Ainda não enviado ao Teams.';
+    if(window.getModoTeste&&window.getModoTeste())t+=' · 🧪 Modo teste ligado: o envio está bloqueado.';
+    if(!(window.getTeamsWebhook&&window.getTeamsWebhook()))t+=' · Canal do Teams não configurado (⚙ Automação): use "Copiar texto".';
+    st.innerHTML=t;}
+}
 function abrirComunicacaoVenda(id){
   var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
   _cvId=id;
   var g=function(x,v){var e=el(x); if(e)e.value=v||'';};
-  g('cv-area',l.serv); g('cv-resumo',''); g('cv-volume',''); g('cv-cargo','');
-  g('cv-inicio','A alinhar'); g('cv-dias',''); g('cv-hent',''); g('cv-hsai','');
-  g('cv-endereco',l.endereco||'');
+  var sv=(l.serv&&!/^(NA|—|-)$/i.test(l.serv))?_cvServ(l.serv):'';
+  g('cv-area',sv);g('cv-tipo',sv);g('cv-resumo','');g('cv-volume','');g('cv-escopo','');g('cv-inicio','');
+  var mob=String(l.prazoMobilizacao||'').trim();
+  if(!mob&&l.dataVenda)mob='Referência operacional: 30 dias após o recebimento do pedido de compra (formalização em '+_cvData(l.dataVenda)+'). Data a confirmar.';
+  g('cv-mob',mob);
+  g('cv-endereco',l.endereco||'');g('cv-horarios','');
   var focais=(_opContatos()||[]).filter(function(c){
-    return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||
-      String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();
-  }).map(function(c){
-    var nome=[c.nome,c.sobrenome].filter(Boolean).join(' ');
-    return [nome||'—',c.cargo||'—',(c.email||c.telefone||'—')].join(' - ');
-  }).join('\n');
+    return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();
+  }).map(function(c){var nome=[c.nome,c.sobrenome].filter(Boolean).join(' ');return [nome||'—',c.cargo||'—',(c.email||c.telefone||'—')].join(' - ');}).join('\n');
   g('cv-focais',focais);
-  g('cv-docs',''); g('cv-obs','');
-  var out=el('cv-out'); if(out)out.value='';
-  var ov=el('ov-venda'); if(ov)ov.classList.add('on');
+  var fat=[];if(l.condPagamento)fat.push('Pagamento: '+l.condPagamento);if(l.recebimento)fat.push('Recebimento: '+l.recebimento);
+  g('cv-fat',fat.join(' · '));g('cv-docs','');
+  g('cv-ass',(_cvU&&_cvU.nome)||'');
+  var ov=el('ov-venda'); if(ov){ov.classList.add('on');if(!ov._cvIn){ov._cvIn=1;ov.addEventListener('input',cvRender);}}
+  cvRender();
+  _cvUsuario(function(u){if(u&&_cvId===id&&!_cvV('cv-ass')){g('cv-ass',u.nome);}cvRender();});
 }
-function gerarTextoComunicacao(){
-  var l=_allLeads().find(function(x){return x.id===_cvId;}); if(!l){alert('Lead não encontrado.');return;}
-  var v=function(x){var e=el(x);return e?e.value.trim():'';};
-  var hora=new Date().getHours();
-  var saud=(hora<12?'Bom dia':'Boa tarde')+', Time!';
-  var area=v('cv-area')||l.serv||'—';
-  var resumo=v('cv-resumo')||'—';
-  var horario=(v('cv-hent')||'—')+' às '+(v('cv-hsai')||'—');
-  var t='**'+saud+'**\n'
-    +'**🚀 NOVO CLIENTE: '+(l.cliente||'—')+' | '+area+' | '+resumo+'**\n\n'
-    +'É com alegria que anunciamos a conquista deste novo cliente, **'+(l.cliente||'—')+'**. Abaixo, os detalhes para o start da operação:\n\n'
-    +'**📋 ESCOPO TÉCNICO**\n'
-    +'* **Tipo de Serviço:** '+(l.serv||'—')+'\n'
-    +'* **Volume de Entrega:** '+(v('cv-volume')||'—')+'\n'
-    +'* **Cargo Desejado:** '+(v('cv-cargo')||'—')+'\n\n'
-    +'**⏰ CRONOGRAMA & LOGÍSTICA**\n'
-    +'* **Data de Início:** '+(v('cv-inicio')||'A alinhar')+'\n'
-    +'* **Dias da Semana:** '+(v('cv-dias')||'—')+'\n'
-    +'* **Horário de Atuação:** '+horario+'\n'
-    +'* **Endereço:** '+(v('cv-endereco')||'—')+'\n\n'
-    +'**👥 PONTOS DE CONTATO & REQUISITOS**\n'
-    +'* **Pontos Focais (Cliente):** '+(v('cv-focais').split('\n').filter(Boolean).join('; ')||'—')+'\n'
-    +'* **Documentação Exigida:** '+(v('cv-docs')||'—')+'\n'
-    +'* **Observações/Materiais:** '+(v('cv-obs')||'—')+'\n\n'
-    +'💰 **BUDGET:** *Enviado no privado*\n\n'
-    +'Agradeço o apoio de todos e desejo sucesso nessa nova operação.\n\n'
-    +'**Rafael e João**\n'
-    +'*PSC*';
-  var out=el('cv-out'); if(out)out.value=t;
-}
+function gerarTextoComunicacao(){cvRender();}
 function copiarComunicacaoVenda(){
-  var out=el('cv-out'); if(!out||!out.value){alert('Clique em "Gerar texto" primeiro.');return;}
+  var l=_cvLead();if(!l)return;
+  cvRender();var out=el('cv-out');if(!out||!out.value)return;
   out.select();
   try{document.execCommand('copy'); if(typeof toast==='function')toast('Texto copiado ✓');}
   catch(e){ if(navigator.clipboard)navigator.clipboard.writeText(out.value).then(function(){if(typeof toast==='function')toast('Texto copiado ✓');}); }
 }
-window.abrirComunicacaoVenda=abrirComunicacaoVenda;window.gerarTextoComunicacao=gerarTextoComunicacao;window.copiarComunicacaoVenda=copiarComunicacaoVenda;
+/* Dados estruturados da venda — contrato versionado para o sistema de implantação (valor financeiro NÃO vai). */
+function dadosComunicadoVenda(id){
+  var l=(id!=null)?_allLeads().find(function(x){return x.id===id;}):_cvLead();if(!l)return null;
+  var foc=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
+  return {versao:1,geradoEm:new Date().toISOString(),leadId:l.spid||l.id,cliente:l.cliente||'',unidade:_cvUn(l),
+    area:_cvV('cv-area'),servico:_cvV('cv-tipo'),resumo:_cvV('cv-resumo'),volume:_cvV('cv-volume'),escopo:_cvV('cv-escopo'),inicio:_cvV('cv-inicio'),mobilizacao:_cvV('cv-mob'),
+    endereco:_cvV('cv-endereco'),horarios:_cvV('cv-horarios'),pontosFocais:foc,faturamento:_cvV('cv-fat'),operacionais:_cvV('cv-docs'),
+    formalizacao:{data:l.dataVenda||'',tipo:l.evidenciaTipo||'',referencia:l.evidencia||''},budget:{divulgado:false},assinatura:_cvV('cv-ass'),
+    comunicado:{enviadoEm:l.comunicadoEm||'',enviadoPor:l.comunicadoPor||''}};
+}
+function copiarDadosVenda(){
+  var d=dadosComunicadoVenda();if(!d)return;var t=JSON.stringify(d,null,2);
+  var ok=function(){if(typeof toast==='function')toast('Dados copiados ✓ (formato JSON para o sistema de implantação)');};
+  if(navigator.clipboard)navigator.clipboard.writeText(t).then(ok,function(){alert(t);});else alert(t);
+}
+function _cvCard(blocos){
+  var body=blocos.map(function(b,i){var o={type:'TextBlock',wrap:true,text:b.replace(/\n/g,'\n\n')};if(i===0){o.size='Large';o.weight='Bolder';}else o.spacing='Medium';return o;});
+  return {type:'message',attachments:[{contentType:'application/vnd.microsoft.card.adaptive',content:{type:'AdaptiveCard','$schema':'http://adaptivecards.io/schemas/adaptive-card.json',version:'1.4',body:body}}]};
+}
+function enviarComunicacaoVenda(){
+  var l=_cvLead();if(!l||_cvBusy)return;
+  if(window.getModoTeste&&window.getModoTeste()){if(typeof toast==='function')toast('🧪 Modo teste: comunicado NÃO enviado ao Teams.');return;}
+  var u=window.getTeamsWebhook?window.getTeamsWebhook():'';
+  if(!u){alert('Webhook do Teams não configurado (⚙ Automação). Use "Copiar texto".');return;}
+  var pend=_cvChecklist(l).filter(function(x){return x[1]==='P';}).length;
+  var m='Enviar o comunicado de nova venda de "'+(l.cliente||'—')+'" ao canal do Teams?';
+  if(pend)m+='\n\n'+pend+' item(ns) seguem como "A confirmar".';
+  if(l.comunicadoEm)m+='\n\nATENÇÃO: já foi enviado em '+_cvQuando(l.comunicadoEm)+(l.comunicadoPor?' por '+l.comunicadoPor:'')+'. Enviar de novo?';
+  if(!confirm(m))return;
+  _cvBusy=true;var btn=el('cv-send');if(btn)btn.disabled=true;
+  _cvUsuario(function(usr){
+    cvRender();
+    var card=_cvCard(_cvBlocos(l,_cvSaud()));
+    var fim=function(){_cvBusy=false;if(btn)btn.disabled=false;};
+    var ctl=new AbortController(),to=setTimeout(function(){ctl.abort();},20000);
+    fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(card),signal:ctl.signal}).then(function(r){
+      clearTimeout(to);
+      if(!r.ok){fim();if(typeof toast==='function')toast('Falha ao enviar (resposta '+r.status+'). A venda continua registrada.');return;}
+      var f={comunicadoEm:new Date().toISOString(),comunicadoPor:(usr&&usr.email)||''};
+      window.persistLeadFields(l.spid,f,function(){Object.assign(l,f);var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});if(raw)Object.assign(raw,f);fim();cvRender();},function(){fim();});
+      if(typeof toast==='function')toast('Comunicado enviado ao Teams ✓ (aceito pelo fluxo)');
+    }).catch(function(){
+      clearTimeout(to);fim();
+      if(typeof toast==='function')toast('Resultado desconhecido: confira o canal no Teams antes de reenviar.');
+    });
+  });
+}
+window.abrirComunicacaoVenda=abrirComunicacaoVenda;window.gerarTextoComunicacao=gerarTextoComunicacao;window.copiarComunicacaoVenda=copiarComunicacaoVenda;window.enviarComunicacaoVenda=enviarComunicacaoVenda;window.copiarDadosVenda=copiarDadosVenda;window.dadosComunicadoVenda=dadosComunicadoVenda;window.cvRender=cvRender;
 function notifyNutricao(l){
   /* Aviso de lead pausado — SOMENTE E-MAIL (sem card no Teams). Editável/desativável em ⚙ Automação. */
   if(window.getModoTeste && window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: e-mail de pausa NÃO enviado.'); return; }
@@ -4732,7 +4805,7 @@ function _mapLead(Lx,i){return {
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:(Lx.tarefasJson2||Lx.tarefasJson), nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
-    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda, evidenciaTipo:Lx.evidenciaTipo, evidencia:Lx.evidencia };}
+    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda, evidenciaTipo:Lx.evidenciaTipo, evidencia:Lx.evidencia, comunicadoEm:Lx.comunicadoEm, comunicadoPor:Lx.comunicadoPor };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por
