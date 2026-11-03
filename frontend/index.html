@@ -3299,17 +3299,70 @@ function _cvAtivo(l){var cn=_cvNorm(l.cliente),un=_cvUnN(_cvUn(l));
     var cu=_cvUnN(c.unidade);if(!un||!cu)return true;
     return cu.indexOf(un.slice(0,4))===0||un.indexOf(cu.slice(0,4))===0;});
   var vd=_allLeads().filter(function(x){return x.id!==l.id&&x.status==='VENDIDA'&&x.inativo!=='SIM'&&_cvNorm(x.cliente)===cn;});
-  return {ct:ct,vd:vd,ativo:ct.length>0||vd.length>0};}
+  var fm=_cvFatMatch(l);
+  return {ct:ct,vd:vd,fat:fm,ativo:ct.length>0||vd.length>0||fm.contratos.length>0};}
 function _cvViaDupla(l){var n=_natInfo(l),a=_cvAtivo(l);if(n.k==='NOVA'&&!a.ativo)return '';
   var lista=a.ct.length?a.ct.map(function(c){return '- '+(c.servico||'—')+(c.unidade?' · '+c.unidade:'');}).join('\n'):'- Nenhum contrato localizado na base (há venda anterior registrada).';
   return '**🔁 CLIENTE ATIVO — CONFIRMAÇÃO EM VIA DUPLA**\n- **Contratos ativos na base:**\n'+lista+'\n- **Operações/Faturamento:** os requisitos seguem os já praticados nos contratos ativos deste cliente/unidade. Confirmem, respondendo neste fio, se há requisito novo ou diferente para este serviço.';}
+/* Fase 1 da integração com o Faturamento de Serviços (SOMENTE LEITURA, sem valores): contratos reais para conferir Nº, vigência e serviços. */
+var _FATC=null,_FATC_T=0,_FATC_BUSY=false;
+function _cvFatLer(cb){
+  if(_FATC&&_FATC.ok&&Date.now()-_FATC_T<60000){if(cb)cb();return;}
+  if(_FATC_BUSY)return;_FATC_BUSY=true;
+  fetch('/api/faturamento-ler').then(function(r){return r.json().catch(function(){return {ok:false,error:'HTTP '+r.status};});})
+    .then(function(j){_FATC=j||{ok:false};_FATC_T=Date.now();})
+    .catch(function(e){_FATC={ok:false,error:String((e&&e.message)||e)};})
+    .then(function(){_FATC_BUSY=false;if(cb)cb();});
+}
+function _cvFatMatch(l){
+  var out={clientes:[],contratos:[],itens:[]};
+  if(!_FATC||!_FATC.ok)return out;
+  var dig=function(x){return String(x||'').replace(/\D/g,'');},cj=dig(l.cnpj),cn=_cvUnN(_cvNorm(l.cliente)),un=_cvUnN(_cvUn(l));
+  out.clientes=(_FATC.clientes||[]).filter(function(c){
+    if(cj&&dig(c.cnpj)===cj)return true;
+    var nm=_cvUnN(_cvNorm(c.nome||c.razao));
+    if(!cn||nm.indexOf(cn)!==0)return false;
+    var cu=_cvUnN(c.unidade)+nm;
+    return !un||cu.indexOf(un.slice(0,4))>=0;
+  });
+  var ids={};out.clientes.forEach(function(c){ids[c.id]=1;});
+  out.contratos=(_FATC.contratos||[]).filter(function(x){return ids[x.clienteId];}).sort(function(a,b){return (b.versao||0)-(a.versao||0);});
+  var cts={};out.contratos.forEach(function(x){cts[x.id]=1;});
+  out.itens=(_FATC.itens||[]).filter(function(x){return cts[x.contratoId];});
+  return out;
+}
+function _cvFatContrato(m){return m.contratos.filter(function(x){return x.status!=='Encerrado';})[0]||m.contratos[0]||null;}
+function _cvFatHtml(l){
+  var f=_FATC;
+  if(!f)return '<br><span style="color:#8A7A78">Faturamento: consultando…</span>';
+  if(!f.ok)return '<br><span style="color:#8A7A78">Faturamento: indisponível ('+esc(String(f.error||'erro').slice(0,80))+').</span>';
+  var m=_cvFatMatch(l);
+  if(!m.clientes.length)return '<br><span style="color:#C9822B">Faturamento: nenhum cliente correspondente encontrado (conferir nome, unidade ou CNPJ).</span>';
+  var ct=_cvFatContrato(m);
+  var h='<br><b>Faturamento:</b> '+esc(m.clientes.map(function(c){return c.nome||c.razao||'';}).join(' · '));
+  if(!ct)return h+' · sem contrato cadastrado.';
+  var sv=m.itens.filter(function(i){return i.contratoId===ct.id;}).map(function(i){return i.servico;}).filter(Boolean);
+  h+='<br>Contrato <b>'+esc(String(ct.numero||'—'))+'</b> (v'+esc(String(ct.versao||1))+', '+esc(String(ct.status||'—'))+') · vigência '+esc(ct.inicio?_cvData(ct.inicio):'?')+' a '+esc(ct.fim?_cvData(ct.fim):'?')+(sv.length?' · serviços: '+esc(sv.join(', ')):'');
+  h+=' <button type="button" class="btn" style="font-size:11px;padding:2px 8px" onclick="cvUsarFat()">Usar Nº e vigência do Faturamento</button>';
+  return h;
+}
+function cvUsarFat(){
+  var l=_cvLead();if(!l)return;
+  var ct=_cvFatContrato(_cvFatMatch(l));if(!ct)return;
+  var g=function(id,v){var e=el(id);if(e){e.value=v||'';e.dispatchEvent(new Event('input',{bubbles:true}));}};
+  g('ft-ctr',ct.numero);g('ft-ini',ct.inicio?_cvData(ct.inicio):'');g('ft-fim',ct.fim?_cvData(ct.fim):'');
+  var bx=el('ft-box');if(bx)bx.open=true;
+  cvRender();
+  if(typeof toast==='function')toast('Nº e vigência do Faturamento preenchidos. Confira e use "Salvar dados do contrato".');
+}
+window.cvUsarFat=cvUsarFat;
 function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n.lbl)+'</b>'+(n.auto?' (automática)':' (definida no lead)')+' · ';
   if(a.ativo){h+='cliente ativo na base: '+a.ct.length+' contrato(s)'+(a.vd.length?' e '+a.vd.length+' venda(s) anterior(es)':'');
     if(a.ct.length)h+='<br><span style="color:#8A7A78">'+a.ct.map(function(c){return esc((c.servico||'—')+(c.unidade?' · '+c.unidade:'')+(c.status?' · '+c.status:''));}).join('<br>')+'</span>';
     if(n.k==='NOVA')h+='<br><span style="color:#B23A48">⚠ O cliente já está na base, mas a natureza está como Nova venda. Conferir (Upsell/Cross-sell).</span>';
   }else{h+='nenhum contrato ativo nem venda anterior localizados na base';
     if(n.k!=='NOVA')h+='<br><span style="color:#C9822B">⚠ Natureza '+esc(n.lbl)+', mas o cliente não aparece na base: conferir o cadastro de contratos.</span>';}
-  return h;}
+  return h+_cvFatHtml(l);}
 function _cvBlocos(l,saud){
   var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var foc=focais.length?focais.join('; '):'A confirmar';
@@ -3370,6 +3423,7 @@ function abrirComunicacaoVenda(id){
   g('cv-ass',(_cvU&&_cvU.nome)||'');
   var ov=el('ov-venda'); if(ov){ov.classList.add('on');if(!ov._cvIn){ov._cvIn=1;ov.addEventListener('input',cvRender);}}
   cvRender();
+  _cvFatLer(function(){if(_cvId===id)cvRender();});
   _cvUsuario(function(u){if(u&&_cvId===id&&!_cvV('cv-ass')){g('cv-ass',u.nome);}cvRender();});
 }
 function gerarTextoComunicacao(){cvRender();}
