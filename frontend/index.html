@@ -3198,6 +3198,26 @@ const WA_NUMBER='5511978502159'; /* WhatsApp comercial ElevaLife */
 const TIPOS={'Tarefa':'📌','Ligação':'📞','WhatsApp':'🟢','Reunião':'👥'};
 function _teamsPost(card){ var u=(window.getTeamsWebhook?window.getTeamsWebhook():''); if(!u)return Promise.resolve(false); return fetch(u,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(card)}).then(function(){return true;}).catch(function(){return false;}); }
 function _teamsVendaCard(l){ return {type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Good",text:"🎉 Nova venda — ElevaLife"},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")+" ("+(l.tipo||"")+")"},{title:"Valor",value:brl(l.valor)},{title:"Consultor",value:l.cons||"—"},{title:"ICP",value:l.icp||"—"}]}]}}]}; }
+/* 03/11/2026 — Léo: comemoração ao marcar VENDIDA (fogos de artifício + som), como no RD Station. Sem arquivos externos: o som é sintetizado no navegador. */
+function _festa(){
+  try{
+    if(window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+    var AC=window.AudioContext||window.webkitAudioContext;
+    if(AC){var a=new AC(),t0=a.currentTime;
+      [523.25,659.25,783.99,1046.5,1318.5].forEach(function(f,i){var o=a.createOscillator(),g=a.createGain();o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(0,t0+i*.11);g.gain.linearRampToValueAtTime(.18,t0+i*.11+.02);g.gain.exponentialRampToValueAtTime(.001,t0+i*.11+.7);o.connect(g);g.connect(a.destination);o.start(t0+i*.11);o.stop(t0+i*.11+.75);});
+      [.5,.9,1.3,1.7,2.1,2.4].forEach(function(d){var n=a.createBuffer(1,a.sampleRate*.25,a.sampleRate),c=n.getChannelData(0);for(var k=0;k<c.length;k++)c[k]=(Math.random()*2-1)*Math.pow(1-k/c.length,3);var s=a.createBufferSource(),g=a.createGain();s.buffer=n;g.gain.value=.22;s.connect(g);g.connect(a.destination);s.start(t0+d);});
+      setTimeout(function(){try{a.close();}catch(e){}},4000);
+    }
+    var cv=document.createElement('canvas');cv.style.cssText='position:fixed;left:0;top:0;width:100%;height:100%;z-index:100000;pointer-events:none';
+    cv.width=innerWidth;cv.height=innerHeight;document.body.appendChild(cv);var x=cv.getContext('2d'),P=[],cor=['#8B3A42','#C99AA0','#C9822B','#EBD9DB','#2E7D5B','#FFD27A'];
+    function burst(px,py){for(var i=0;i<70;i++){var an=Math.random()*6.283,v=2+Math.random()*5;P.push({x:px,y:py,vx:Math.cos(an)*v,vy:Math.sin(an)*v,l:1,c:cor[i%cor.length]});}}
+    [0,350,700,1050,1400,1800].forEach(function(d){setTimeout(function(){burst(innerWidth*(.15+Math.random()*.7),innerHeight*(.15+Math.random()*.4));},d);});
+    var t=Date.now();(function loop(){x.clearRect(0,0,cv.width,cv.height);P.forEach(function(p){p.x+=p.vx;p.y+=p.vy;p.vy+=.06;p.vx*=.985;p.l-=.012;if(p.l>0){x.globalAlpha=p.l;x.fillStyle=p.c;x.beginPath();x.arc(p.x,p.y,2.4,0,6.283);x.fill();}});
+      if(Date.now()-t<4200)requestAnimationFrame(loop);else cv.remove();})();
+    var m=document.createElement('div');m.textContent='Venda fechada! Parabéns!';m.style.cssText='position:fixed;left:50%;top:18%;transform:translateX(-50%);z-index:100001;background:#5E2A30;color:#fff;padding:12px 24px;border-radius:12px;font:700 18px Montserrat,Arial,sans-serif;box-shadow:0 6px 24px rgba(0,0,0,.3);pointer-events:none';
+    document.body.appendChild(m);setTimeout(function(){m.remove();},3200);
+  }catch(e){}
+}
 function notifyTeams(l){
   if(window.getModoTeste&&window.getModoTeste()){ if(typeof toast==='function')toast('🧪 Modo teste: aviso de venda NÃO enviado ao Teams.'); return; }
   if(window.trigNovaVenda&&!window.trigNovaVenda())return;
@@ -4288,7 +4308,7 @@ function drop(e,status,col){e.preventDefault();col.classList.remove('over');
   if(statusChanged&&status==='VENDIDA'&&_vendaPrecisaGate(l)){ _gateVenda(l,function(){ dragId=l.id; drop({preventDefault:function(){}},status,col); },function(){ render(); }); return; }
   if(statusChanged){
     l.status=status; manual[l.id]=status;
-    if(status==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l);
+    if(status==='VENDIDA'&&era!=='VENDIDA'){notifyTeams(l);_festa();}
     if(status==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus){
       window.persistStatus('leads',l.spid,status,
@@ -4663,7 +4683,7 @@ function delTask(id,i){var _t=(tasks[id]||[])[i];
 /* 25/08/2026 — sincroniza `status`/`alteradoEm`/`alteradoPor` pro registro cru de STORE.leads
    também (não só no objeto `l` de uso único devolvido por _allLeads()), senão a troca pelo select
    do drawer se perde no próximo render(). */
-function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){ if(v==='VENDIDA'&&l.status!=='VENDIDA'&&_vendaPrecisaGate(l)){ _gateVenda(l,function(){ setStatus(id,v); },function(){ if(curId===id)openDrawer(id); render(); }); return; } const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA')notifyTeams(l); if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
+function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){ if(v==='VENDIDA'&&l.status!=='VENDIDA'&&_vendaPrecisaGate(l)){ _gateVenda(l,function(){ setStatus(id,v); },function(){ if(curId===id)openDrawer(id); render(); }); return; } const era=l.status, eraMan=manual[id]; l.status=v;manual[id]=v; if(v==='VENDIDA'&&era!=='VENDIDA'){notifyTeams(l);_festa();} if(v==='PAUSADA'&&era!=='PAUSADA')notifyNutricao(l);
     if(window.persistStatus)window.persistStatus('leads',l.spid,v,
       /* 08/09/2026 — mesma correção do drop(): todos os efeitos automáticos (Proposta/Envio,
          Histórico, FUP 1, reativação de data) vão num único PATCH via _aplicarEfeitosStatus() —
