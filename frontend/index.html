@@ -1084,6 +1084,8 @@ td .up{color:var(--ok);font-weight:700}
         <label>Aprovador da medição<input id="ft-aprov"></label>
         <label>E-mail do aprovador<input id="ft-aprovmail"></label>
       </div>
+      <div id="ft-status" style="font-size:12px;margin-top:8px"></div>
+      <div style="margin-top:6px"><button class="btn gh" type="button" onclick="ftSalvar()" title="Grava estes campos no lead (histórico e base de edição)">💾 Salvar dados do contrato</button></div>
     </details>
     <label>Assinatura<input id="cv-ass"></label>
     <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
@@ -3301,6 +3303,7 @@ function cvRender(){
   var out=el('cv-out');if(out)out.value=_cvBlocos(l,_cvSaud()).join('\n\n');
   var cor={C:['#2E7D5B','Completo'],P:['#C9822B','Pendente'],NA:['#8A7A78','Não aplicável'],D:['#B23A48','Divergente']};
   var chk=el('cv-chk');if(chk)chk.innerHTML=_cvChecklist(l).map(function(x){var c=cor[x[1]];return '<span style="font-size:11px;border:1px solid '+c[0]+';color:'+c[0]+';border-radius:999px;padding:2px 9px;background:#fff">'+esc(x[0])+': '+c[1]+'</span>';}).join('');
+  var fs=el('ft-status');if(fs)fs.innerHTML=_ftStatusHtml(l);
   var st=el('cv-status');
   if(st){var t='';
     if(l.comunicadoEm)t+='✔ Comunicado já enviado em '+_cvQuando(l.comunicadoEm)+(l.comunicadoPor?' por '+esc(l.comunicadoPor):'')+'. Um novo envio pede confirmação.';
@@ -3325,12 +3328,8 @@ function abrirComunicacaoVenda(id){
   g('cv-focais',focais);
   var fat=[];if(l.condPagamento)fat.push('Pagamento: '+l.condPagamento);if(l.recebimento)fat.push('Recebimento: '+l.recebimento);
   g('cv-fat',fat.join(' · '));g('cv-docs','');
-  (function(){g('ft-ctr','');g('ft-oc','');g('ft-ini','');g('ft-fim','');
-    g('ft-valor',l.valorMensal!=null&&l.valorMensal!==''?String(Number(l.valorMensal).toFixed(2)).replace('.',','):'');
-    g('ft-cod',l.codServico||'');g('ft-prazo','');g('ft-dia','');g('ft-ind','');g('ft-mes','');
-    var f0=(_opContatos()||[]).filter(function(c){return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();})[0];
-    g('ft-coord',f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'');g('ft-coordmail',f0?(f0.email||''):'');g('ft-aprov','');g('ft-aprovmail','');
-    var bx=el('ft-box');if(bx)bx.open=false;})();
+  (function(){var d=_ftDados(l);_FT_CAMPOS.forEach(function(k){g('ft-'+k,d[k]);});
+    var bx=el('ft-box');if(bx)bx.open=!!_ftAlterado(l);})();
   g('cv-ass',(_cvU&&_cvU.nome)||'');
   var ov=el('ov-venda'); if(ov){ov.classList.add('on');if(!ov._cvIn){ov._cvIn=1;ov.addEventListener('input',cvRender);}}
   cvRender();
@@ -3406,25 +3405,76 @@ function enviarParaImplantacao(){
   if(typeof toast==='function')toast('Painel de Implantação aberto. Faça o login (se pedir) e revise o formulário.');
 }
 window.enviarParaImplantacao=enviarParaImplantacao;
-/* 03/11/2026 — Léo: "Enviar para Faturamento" (ficha única). Abre o sistema de Faturamento com cliente + contrato + serviço no trecho depois do #
-   (não vai a servidor). O Faturamento abre os formulários preenchidos; nada é salvo sem confirmação lá. Inclui valor mensal. Contrato v1. */
+/* 03/11/2026 — Léo: "Enviar para Faturamento" (ficha única), agora com histórico: os campos de contrato ficam gravados no lead (ftDados),
+   cada envio fica registrado (ftEnviado) e, se algo mudar depois, aparece o alerta "alterado desde o último envio" para reenviar e revisar.
+   Abre o Faturamento com cliente + contrato + serviço no trecho depois do # (não vai a servidor). Nada é salvo lá sem confirmação. Contrato v1 (+modo/anterior). */
 var _CV_AREA_FAT={ERGO:'Ergonomia',GL:'Atividades Físicas',FISIO:'Terapias',NA:'',ENF:'Terapias'};
-function enviarParaFaturamento(){
+var _FT_CAMPOS=['ctr','oc','ini','fim','valor','cod','prazo','dia','ind','mes','coord','coordmail','aprov','aprovmail'];
+var _FT_ROT={ctr:'Nº do contrato',oc:'Pedido de compra',ini:'Início da vigência',fim:'Fim da vigência',valor:'Valor mensal',cod:'Código do serviço',prazo:'Prazo de faturamento',dia:'Dia limite da NF',ind:'Índice de reajuste',mes:'Mês de reajuste',coord:'Coordenador',coordmail:'E-mail do coordenador',aprov:'Aprovador',aprovmail:'E-mail do aprovador',cliente:'Cliente',razao:'Razão social',cnpj:'CNPJ',servico:'Serviço',area:'Área',valorLead:'Valor mensal do lead',numMeses:'Nº de meses'};
+function _ftJ(t){try{var o=JSON.parse(t||'');return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
+function _ftLer(){var o={};_FT_CAMPOS.forEach(function(k){o[k]=_cvV('ft-'+k);});return o;}
+function _ftDados(l){
+  var d={};_FT_CAMPOS.forEach(function(k){d[k]='';});
+  var f0=(_opContatos()||[]).filter(function(c){return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();})[0];
+  d.valor=(l.valorMensal!=null&&l.valorMensal!=='')?String(Number(l.valorMensal).toFixed(2)).replace('.',','):'';
+  d.cod=l.codServico||'';d.coord=f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'';d.coordmail=f0?(f0.email||''):'';
+  var g=_ftJ(l.ftDados)||{};Object.keys(g).forEach(function(k){if(g[k]!=null)d[k]=String(g[k]);});
+  return d;
+}
+function _ftAreaDe(l){return _CV_AREA_FAT[String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase()]||'';}
+function _ftChave(l,dd){var c={cliente:l.cliente||'',razao:l.razaoSocial||'',cnpj:l.cnpj||'',servico:_cvServ(l.serv||''),area:_ftAreaDe(l),valorLead:(l.valorMensal!=null&&l.valorMensal!=='')?String(Number(l.valorMensal)):'',numMeses:String(l.numMeses||'')};
+  _FT_CAMPOS.forEach(function(k){c[k]=String(dd[k]==null?'':dd[k]).trim();});return c;}
+function _ftAlterado(l,vivo){
+  var e=_ftJ(l.ftEnviado);if(!e||!e.chave)return null;
+  var cur=_ftChave(l,vivo||_ftDados(l)),dif=[];
+  Object.keys(cur).forEach(function(k){if(String(cur[k])!==String(e.chave[k]==null?'':e.chave[k]))dif.push(k);});
+  return dif.length?dif:null;
+}
+function _ftRotulos(dif){return dif.map(function(k){return _FT_ROT[k]||k;}).join(', ');}
+function _ftGravar(l,campos,ok){
+  if(!window.persistLeadFields){if(ok)ok();return;}
+  window.persistLeadFields(l.spid,campos,function(){Object.assign(l,campos);var raw=(STORE.leads||[]).find(function(x){return x.__id===l.spid;});if(raw)Object.assign(raw,campos);if(ok)ok();},function(){});
+}
+function ftSalvar(){
   var l=_cvLead();if(!l)return;
+  _ftGravar(l,{ftDados:JSON.stringify(_ftLer())},function(){cvRender();});
+}
+function _ftBannerHtml(l){
+  var dif=_ftAlterado(l);if(!dif)return '';
+  return '<div style="background:#FFF4E0;border:1px solid #C9822B;color:#7a4a0b;border-radius:8px;padding:8px 10px;margin:6px 0;font-size:12px">⚠ <b>Contrato/faturamento alterado desde o último envio</b> ('+esc(_ftRotulos(dif))+'). Reenvie para o Faturamento revisar. <button class="btn gh" type="button" style="margin-left:6px" onclick="abrirComunicacaoVenda('+l.id+')">Revisar e reenviar</button></div>';
+}
+function _ftAviso(l){var dif=_ftAlterado(l);if(dif&&typeof toast==='function')toast('⚠ Contrato/faturamento alterado ('+_ftRotulos(dif)+'): reenvie ao Faturamento.');}
+function _ftStatusHtml(l){
+  var e=_ftJ(l.ftEnviado),vivo=_ftLer(),dif=_ftAlterado(l,vivo),t='';
+  if(e&&e.em)t+='Último envio ao Faturamento: '+_cvQuando(e.em)+(e.por?' por '+esc(e.por):'')+'.';else t+='Ainda não enviado ao Faturamento.';
+  if(dif)t+=' <b style="color:#B23A48">⚠ Alterado desde o último envio: '+esc(_ftRotulos(dif))+'. Reenvie.</b>';
+  var sv=_ftJ(l.ftDados);if(!sv||JSON.stringify(_FT_CAMPOS.map(function(k){return String(sv[k]||'');}))!==JSON.stringify(_FT_CAMPOS.map(function(k){return vivo[k];})))t+=' <span style="color:#8A7A78">(há edições ainda não gravadas — use "Salvar dados do contrato" ou envie)</span>';
+  return t;
+}
+function _ftPayload(l){
   var end=_cvV('cv-endereco')||l.endereco||'',uf='',mm=end.match(/\/\s*([A-Za-z]{2})\b/g);
   if(mm)uf=mm[mm.length-1].replace(/[^A-Za-z]/g,'').toUpperCase();
-  var cod=String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase();
-  var D={v:1,origem:'SIGE-novasreceitas',
+  var d=_ftLer();
+  return {v:1,origem:'SIGE-novasreceitas',
     cliente:{nome:l.cliente||'',razao:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',endereco:end,uf:uf},
-    area:_CV_AREA_FAT[cod]||'',servico:_cvV('cv-tipo')||_cvServ(l.serv||''),unidade:_cvUn(l),
-    contrato:{numero:_cvV('ft-ctr'),oc:_cvV('ft-oc'),inicio:_cvV('ft-ini'),fim:_cvV('ft-fim'),valorMensal:_cvV('ft-valor'),numMeses:l.numMeses||'',
-      indice:_cvV('ft-ind'),mesReajuste:_cvV('ft-mes'),diaLimiteNF:_cvV('ft-dia'),coord:_cvV('ft-coord'),coordEmail:_cvV('ft-coordmail'),aprov:_cvV('ft-aprov'),aprovEmail:_cvV('ft-aprovmail')},
-    item:{codigo:_cvV('ft-cod'),prazoFat:_cvV('ft-prazo'),condPag:l.condPagamento||'',obs:_cvV('cv-fat')}};
+    area:_ftAreaDe(l),servico:_cvV('cv-tipo')||_cvServ(l.serv||''),unidade:_cvUn(l),
+    contrato:{numero:d.ctr,oc:d.oc,inicio:d.ini,fim:d.fim,valorMensal:d.valor,numMeses:l.numMeses||'',indice:d.ind,mesReajuste:d.mes,diaLimiteNF:d.dia,coord:d.coord,coordEmail:d.coordmail,aprov:d.aprov,aprovEmail:d.aprovmail},
+    item:{codigo:d.cod,prazoFat:d.prazo,condPag:l.condPagamento||'',obs:_cvV('cv-fat')}};
+}
+function enviarParaFaturamento(){
+  var l=_cvLead();if(!l)return;
+  var prev=_ftJ(l.ftEnviado),D=_ftPayload(l);
+  D.modo=(prev&&prev.D)?'editar':'criar';D.anterior=(prev&&prev.D)?prev.D:null;
   var b=btoa(unescape(encodeURIComponent(JSON.stringify(D)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   window.open('https://elevalife-sistemas.github.io/faturamento-servicos/#novo='+b,'_blank','noopener');
-  if(typeof toast==='function')toast('Sistema de Faturamento aberto. Faça o login (se pedir) e revise antes de confirmar.');
+  if(typeof toast==='function')toast(D.modo==='editar'?'Faturamento aberto para REVISAR as alterações. Faça o login (se pedir) e confirme.':'Sistema de Faturamento aberto. Faça o login (se pedir) e revise antes de confirmar.');
+  var dados=_ftLer();
+  _cvUsuario(function(u){
+    var snap={em:new Date().toISOString(),por:(u&&u.email)||'',modo:D.modo,D:D,chave:_ftChave(l,dados)};
+    _ftGravar(l,{ftDados:JSON.stringify(dados),ftEnviado:JSON.stringify(snap)},function(){cvRender();});
+  });
 }
-window.enviarParaFaturamento=enviarParaFaturamento;
+window.enviarParaFaturamento=enviarParaFaturamento;window.ftSalvar=ftSalvar;window._ftAviso=_ftAviso;
 window.abrirComunicacaoVenda=abrirComunicacaoVenda;window.gerarTextoComunicacao=gerarTextoComunicacao;window.copiarComunicacaoVenda=copiarComunicacaoVenda;window.enviarComunicacaoVenda=enviarComunicacaoVenda;window.copiarDadosVenda=copiarDadosVenda;window.dadosComunicadoVenda=dadosComunicadoVenda;window.cvRender=cvRender;
 function notifyNutricao(l){
   /* Aviso de lead pausado — SOMENTE E-MAIL (sem card no Teams). Editável/desativável em ⚙ Automação. */
@@ -4601,6 +4651,7 @@ function openDrawer(id){curId=id;
   const ts=tasks[id]||[];
   el('d-body').innerHTML=`
    ${_subEtapaTabsHtml(l)}
+   ${_ftBannerHtml(l)}
    <div class="d-grid">
    <div class="d-side">
    <div class="fld"><b>Status:</b> <select class="stpick" onchange="setStatus(${id},this.value)">${COLS.concat(SIDE_COLS).map(([n])=>`<option ${n===l.status?'selected':''}>${n}</option>`).join('')}</select> ${manual[id]?'<span class="tk">✎ manual</span>':''}</div>
@@ -4751,7 +4802,7 @@ function saveLead(id){
          para FUP e subir uma nova tarefa de FUP 1". _virouOp já detecta essa transição (usado acima
          pro texto do histórico) — dispara o fluxo de FUP depois que os dados comerciais salvaram. */
       if(_virouOp)_iniciarFup(l);
-      openDrawer(id); render(); },
+      openDrawer(id); render(); if(window._ftAviso)_ftAviso(l); },
     function(){}); }
   else { Object.assign(l,f); openDrawer(id); render(); }
 }
@@ -4864,7 +4915,7 @@ function _mapLead(Lx,i){return {
     dt:Lx.dt, envio:Lx.envio, tipo:Lx.tipo, fonte:Lx.fonte, campanha:Lx.campanha, telefone:Lx.telefone, email:Lx.email, obs:Lx.obs, tarefasJson:(Lx.tarefasJson2||Lx.tarefasJson), nome:Lx.nome, tc:Lx.tc,
     cnpj:Lx.cnpj, razaoSocial:Lx.razaoSocial, endereco:Lx.endereco, cnae:Lx.cnae, grauRisco:Lx.grauRisco, contatoSobrenome:Lx.contatoSobrenome, contatoTipo:Lx.contatoTipo, origem:Lx.origem, valorMensal:Lx.valorMensal, numMeses:Lx.numMeses, condPagamento:Lx.condPagamento, codServico:Lx.codServico, prazoMobilizacao:Lx.prazoMobilizacao, recebimento:Lx.recebimento, valorFechamento:Lx.valorFechamento,
     inativo:Lx.inativo, alteradoEm:Lx.alteradoEm, alteradoPor:Lx.alteradoPor,
-    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda, evidenciaTipo:Lx.evidenciaTipo, evidencia:Lx.evidencia, comunicadoEm:Lx.comunicadoEm, comunicadoPor:Lx.comunicadoPor };}
+    subEtapa:Lx.subEtapa, histEventosJson:Lx.histEventosJson, fupSeq:Lx.fupSeq, origemFunil:Lx.origemFunil, natureza:Lx.natureza, dataVenda:Lx.dataVenda, evidenciaTipo:Lx.evidenciaTipo, evidencia:Lx.evidencia, comunicadoEm:Lx.comunicadoEm, comunicadoPor:Lx.comunicadoPor, ftDados:Lx.ftDados, ftEnviado:Lx.ftEnviado };}
 /* 25/08/2026 — helper único de busca "em qualquer lead" (ativo OU inativado). Necessário porque
    ações do drawer (salvar, pausar, excluir, tarefas, avisos de venda...) podem ser disparadas com
    uma oportunidade INATIVADA aberta — e essa não está em LEADS (que só tem quem passou por
