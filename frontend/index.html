@@ -1051,6 +1051,7 @@ td .up{color:var(--ok);font-weight:700}
   <div class="mh"><h3>📣 Comunicado de nova venda</h3><button class="x" onclick="document.getElementById('ov-venda').classList.remove('on')">&times;</button></div>
   <div class="mb">
     <div id="cv-status" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#F5EFEA;color:#3A2A2E"></div>
+    <div id="cv-ativo" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#fff;border:1px solid #EADDE0;color:#3A2A2E"></div>
     <p class="hint" style="margin:0 0 6px">O que o Cockpit já sabe veio preenchido. Complete o que faltar: campos vazios saem como "A confirmar". O orçamento nunca vai no comunicado. A saudação é calculada na hora do envio (horário de Brasília).</p>
     <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
       <label>Pilar / área<input id="cv-area" placeholder="ex.: Ergonomia"></label>
@@ -3276,18 +3277,52 @@ var _CV_SERV={ERGO:'Ergonomia',GL:'Ginástica Laboral',FISIO:'Fisioterapia',ENF:
 function _cvServ(v){return String(v||'').split(/\s*[;,]\s*/).map(function(x){return _CV_SERV[x.trim().toUpperCase()]||x.trim();}).filter(Boolean).join(' / ');}
 function _cvUn(l){var u=String(l.unidade||'').trim();return /^(NA|—|-|n[aã]o informado)$/i.test(u)?'':u;}
 function _cvCliUn(l){var u=_cvUn(l);return (l.cliente||'—')+(u?' — '+u:'');}
+/* Comunicado de venda — natureza, mobilização padrão e cliente ativo (via dupla). */
+function _cvFeriados(a){var f={};var add=function(m,d){f[a+'-'+('0'+m).slice(-2)+'-'+('0'+d).slice(-2)]=1;};
+  [[1,1],[4,21],[5,1],[9,7],[10,12],[11,2],[11,15],[11,20],[12,25]].forEach(function(x){add(x[0],x[1]);});
+  var g=a%19,c=Math.floor(a/100),h=(c-Math.floor(c/4)-Math.floor((8*c+13)/25)+19*g+15)%30,i=h-Math.floor(h/28)*(1-Math.floor(29/(h+1))*Math.floor((21-g)/11)),j=(a+Math.floor(a/4)+i+2-c+Math.floor(c/4))%7,e=i-j,m=3+Math.floor((e+40)/44),d=e+28-31*Math.floor(m/4);
+  var p=new Date(Date.UTC(a,m-1,d-2));add(p.getUTCMonth()+1,p.getUTCDate());return f;}
+function _cvDiaUtilApos(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||''));if(!m)return null;var d=new Date(Date.UTC(+m[1],+m[2]-1,+m[3]));
+  for(var n=0;n<15;n++){d=new Date(d.getTime()+864e5);var w=d.getUTCDay(),k=d.getUTCFullYear(),s=k+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);if(w!==0&&w!==6&&!_cvFeriados(k)[s])return d;}return null;}
+function _cvFmtD(d){return ('0'+d.getUTCDate()).slice(-2)+'/'+('0'+(d.getUTCMonth()+1)).slice(-2)+'/'+d.getUTCFullYear();}
+function _cvMobPadrao(l){var ev=l.evidenciaTipo?' (evidência: '+l.evidenciaTipo+')':'';
+  var ini=_cvDiaUtilApos(l.dataVenda);
+  if(!ini)return 'Prazo padrão de 30 dias a partir do 1º dia útil após a confirmação da venda'+ev+'. Data a confirmar.';
+  var fim=new Date(ini.getTime()+30*864e5);
+  return 'Prazo padrão de 30 dias, contados a partir do 1º dia útil após a confirmação da venda em '+_cvData(l.dataVenda)+ev+': de '+_cvFmtD(ini)+' até '+_cvFmtD(fim)+'. Data efetiva a confirmar.';}
+function _cvNorm(x){var s=(typeof normCli==='function')?normCli(x||''):String(x||'').toLowerCase().trim();return String(s).replace(/\b(S\/?A|LTDA|EIRELI|ME|EPP)\b\.?/gi,'').replace(/\s+/g,' ').trim();}
+function _cvUnN(x){return String(x||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'');}
+function _cvAtivo(l){var cn=_cvNorm(l.cliente),un=_cvUnN(_cvUn(l));
+  var ct=((typeof STORE!=='undefined'&&STORE&&STORE.contratos)||[]).filter(function(c){
+    if(/encerrad|cancelad|rescindid/i.test(String(c.status||'')))return false;
+    if(_cvNorm(c.cliente)!==cn)return false;
+    var cu=_cvUnN(c.unidade);if(!un||!cu)return true;
+    return cu.indexOf(un.slice(0,4))===0||un.indexOf(cu.slice(0,4))===0;});
+  var vd=_allLeads().filter(function(x){return x.id!==l.id&&x.status==='VENDIDA'&&x.inativo!=='SIM'&&_cvNorm(x.cliente)===cn;});
+  return {ct:ct,vd:vd,ativo:ct.length>0||vd.length>0};}
+function _cvViaDupla(l){var n=_natInfo(l),a=_cvAtivo(l);if(n.k==='NOVA'&&!a.ativo)return '';
+  var lista=a.ct.length?a.ct.map(function(c){return '- '+(c.servico||'—')+(c.unidade?' · '+c.unidade:'');}).join('\n'):'- Nenhum contrato localizado na base (há venda anterior registrada).';
+  return '**🔁 CLIENTE ATIVO — CONFIRMAÇÃO EM VIA DUPLA**\n- **Contratos ativos na base:**\n'+lista+'\n- **Operações/Faturamento:** os requisitos seguem os já praticados nos contratos ativos deste cliente/unidade. Confirmem, respondendo neste fio, se há requisito novo ou diferente para este serviço.';}
+function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n.lbl)+'</b>'+(n.auto?' (automática)':' (definida no lead)')+' · ';
+  if(a.ativo){h+='cliente ativo na base: '+a.ct.length+' contrato(s)'+(a.vd.length?' e '+a.vd.length+' venda(s) anterior(es)':'');
+    if(a.ct.length)h+='<br><span style="color:#8A7A78">'+a.ct.map(function(c){return esc((c.servico||'—')+(c.unidade?' · '+c.unidade:'')+(c.status?' · '+c.status:''));}).join('<br>')+'</span>';
+    if(n.k==='NOVA')h+='<br><span style="color:#B23A48">⚠ O cliente já está na base, mas a natureza está como Nova venda. Conferir (Upsell/Cross-sell).</span>';
+  }else{h+='nenhum contrato ativo nem venda anterior localizados na base';
+    if(n.k!=='NOVA')h+='<br><span style="color:#C9822B">⚠ Natureza '+esc(n.lbl)+', mas o cliente não aparece na base: conferir o cadastro de contratos.</span>';}
+  return h;}
 function _cvBlocos(l,saud){
   var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var foc=focais.length?focais.join('; '):'A confirmar';
   var resumo=_cvV('cv-resumo')||(_cvEst(_cvV('cv-tipo'))==='C'?_cvV('cv-tipo'):'')||'A confirmar';
   var nome=_cvV('cv-ass')||(_cvU&&_cvU.nome)||'';
   return [
-    '🚀 **NOVA VENDA: '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
+    '🚀 **'+_natInfo(l).lbl.toUpperCase()+': '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
     saud,
     'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.\n\nAbaixo, os detalhes para o start da operação:',
     '**📋 ESCOPO TÉCNICO**\n- **Tipo de Serviço:** '+_cvTxt(_cvV('cv-tipo'))+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
     '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
     '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
+    _cvViaDupla(l),
     '**💰 BUDGET**\n- **Valor Contratado:** Detalhamento financeiro disponível com o Comercial/Financeiro.',
     'Agradeço o apoio de todos e desejo sucesso nessa nova operação.',
     nome
@@ -3304,6 +3339,7 @@ function cvRender(){
   var cor={C:['#2E7D5B','Completo'],P:['#C9822B','Pendente'],NA:['#8A7A78','Não aplicável'],D:['#B23A48','Divergente']};
   var chk=el('cv-chk');if(chk)chk.innerHTML=_cvChecklist(l).map(function(x){var c=cor[x[1]];return '<span style="font-size:11px;border:1px solid '+c[0]+';color:'+c[0]+';border-radius:999px;padding:2px 9px;background:#fff">'+esc(x[0])+': '+c[1]+'</span>';}).join('');
   var fs=el('ft-status');if(fs)fs.innerHTML=_ftStatusHtml(l);
+  var av=el('cv-ativo');if(av)av.innerHTML=_cvAtivoHtml(l);
   var st=el('cv-status');
   if(st){var t='';
     if(l.comunicadoEm)t+='✔ Comunicado já enviado em '+_cvQuando(l.comunicadoEm)+(l.comunicadoPor?' por '+esc(l.comunicadoPor):'')+'. Um novo envio pede confirmação.';
@@ -3319,7 +3355,7 @@ function abrirComunicacaoVenda(id){
   var sv=(l.serv&&!/^(NA|—|-)$/i.test(l.serv))?_cvServ(l.serv):'';
   g('cv-area',sv);g('cv-tipo',sv);g('cv-resumo','');g('cv-volume','');g('cv-escopo','');g('cv-inicio','');
   var mob=String(l.prazoMobilizacao||'').trim();
-  if(!mob&&l.dataVenda)mob='Referência operacional: 30 dias após o recebimento do pedido de compra (formalização em '+_cvData(l.dataVenda)+'). Data a confirmar.';
+  if(!mob&&l.dataVenda)mob=_cvMobPadrao(l);
   g('cv-mob',mob);
   g('cv-endereco',l.endereco||'');g('cv-horarios','');
   var focais=(_opContatos()||[]).filter(function(c){
@@ -3327,7 +3363,8 @@ function abrirComunicacaoVenda(id){
   }).map(function(c){var nome=[c.nome,c.sobrenome].filter(Boolean).join(' ');return [nome||'—',c.cargo||'—',(c.email||c.telefone||'—')].join(' - ');}).join('\n');
   g('cv-focais',focais);
   var fat=[];if(l.condPagamento)fat.push('Pagamento: '+l.condPagamento);if(l.recebimento)fat.push('Recebimento: '+l.recebimento);
-  g('cv-fat',fat.join(' · '));g('cv-docs','');
+  var _at=_cvAtivo(l),_nt=_natInfo(l),_rp=(_nt.k!=='NOVA'||_at.ativo)?'Seguem os já praticados nos contratos ativos de '+_cvCliUn(l)+' (Operações/Faturamento confirmam).':'';
+  g('cv-fat',(_rp&&fat.length?_rp+' ':_rp)+fat.join(' · '));g('cv-docs',_rp);
   (function(){var d=_ftDados(l);_FT_CAMPOS.forEach(function(k){g('ft-'+k,d[k]);});
     var bx=el('ft-box');if(bx)bx.open=!!_ftAlterado(l);})();
   g('cv-ass',(_cvU&&_cvU.nome)||'');
@@ -3347,7 +3384,7 @@ function copiarComunicacaoVenda(){
 function dadosComunicadoVenda(id){
   var l=(id!=null)?_allLeads().find(function(x){return x.id===id;}):_cvLead();if(!l)return null;
   var foc=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
-  return {versao:1,geradoEm:new Date().toISOString(),leadId:l.spid||l.id,cliente:l.cliente||'',unidade:_cvUn(l),
+  return {versao:1,geradoEm:new Date().toISOString(),leadId:l.spid||l.id,natureza:_natInfo(l).k,clienteAtivo:_cvAtivo(l).ativo,contratosAtivos:_cvAtivo(l).ct.map(function(c){return {servico:c.servico||'',unidade:c.unidade||''};}),cliente:l.cliente||'',unidade:_cvUn(l),
     area:_cvV('cv-area'),servico:_cvV('cv-tipo'),resumo:_cvV('cv-resumo'),volume:_cvV('cv-volume'),escopo:_cvV('cv-escopo'),inicio:_cvV('cv-inicio'),mobilizacao:_cvV('cv-mob'),
     endereco:_cvV('cv-endereco'),horarios:_cvV('cv-horarios'),pontosFocais:foc,faturamento:_cvV('cv-fat'),operacionais:_cvV('cv-docs'),
     formalizacao:{data:l.dataVenda||'',tipo:l.evidenciaTipo||'',referencia:l.evidencia||''},budget:{divulgado:false},assinatura:_cvV('cv-ass'),
