@@ -208,7 +208,19 @@ flowchart LR
   </ul>
 
   <h3 class="sub">🚀 Implantação de Serviços (acesso rápido)</h3>
-  <p>Item de acesso rápido no menu (fora de qualquer submenu) que abre, embutida via iframe, a tela do <b>Painel de Implantação de Serviços</b> — sistema à parte, feito pelo Cristiano, com um botão "Abrir em nova aba" para quem preferir acessá-lo direto. Fica aqui porque <b>toda venda nova precisa virar uma implantação nova</b>: por enquanto os dois sistemas não conversam entre si, esse link é a ponte manual até existir uma integração nativa Cockpit → Implantação.</p>
+  <p>Item de acesso rápido no menu (fora de qualquer submenu) que abre, embutida via iframe, a tela do <b>Painel de Implantação de Serviços</b> — sistema à parte, feito pelo Cristiano, com um botão "Abrir em nova aba" para quem preferir acessá-lo direto. Fica aqui porque <b>toda venda nova precisa virar uma implantação nova</b>: a ponte agora é semiautomática: no <b>comunicado de venda</b> o botão <b>🚀 Enviar para Implantação</b> abre esse painel já com os dados da venda no formulário “Nova implantação”, para você revisar e confirmar (ver <b>🏁 Fechamento da venda</b>). O atalho do menu continua útil para consultar o painel.</p>
+
+  <h3 class="sub">🏁 Fechamento da venda (evidência, comunicado, Implantação e Faturamento)</h3>
+  <p>Fluxo ao marcar uma oportunidade como <span class="tag st-v">VENDIDA</span> (atualizado em 03/11/2026):</p>
+  <ul>
+    <li><b>Evidência obrigatória</b> — a venda só vale com formalização comprovada: tipo (pedido de compra, contrato assinado, e-mail, WhatsApp, outro) e o nº do pedido/contrato ou o link. Também dá para anexar um <b>print de tela (JPEG ou PNG, até 4 MB)</b>, útil quando o cliente confirma por e-mail ou mensagem.</li>
+    <li><b>Comemoração</b> — fogos de artifício e som de palmas ao fechar a venda.</li>
+    <li><b>Comunicado de nova venda</b> — abre uma pré-visualização com o texto padrão para o canal de Operações no Teams (escopo, cronograma e logística, pontos de contato e requisitos, budget). Campos sem informação aparecem como “A confirmar”. <b>O valor não vai no texto</b> (aparece apenas “Detalhamento financeiro disponível com o Comercial/Financeiro”). A assinatura é do usuário logado e o envio repetido pede confirmação, com registro de quando e por quem foi enviado.</li>
+    <li><b>🚀 Enviar para Implantação</b> — abre o Painel de Implantação já com cliente, CNPJ, área, endereço e jornada para revisar e confirmar. Sem valores.</li>
+    <li><b>💲 Enviar para Faturamento</b> — no bloco recolhido <b>Contrato e faturamento</b> ficam o nº do contrato, o pedido de compra, a vigência, o valor mensal, o código do serviço, o prazo de faturamento, o índice e mês de reajuste e os contatos do cliente. O botão abre o sistema de Faturamento com cliente, contrato e serviço preenchidos, <b>nada é salvo lá sem você clicar em Salvar em cada etapa</b>. Esse bloco nunca entra no texto do Teams.</li>
+    <li><b>Histórico e alerta</b> — os campos de contrato ficam gravados na ficha do lead e cada envio ao Faturamento registra quando e por quem. Se algo mudar depois (campos do contrato, valor mensal, CNPJ etc.), aparece o aviso <b>⚠ alterado desde o último envio</b> na ficha e no comunicado, com o botão <b>Revisar e reenviar</b>. No reenvio, o Faturamento localiza o cliente e o contrato já cadastrados e abre só as telas com campos alterados, destacando o que mudou.</li>
+    <li><b>Sem nº de contrato ainda?</b> Use um número provisório (ex.: <code>PROV-CLIENTE-2026</code>) e deixe pedido de compra e vigência vazios — nunca invente. O nº do contrato é a chave para localizar o contrato no reenvio; trocado depois pelo real, o reenvio atualiza sem duplicar. Combine antes com o Financeiro como tratar contrato provisório.</li>
+  </ul>
 
   <h3 class="sub">📱 Landing Page (eventos)</h3>
   <p>Página pública <code>/lp.html</code>, otimizada para celular e <b>sem login</b>, para o Rafael e o João captarem contatos em eventos. O que é enviado cai direto no CRM na coluna <span class="tag st-n">NÃO ENVIADA</span>, com telefone e e-mail.</p>
@@ -218,7 +230,7 @@ flowchart LR
   <h2><span class="n">4.</span> Ações automáticas</h2>
   <table>
     <tr><th>Quando</th><th>O que acontece</th></tr>
-    <tr><td>Lead vira <b>VENDIDA</b></td><td>Card de nova venda no Teams (se o webhook estiver ligado)</td></tr>
+    <tr><td>Lead vira <b>VENDIDA</b></td><td>Exige evidência; fogos e palmas; abre a pré-visualização do <b>comunicado de nova venda</b> (Teams, sem valor, se o webhook estiver ligado) e os botões para <b>Implantação</b> e <b>Faturamento</b></td></tr>
     <tr><td>Lead vira <b>PAUSADA</b></td><td>E-mail para a Clara (nutrição) + cópia para Léo — <b>só e-mail</b>, editável/desativável em ⚙ Automação</td></tr>
     <tr><td>Criar <b>tarefa</b> no CRM</td><td>Evento no Outlook/Teams e convite/e-mail ao responsável</td></tr>
     <tr><td>Enviar <b>minuta</b> de renovação</td><td>E-mail ao responsável com cópia para Léo e Rafael</td></tr>
@@ -234,6 +246,8 @@ flowchart LR
   <p><b>O lead da Landing Page não apareceu.</b> Clique em <b>↻ Atualizar</b> no Cockpit; ele entra na coluna “Não Enviada”.</p>
   <p><b>Quem recebe o aviso de lead pausado?</b> Clara (clara@elevalife.com.br), com cópia para Léo.</p>
   <p><b>Uma venda fechada num mês aparece no mês errado?</b> Não deve mais acontecer (corrigido em 17/08/2026). O Painel agora conta a venda pelo <b>mês em que ela foi fechada</b> (data real da mudança de status para VENDIDA), e não pelo mês em que a oportunidade foi criada.</p>
+  <p><b>Apareceu “alterado desde o último envio”.</b> Algum dado de contrato/faturamento mudou depois do envio ao Faturamento. Abra o comunicado da venda, confira e use <b>Revisar e reenviar</b>.</p>
+  <p><b>Cliente com vários serviços ou vários CNPJs no Faturamento?</b> O reenvio localiza o serviço pelo nome; quando houver mais de um tomador (CNPJ), confira a divisão em % manualmente antes de salvar.</p>
   <p><b>Dá para usar pelo celular?</b> Sim — o Cockpit se adapta a telas pequenas (menu vira barra no topo, quadro do CRM rola lateralmente, gráficos e tabelas se ajustam).</p>
 </section>
 
