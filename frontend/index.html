@@ -1066,11 +1066,30 @@ td .up{color:var(--ok);font-weight:700}
     <label>Pontos focais (cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
     <label>Requisitos de faturamento<textarea id="cv-fat" rows="2" placeholder="ex.: NF até dia 25, portal Ariba"></textarea></label>
     <label>Requisitos operacionais (portais, cadastros, documentação, EPI, uniforme...)<textarea id="cv-docs" rows="2"></textarea></label>
+    <details id="ft-box" style="margin:8px 0;border:1px solid #e3d9d6;border-radius:8px;padding:6px 10px;background:#fffaf8">
+      <summary style="cursor:pointer;font-weight:600;font-size:12.5px">💲 Contrato e faturamento <span style="font-weight:400;color:#8A7A78">(só vai ao sistema de Faturamento — nunca ao Teams)</span></summary>
+      <div class="g2" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px">
+        <label>Nº do contrato<input id="ft-ctr"></label>
+        <label>Pedido de compra (PO)<input id="ft-oc"></label>
+        <label>Início da vigência<input id="ft-ini" placeholder="dd/mm/aaaa"></label>
+        <label>Fim da vigência<input id="ft-fim" placeholder="dd/mm/aaaa"></label>
+        <label>Valor mensal (R$)<input id="ft-valor" inputmode="decimal"></label>
+        <label>Código do serviço (NF)<input id="ft-cod"></label>
+        <label>Prazo de faturamento<input id="ft-prazo" placeholder="ex.: 30 dias"></label>
+        <label>Dia limite da NF<input id="ft-dia" placeholder="ex.: 25"></label>
+        <label>Índice de reajuste<input id="ft-ind" placeholder="ex.: IPCA"></label>
+        <label>Mês de reajuste<input id="ft-mes" placeholder="ex.: fevereiro"></label>
+        <label>Coordenador do contrato (cliente)<input id="ft-coord"></label>
+        <label>E-mail do coordenador<input id="ft-coordmail"></label>
+        <label>Aprovador da medição<input id="ft-aprov"></label>
+        <label>E-mail do aprovador<input id="ft-aprovmail"></label>
+      </div>
+    </details>
     <label>Assinatura<input id="cv-ass"></label>
     <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
     <label>Pré-visualização (é exatamente este texto que vai ao Teams)<textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
   </div>
-  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
+  <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="cv-send" onclick="enviarComunicacaoVenda()">Enviar ao Teams</button></div>
 </div></div>
 
 <script>
@@ -3306,6 +3325,12 @@ function abrirComunicacaoVenda(id){
   g('cv-focais',focais);
   var fat=[];if(l.condPagamento)fat.push('Pagamento: '+l.condPagamento);if(l.recebimento)fat.push('Recebimento: '+l.recebimento);
   g('cv-fat',fat.join(' · '));g('cv-docs','');
+  (function(){g('ft-ctr','');g('ft-oc','');g('ft-ini','');g('ft-fim','');
+    g('ft-valor',l.valorMensal!=null&&l.valorMensal!==''?String(Number(l.valorMensal).toFixed(2)).replace('.',','):'');
+    g('ft-cod',l.codServico||'');g('ft-prazo','');g('ft-dia','');g('ft-ind','');g('ft-mes','');
+    var f0=(_opContatos()||[]).filter(function(c){return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();})[0];
+    g('ft-coord',f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'');g('ft-coordmail',f0?(f0.email||''):'');g('ft-aprov','');g('ft-aprovmail','');
+    var bx=el('ft-box');if(bx)bx.open=false;})();
   g('cv-ass',(_cvU&&_cvU.nome)||'');
   var ov=el('ov-venda'); if(ov){ov.classList.add('on');if(!ov._cvIn){ov._cvIn=1;ov.addEventListener('input',cvRender);}}
   cvRender();
@@ -3381,6 +3406,25 @@ function enviarParaImplantacao(){
   if(typeof toast==='function')toast('Painel de Implantação aberto. Faça o login (se pedir) e revise o formulário.');
 }
 window.enviarParaImplantacao=enviarParaImplantacao;
+/* 03/11/2026 — Léo: "Enviar para Faturamento" (ficha única). Abre o sistema de Faturamento com cliente + contrato + serviço no trecho depois do #
+   (não vai a servidor). O Faturamento abre os formulários preenchidos; nada é salvo sem confirmação lá. Inclui valor mensal. Contrato v1. */
+var _CV_AREA_FAT={ERGO:'Ergonomia',GL:'Atividades Físicas',FISIO:'Terapias',NA:'',ENF:'Terapias'};
+function enviarParaFaturamento(){
+  var l=_cvLead();if(!l)return;
+  var end=_cvV('cv-endereco')||l.endereco||'',uf='',mm=end.match(/\/\s*([A-Za-z]{2})\b/g);
+  if(mm)uf=mm[mm.length-1].replace(/[^A-Za-z]/g,'').toUpperCase();
+  var cod=String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase();
+  var D={v:1,origem:'SIGE-novasreceitas',
+    cliente:{nome:l.cliente||'',razao:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',endereco:end,uf:uf},
+    area:_CV_AREA_FAT[cod]||'',servico:_cvV('cv-tipo')||_cvServ(l.serv||''),unidade:_cvUn(l),
+    contrato:{numero:_cvV('ft-ctr'),oc:_cvV('ft-oc'),inicio:_cvV('ft-ini'),fim:_cvV('ft-fim'),valorMensal:_cvV('ft-valor'),numMeses:l.numMeses||'',
+      indice:_cvV('ft-ind'),mesReajuste:_cvV('ft-mes'),diaLimiteNF:_cvV('ft-dia'),coord:_cvV('ft-coord'),coordEmail:_cvV('ft-coordmail'),aprov:_cvV('ft-aprov'),aprovEmail:_cvV('ft-aprovmail')},
+    item:{codigo:_cvV('ft-cod'),prazoFat:_cvV('ft-prazo'),condPag:l.condPagamento||'',obs:_cvV('cv-fat')}};
+  var b=btoa(unescape(encodeURIComponent(JSON.stringify(D)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  window.open('https://elevalife-sistemas.github.io/faturamento-servicos/#novo='+b,'_blank','noopener');
+  if(typeof toast==='function')toast('Sistema de Faturamento aberto. Faça o login (se pedir) e revise antes de confirmar.');
+}
+window.enviarParaFaturamento=enviarParaFaturamento;
 window.abrirComunicacaoVenda=abrirComunicacaoVenda;window.gerarTextoComunicacao=gerarTextoComunicacao;window.copiarComunicacaoVenda=copiarComunicacaoVenda;window.enviarComunicacaoVenda=enviarComunicacaoVenda;window.copiarDadosVenda=copiarDadosVenda;window.dadosComunicadoVenda=dadosComunicadoVenda;window.cvRender=cvRender;
 function notifyNutricao(l){
   /* Aviso de lead pausado — SOMENTE E-MAIL (sem card no Teams). Editável/desativável em ⚙ Automação. */
