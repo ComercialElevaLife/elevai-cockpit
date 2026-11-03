@@ -12,7 +12,7 @@ const { json, requireDomain } = require('../_shared/crud');
 const BPM_HOST = process.env.FAT_SP_HOSTNAME || 'elevalife.sharepoint.com';
 const BPM_PATH = process.env.FAT_SP_SITEPATH || '/sites/BUSINESSPROCESSMANAGEMENT';
 const FORTE = ['Pedido de compra', 'Contrato assinado'];
-const COLS_NOVAS = ['Origem', 'LeadId', 'EvidenciaTipo', 'EvidenciaRef', 'ValidacaoStatus', 'CriadoPorSistemaEm', 'LancadoPor'];
+const COLS_NOVAS = ['Origem', 'LeadId', 'EvidenciaTipo', 'EvidenciaRef', 'ValidacaoStatus', 'CriadoPorSistemaEm', 'LancadoPor', 'ClienteNome'];
 const SYS = /^(id|ID|Created|Modified|ContentType|Attachments|Edit|LinkTitle|LinkTitleNoMenu|ItemChildCount|FolderChildCount|FileSystemObjectType|ComplianceAssetId|ServerRedirectedEmbedUrl|ServerRedirectedEmbedUri|AuthorLookupId|EditorLookupId|AppAuthorLookupId|AppEditorLookupId|_.*|@.*)$/;
 let _sid = null;
 const _lid = {};
@@ -128,7 +128,7 @@ module.exports = async function (context, req) {
     campos.Title = numero; campos.ClienteId = clienteId; campos.Versao = versao; campos.Status = statusFinal;
     if (p.ini) campos.Inicio = s(p.ini); if (p.fim) campos.Fim = s(p.fim);
     campos.Origem = 'SIGE'; campos.LeadId = leadId; campos.EvidenciaTipo = tipo; campos.EvidenciaRef = ref;
-    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : 'Aguardando validação'; campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req);
+    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : 'Aguardando validação'; campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = s(cli.f.Title);
     if (nomesCol.indexOf('Observacoes') >= 0) campos.Observacoes = 'Lançado pelo SIGE (lead ' + leadId + ') como ' + statusFinal + ': aguardando validação do Financeiro. Não fatura até mudar o Status para Vigente.' + (quemNome(req) ? ' Lançado por ' + quemNome(req) + '.' : '');
 
     const linhas = [
