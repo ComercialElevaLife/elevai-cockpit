@@ -3331,6 +3331,7 @@ function _cvFatMatch(l){
   out.itens=(_FATC.itens||[]).filter(function(x){return cts[x.contratoId];});
   return out;
 }
+function _cvNumOk(n){n=String(n||'').trim();return !!n&&!/^(a\s*cadastrar|a\s*definir|pendente|n\/?a|tbd|—|-)$/i.test(n);}
 function _cvFatContrato(m){return m.contratos.filter(function(x){return x.status!=='Encerrado';})[0]||m.contratos[0]||null;}
 function _cvFatHtml(l){
   var f=_FATC;
@@ -3342,15 +3343,17 @@ function _cvFatHtml(l){
   var h='<br><b>Faturamento:</b> '+esc(m.clientes.map(function(c){return c.nome||c.razao||'';}).join(' · '));
   if(!ct)return h+' · sem contrato cadastrado.';
   var sv=m.itens.filter(function(i){return i.contratoId===ct.id;}).map(function(i){return i.servico;}).filter(Boolean);
-  h+='<br>Contrato <b>'+esc(String(ct.numero||'—'))+'</b> (v'+esc(String(ct.versao||1))+', '+esc(String(ct.status||'—'))+') · vigência '+esc(ct.inicio?_cvData(ct.inicio):'?')+' a '+esc(ct.fim?_cvData(ct.fim):'?')+(sv.length?' · serviços: '+esc(sv.join(', ')):'');
-  h+=' <button type="button" class="btn" style="font-size:11px;padding:2px 8px" onclick="cvUsarFat()">Usar Nº e vigência do Faturamento</button>';
+  var nok=_cvNumOk(ct.numero);
+  h+='<br>Contrato <b>'+(nok?esc(String(ct.numero)):'<span style="color:#C9822B">Nº ainda não informado</span>')+'</b> (v'+esc(String(ct.versao||1))+', '+esc(String(ct.status||'—'))+') · vigência '+esc(ct.inicio?_cvData(ct.inicio):'?')+' a '+esc(ct.fim?_cvData(ct.fim):'?')+(sv.length?' · serviços: '+esc(sv.join(', ')):'');
+  if(nok||ct.inicio||ct.fim)h+=' <button type="button" class="btn" style="font-size:11px;padding:2px 8px" onclick="cvUsarFat()">Usar '+(nok?'Nº e ':'')+'vigência do Faturamento</button>';
+  else h+=' <span style="color:#8A7A78">(aguardando o Financeiro cadastrar Nº e vigência no Faturamento)</span>';
   return h;
 }
 function cvUsarFat(){
   var l=_cvLead();if(!l)return;
   var ct=_cvFatContrato(_cvFatMatch(l));if(!ct)return;
   var g=function(id,v){var e=el(id);if(e){e.value=v||'';e.dispatchEvent(new Event('input',{bubbles:true}));}};
-  g('ft-ctr',ct.numero);g('ft-ini',ct.inicio?_cvData(ct.inicio):'');g('ft-fim',ct.fim?_cvData(ct.fim):'');
+  if(_cvNumOk(ct.numero))g('ft-ctr',ct.numero);if(ct.inicio)g('ft-ini',_cvData(ct.inicio));if(ct.fim)g('ft-fim',_cvData(ct.fim));
   var bx=el('ft-box');if(bx)bx.open=true;
   cvRender();
   if(typeof toast==='function')toast('Nº e vigência do Faturamento preenchidos. Confira e use "Salvar dados do contrato".');
