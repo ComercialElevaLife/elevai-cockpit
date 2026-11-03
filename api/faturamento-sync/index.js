@@ -58,11 +58,27 @@ const numReal = function (n) { n = s(n).trim(); return !!n && !/^(PROV|A\s*CADAS
 function quem(req) {
   try { const h = (req.headers && (req.headers['x-ms-client-principal'] || req.headers['X-MS-CLIENT-PRINCIPAL'])) || ''; const p = JSON.parse(Buffer.from(h, 'base64').toString('utf8')); return p.userDetails || p.userId || ''; } catch (e) { return ''; }
 }
+let _time = null;
+async function carregarTime(req) {
+  if (_time || typeof fetch !== 'function') return;
+  try {
+    const host = String((req.headers && (req.headers['x-forwarded-host'] || req.headers.host)) || '').toLowerCase();
+    if (!/(\.elevalife\.com\.br|\.azurestaticapps\.net)$/.test(host)) return;
+    const ctl = new AbortController(); const tm = setTimeout(function () { ctl.abort(); }, 3000);
+    const r = await fetch('https://' + host + '/time-eleva.js', { signal: ctl.signal }); clearTimeout(tm);
+    if (!r.ok) return;
+    const txt = await r.text(); const m = {}; const re = /n:\s*'([^']+)'\s*,\s*e:\s*'([^']+)'/g; let x;
+    while ((x = re.exec(txt))) m[x[2].toLowerCase()] = x[1];
+    if (Object.keys(m).length) _time = m;
+  } catch (e) { /* sem o nome do time, cai no e-mail */ }
+}
 function quemNome(req) {
   try {
     const h = (req.headers && (req.headers['x-ms-client-principal'] || req.headers['X-MS-CLIENT-PRINCIPAL'])) || ''; const p = JSON.parse(Buffer.from(h, 'base64').toString('utf8'));
     const cl = Array.isArray(p.claims) ? p.claims : []; const nm = (cl.find(function (c) { return c.typ === 'name' || /claims\/name$/.test(c.typ || ''); }) || {}).val;
     const mail = p.userDetails || '';
+    const nomeTime = _time && _time[String(mail).toLowerCase()];
+    if (nomeTime) return nomeTime;
     return (nm && mail && nm !== mail) ? nm + ' (' + mail + ')' : (nm || mail || p.userId || '');
   } catch (e) { return ''; }
 }
@@ -82,6 +98,7 @@ async function avisarTeams(txt) {
 module.exports = async function (context, req) {
   try {
     if (!requireDomain(context, req)) return;
+    await carregarTime(req);
     const live = process.env.FAT_SYNC_LIVE === '1';
     const lidC = await listaId('FAT_Contratos');
     const colC = await colunas(lidC);
