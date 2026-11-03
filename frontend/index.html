@@ -1075,6 +1075,7 @@ td .up{color:var(--ok);font-weight:700}
         <label>Início da vigência<input id="ft-ini" placeholder="dd/mm/aaaa"></label>
         <label>Fim da vigência<input id="ft-fim" placeholder="dd/mm/aaaa"></label>
         <label>Valor mensal (R$)<input id="ft-valor" inputmode="decimal"></label>
+        <label>Valor do documento (R$) <span style="font-weight:400;color:#8A7A78">— do PO/contrato assinado</span><input id="ft-vdoc" inputmode="decimal" placeholder="para conferir com o valor mensal"></label>
         <label>Código do serviço (NF)<input id="ft-cod"></label>
         <label>Prazo de faturamento<input id="ft-prazo" placeholder="ex.: 30 dias"></label>
         <label>Dia limite da NF<input id="ft-dia" placeholder="ex.: 25"></label>
@@ -3372,14 +3373,17 @@ function _cvFatSim(l){
   var tipo=l.evidenciaTipo||'',ref=l.evidencia||'';
   var forte=_CV_EV_FORTE.indexOf(tipo)>-1,temEv=!!(tipo&&ref);
   var numOk=_cvNumOk(ctr)&&!/^PROV/i.test(ctr);
+  var vdoc=_cvNumBR(gv('ft-vdoc','vdoc')),confere=vdoc>0&&Math.abs(valor-vdoc)<=1;
   var ct=_cvFatContrato(m),nat=_natInfo(l).k,ret=[],av=[];
   if(!temEv)ret.push('sem evidência da venda registrada no lead');
   if(!(valor>0))ret.push('valor mensal ausente ou zerado');
   if(m.clientes.length>1)ret.push('mais de um cliente do Faturamento corresponde (possível duplicidade)');
   if(numOk){var outro=f.contratos.filter(function(c){return String(c.numero||'').trim().toUpperCase()===ctr.toUpperCase()&&m.clientes.every(function(x){return x.id!==c.clienteId;});});if(outro.length)ret.push('o Nº '+ctr+' já existe em outro cliente do Faturamento');}
   if(forte&&!numOk)ret.push('a evidência é pedido/contrato, mas falta o Nº real');
-  var nivel=ret.length?3:(forte?1:2);
-  if(nivel===1)av.push('Conferência do valor com o documento e com a proposta (tolerância R$ 1,00) ainda não é automática: entra na Fase 4. Até lá, tratar como nível 2.');
+  if(forte&&numOk&&vdoc>0&&!confere)ret.push('valor do documento ('+_cvMoeda(vdoc)+') difere do valor mensal ('+_cvMoeda(valor)+') acima da tolerância de R$ 1,00');
+  var nivel=ret.length?3:((forte&&numOk&&confere)?1:2);
+  if(nivel===1)av.push('Valor mensal conferido com o documento (diferença até R$ 1,00): entra como Vigente, se a lista Status do Faturamento aceitar; senão entra Provisório.');
+  if(nivel===2&&forte&&numOk&&!(vdoc>0))av.push('Informe o "Valor do documento" (do PO/contrato) para conferir com o valor mensal e poder entrar como Vigente.');
   if(nivel===2){av.push('Evidência por '+(tipo||'—')+': entra como provisório e vira definitivo quando chegar o pedido de compra ou contrato com o mesmo valor.');}
   if(nivel<3&&!numOk)av.push('Nº real do contrato ainda não informado: seria usado o provisório e o Financeiro completa depois.');
   if(nivel<3&&!ini&&!fim&&!(ct&&(ct.inicio||ct.fim)))av.push('Vigência não informada: o Financeiro completa depois.');
@@ -3400,7 +3404,7 @@ function _cvFatSim(l){
   pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
   var iso=function(d){var q=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d||'').trim());return q?q[3]+'-'+q[2]+'-'+q[1]:'';};
   var servOk=!!serv&&!/^(AF|AE|GL|ACAD|GR)$/i.test(serv.trim())&&!/^servi.o a confirmar$/i.test(serv.trim());
-  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref};
+  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc};
   return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl,dados:dados,servOk:servOk};
 }
 function _cvFatSimHtml(l){
@@ -3413,12 +3417,12 @@ function _cvFatSimHtml(l){
   if(s.avisos.length)h+='<div style="margin-top:4px;color:#8A7A78"><b>Observações:</b>'+ul(s.avisos)+'</div>';
   if(window._CVSIM_LIVE===undefined&&!window._CVSIM_BUSY){window._CVSIM_BUSY=1;fetch('/api/faturamento-sync').then(function(r){return r.json();}).then(function(j){window._CVSIM_LIVE=!!(j&&j.live);window._CVSIM_INFO=j;}).catch(function(){window._CVSIM_LIVE=false;}).then(function(){window._CVSIM_BUSY=0;if(_cvId)cvRender();});}
   var pode=!!s.dados.clienteId&&s.servOk;
-  h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+(s.dados.clienteId?'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.':'Cliente não encontrado no Faturamento: não dá para lançar.')+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':'Provisório')+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
+  h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+(s.dados.clienteId?'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.':'Cliente não encontrado no Faturamento: não dá para lançar.')+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':(s.nivel===1?'Vigente':'Provisório'))+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
   return h+'</details>';
 }
 function cvSimEnviar(modo){
   var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.dados.clienteId||!s.servOk)return;
-  if(modo==='gravar'&&!confirm('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.'))return;
+  if(modo==='gravar'&&!confirm(s.nivel===1?'Gravar no Faturamento como VIGENTE (valor conferido com o documento)? Se a lista Status não aceitar Vigente, entra como Provisório. O Financeiro será avisado.':('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.')))return;
   box.textContent='Enviando…';
   fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:modo},s.dados))})
    .then(function(r){return r.json();})
@@ -3617,8 +3621,8 @@ window.enviarParaImplantacao=enviarParaImplantacao;
    cada envio fica registrado (ftEnviado) e, se algo mudar depois, aparece o alerta "alterado desde o último envio" para reenviar e revisar.
    Abre o Faturamento com cliente + contrato + serviço no trecho depois do # (não vai a servidor). Nada é salvo lá sem confirmação. Contrato v1 (+modo/anterior). */
 var _CV_AREA_FAT={ERGO:'Ergonomia',GL:'Atividades Físicas',FISIO:'Terapias',NA:'',ENF:'Terapias'};
-var _FT_CAMPOS=['ctr','oc','ini','fim','valor','cod','prazo','dia','ind','mes','coord','coordmail','aprov','aprovmail'];
-var _FT_ROT={ctr:'Nº do contrato',oc:'Pedido de compra',ini:'Início da vigência',fim:'Fim da vigência',valor:'Valor mensal',cod:'Código do serviço',prazo:'Prazo de faturamento',dia:'Dia limite da NF',ind:'Índice de reajuste',mes:'Mês de reajuste',coord:'Coordenador',coordmail:'E-mail do coordenador',aprov:'Aprovador',aprovmail:'E-mail do aprovador',cliente:'Cliente',razao:'Razão social',cnpj:'CNPJ',servico:'Serviço',area:'Área',valorLead:'Valor mensal do lead',numMeses:'Nº de meses'};
+var _FT_CAMPOS=['ctr','oc','ini','fim','valor','vdoc','cod','prazo','dia','ind','mes','coord','coordmail','aprov','aprovmail'];
+var _FT_ROT={vdoc:'Valor do documento',ctr:'Nº do contrato',oc:'Pedido de compra',ini:'Início da vigência',fim:'Fim da vigência',valor:'Valor mensal',cod:'Código do serviço',prazo:'Prazo de faturamento',dia:'Dia limite da NF',ind:'Índice de reajuste',mes:'Mês de reajuste',coord:'Coordenador',coordmail:'E-mail do coordenador',aprov:'Aprovador',aprovmail:'E-mail do aprovador',cliente:'Cliente',razao:'Razão social',cnpj:'CNPJ',servico:'Serviço',area:'Área',valorLead:'Valor mensal do lead',numMeses:'Nº de meses'};
 function _ftJ(t){try{var o=JSON.parse(t||'');return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
 function _ftLer(){var o={};_FT_CAMPOS.forEach(function(k){o[k]=_cvV('ft-'+k);});return o;}
 function _ftDados(l){
