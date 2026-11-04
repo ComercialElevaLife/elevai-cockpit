@@ -3829,7 +3829,7 @@ function _catPilarDe(txt){var t=_catN(txt).trim();if(!t)return '';var p=_CAT_SER
   if(/enferm|medic|fono|saude|\bpca\b/.test(t))return 'Saúde Corporativa';
   return '';}
 var _CAT_RESP={'Ergonomia':'alexandre','Ginástica Laboral':'dhanilo','Academia':'dhanilo','Fisioterapia':'dhanilo','Quiropraxia':'dhanilo','Massoterapia':'cristiano','Enfermagem':'cristiano','Medicina do Trabalho':'cristiano'};
-var _COORD_AREA={'Ergonomia':['daniele'],'Atividades Físicas':['geovane','william']};
+var _COORD_AREA={'Ergonomia':['daniele','alexandre'],'Atividades Físicas':['geovane','william']};
 function _catRespKey(serv){var r=_CAT_SERV.filter(function(x){return x[2]===serv;})[0];if(!r)return '';return r[0]==='Ergonomia'?'alexandre':(_CAT_RESP[r[1]]||'');}
 function cvEquipe(keep){
   var box=el('cv-equipe');if(!box)return;
