@@ -3880,7 +3880,7 @@ function _cvRespKey(l){
   var t=_cvSemAcento([_cvV('cv-area'),_cvV('cv-tipo'),(l&&l.serv)||''].join(' '));
   if(/ergo|\baet\b|\baep\b/.test(t))return 'alexandre';
   if(/enferm|\benf\b|masso|quick|\bqm\b|medicina|med\.? ?trab|medtrab|saude ocupacional|saude corporativa|psicolog|nutri/.test(t))return 'cristiano';
-  if(/fisio|atividade|ginastica|laboral|\bgl\b|\baf\b/.test(t))return 'dhanilo';
+  if(/fisio|quiro|atividade|ginastica|laboral|\bgl\b|\baf\b/.test(t))return 'dhanilo';
   return '';
 }
 function _cvAt(k,mark){var p=_cvPessoa(k);if(!mark)return '@'+p.nome;if(!_cvEnts.some(function(e){return e.mentioned&&e.mentioned.id===p.email;}))_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});return '<at>'+p.nome+'</at>';}
