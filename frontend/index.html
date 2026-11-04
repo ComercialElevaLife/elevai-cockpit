@@ -1064,6 +1064,13 @@ td .up{color:var(--ok);font-weight:700}
       <label>Mobilização<input id="cv-mob" placeholder="ex.: 30 dias após o pedido"></label>
       <label style="grid-column:1/3">Endereço de execução<input id="cv-endereco"></label>
       <label style="grid-column:1/3">Horários / frequência<input id="cv-horarios" placeholder="ex.: Seg a Sex, 08:00 às 17:00"></label>
+<label style="grid-column:1/3">Há contratação de equipe nesta venda?<select id="cv-contrata"><option value="">— escolha —</option><option>Sim</option><option>Não</option></select></label>
+<label>Cargo<input id="cv-cargo" placeholder="com o cargo, o RH aplica a tabela salarial"></label>
+<label>Nível / perfil<input id="cv-perfil" placeholder="ex.: Nível I"></label>
+<label>Nº de vagas<input id="cv-vagas" type="number" min="1"></label>
+<label>Carga horária semanal<input id="cv-cargahor" placeholder="ex.: 40"></label>
+<label>Remuneração (se não informar o cargo)<input id="cv-remun" placeholder="R$"></label>
+<label>Benefício (se não informar o cargo)<input id="cv-benef" placeholder="ex.: VR, VT, assistência médica"></label>
     </div>
     <label>Pontos focais (cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
     <label>Requisitos de faturamento<textarea id="cv-fat" rows="2" placeholder="ex.: NF até dia 25, portal Ariba"></textarea></label>
@@ -3563,9 +3570,30 @@ function _cvFatSimHtml(l){
    Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
 var _FV={passos:{},busy:false};
 var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
-var _FV_FICHA=['resumo','volume','escopo','inicio','horarios','focais','fat','docs'];
+var _FV_FICHA=['resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef'];
 (function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
-function _fvFaltam(){return _FV_REQ.filter(function(r){return !_cvV(r[0]);});}
+/* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
+function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
+function _fvBR(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||''));return m?m[3]+'/'+m[2]+'/'+m[1]:'';}
+function _fvAbertura(l){var iso=String((l&&l.dataVenda)||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){var t=new Date();iso=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);}var d=_cvDiaUtilApos(iso);return d?_fvIsoUTC(d):'';}
+function _fvV2(D,l){
+  D.v=2;D.abertura=_fvAbertura(l);
+  var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Cross Sell'}[((_natInfo(l)||{}).k)||''];if(tv)D.tipoVenda=tv;
+  var ctr=_cvV('ft-ctr');if(ctr)D.numeroContrato=ctr;
+  if(/^s/i.test(_cvV('cv-contrata'))){D.vagas=_cvV('cv-vagas');D.cargo=_cvV('cv-cargo');D.perfil=_cvV('cv-perfil');D.cargaHoraria=_cvV('cv-cargahor');if(!D.cargo)D.remuneracao=_cvV('cv-remun');}
+  return D;
+}
+function _fvFaltam(){
+  var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
+  var c=_cvV('cv-contrata');
+  if(!c){f.push(['cv-contrata','Há contratação de equipe nesta venda? (Sim/Não)']);}
+  else if(/^s/i.test(c)){
+    if(!_cvV('cv-vagas'))f.push(['cv-vagas','Número de vagas']);
+    var tc=_cvV('cv-cargo')&&_cvV('cv-perfil'),tp=_cvV('cv-remun')&&_cvV('cv-benef');
+    if(!tc&&!tp){[['cv-cargo','Cargo (ou remuneração + benefício)'],['cv-perfil','Nível / perfil do cargo'],['cv-remun','Remuneração (se não informar o cargo)'],['cv-benef','Benefício (se não informar o cargo)']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});}
+  }
+  return f;
+}
 function _fvMarcar(falt){
   [].slice.call(document.querySelectorAll('#ov-venda .fv-falta')).forEach(function(e){e.classList.remove('fv-falta');});
   var ov=el('ov-venda');if(ov)ov.classList.add('fv-compacto');
@@ -3685,7 +3713,7 @@ function _fvTeams(l,usr,done){
 }
 function _fvImpl(l,done){
   window._IMPL_URL='';enviarParaImplantacao();
-  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda: confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
+  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda (abertura e prazos contam de '+_fvBR(_fvAbertura(l))+', 1º dia útil após a venda): confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
 }
 function fluxoVendaRodar(){
   var l=_cvLead();if(!l||_FV.busy)return;
@@ -3904,7 +3932,7 @@ function enviarParaImplantacao(){
   if(mm)uf=mm[mm.length-1].replace(/[^A-Za-z]/g,'').toUpperCase();
   var cod=String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase();
   var tipo=_cvV('cv-tipo');
-  var D={v:1,programa:(l.cliente||'')+(tipo?' / '+tipo:''),empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',cnae:l.cnae||'',grauRisco:String(l.grauRisco||'').replace(/[^0-9]/g,'').slice(0,1),uf:uf,area:_CV_AREA_PAINEL[cod]||'',endereco:end,jornada:_cvV('cv-horarios'),unidade:_cvUn(l)};
+  var D={v:1,programa:(l.cliente||'')+(tipo?' / '+tipo:''),empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',cnae:l.cnae||'',grauRisco:String(l.grauRisco||'').replace(/[^0-9]/g,'').slice(0,1),uf:uf,area:_CV_AREA_PAINEL[cod]||'',endereco:end,jornada:_cvV('cv-horarios'),unidade:_cvUn(l)};_fvV2(D,l);
   var b=btoa(unescape(encodeURIComponent(JSON.stringify(D)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   window._IMPL_URL='https://elevalife-sistemas.github.io/painel-implantacao-servicos/#nova='+b;window.open(window._IMPL_URL,'_blank','noopener');
   if(typeof toast==='function')toast('Painel de Implantação aberto. Faça o login (se pedir) e revise o formulário.');
