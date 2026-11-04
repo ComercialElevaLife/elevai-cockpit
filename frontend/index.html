@@ -3604,7 +3604,7 @@ var _FV_FICHA=['area','tipo','resumo','volume','escopo','inicio','horarios','foc
 /* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
 function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
 function _fvBR(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||''));return m?m[3]+'/'+m[2]+'/'+m[1]:'';}
-function _fvAbertura(l){var iso=String((l&&l.dataVenda)||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){var t=new Date();iso=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);}var d=_cvDiaUtilApos(iso);return d?_fvIsoUTC(d):'';}
+function _fvAbertura(l){var iso=String((l&&l.dataVenda)||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){var t=new Date();iso=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);}return iso;}
 function _fvV2(D,l){
   D.abertura=_fvAbertura(l);
   var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||''];if(tv)D.tipoVenda=tv;
@@ -3745,7 +3745,7 @@ function _fvTeams(l,usr,done){
 }
 function _fvImpl(l,done){
   window._IMPL_URL='';enviarParaImplantacao();
-  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda (abertura e prazos contam de '+_fvBR(_fvAbertura(l))+', 1º dia útil após a venda): confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
+  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda (Day Zero da implantação: '+_fvBR(_fvAbertura(l))+', data da venda; a etapa 1 vence em 1 dia útil): confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
 }
 function fluxoVendaRodar(){
   var l=_cvLead();if(!l||_FV.busy)return;
