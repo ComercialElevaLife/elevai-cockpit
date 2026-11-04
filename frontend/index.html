@@ -1055,8 +1055,8 @@ td .up{color:var(--ok);font-weight:700}
     <div id="cv-ativo" style="font-size:12px;border-radius:8px;padding:7px 10px;margin:0 0 8px;background:#fff;border:1px solid #EADDE0;color:#3A2A2E"></div>
     <p class="hint" style="margin:0 0 6px">O que o Cockpit já sabe veio preenchido. Complete o que faltar: campos vazios saem como "A confirmar". O orçamento nunca vai no comunicado. A saudação é calculada na hora do envio (horário de Brasília).</p>
     <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
-      <label>Pilar / área<input id="cv-area" placeholder="ex.: Ergonomia"></label>
-      <label>Serviço específico<input id="cv-tipo" placeholder="ex.: Ginástica Laboral"></label>
+      <label>Pilar / área<select id="cv-area" onchange="cvCatPilar()"></select></label>
+      <label>Serviço específico<select id="cv-tipo" onchange="cvCatServ()"></select><input id="cv-tipo-outro" placeholder="Descreva o serviço (manual)" style="display:none" oninput="cvCatOutro()"><span id="cv-tipo-obs" style="font-size:11px;color:#8A7A78"></span></label>
       <label style="grid-column:1/3">Resumo do projeto<input id="cv-resumo" placeholder="ex.: Ginástica Laboral nas unidades de Joinville"></label>
       <label>Volume de entrega<input id="cv-volume" placeholder="ex.: 2 profissionais, 40h/mês"></label>
       <label>Detalhamento do escopo<input id="cv-escopo" placeholder="ex.: sessões de 15 min por setor"></label>
@@ -3570,7 +3570,7 @@ function _cvFatSimHtml(l){
    Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
 var _FV={passos:{},busy:false};
 var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
-var _FV_FICHA=['resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef'];
+var _FV_FICHA=['area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef'];
 (function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
 /* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
 function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
@@ -3627,7 +3627,8 @@ function _fvCamposCard(l){
 }
 function _fvFichaAplicar(l){
   var fi=_ftJ(l.vendaFicha)||{};
-  _FV_FICHA.forEach(function(k){if(fi[k]){var e=el('cv-'+k);if(e)e.value=fi[k];}});
+  _FV_FICHA.forEach(function(k){if(fi[k]&&k!=='area'&&k!=='tipo'){var e=el('cv-'+k);if(e)e.value=fi[k];}});
+  if(fi.area||fi.tipo)cvCatAplicar(fi.area,fi.tipo);
 }
 var _fvT=null;
 function _fvAuto(){
@@ -3816,12 +3817,54 @@ function cvRender(){
     if(!(window.getTeamsWebhook&&window.getTeamsWebhook()))t+=' · Canal do Teams não configurado (⚙ Automação): use "Copiar texto".';
     st.innerHTML=t;}
 }
+/* 04/11/2026 — Léo: catálogo Pilar > Categoria > Serviço (planilha preenchida pelo Léo). Cada pilar tem a opção "Outro (descrever)" com texto livre para casos omissos. */
+var _CAT_SERV=[["Ergonomia","Diagnóstico","AEP - Avaliação Ergonômica Preliminar","AEP","Definido pela quantidade de AEP"],["Ergonomia","Diagnóstico","AET - Análise Ergonômica do Trabalho","AET","Definido pela quantidade de AET"],["Ergonomia","Diagnóstico","NR01 - Avaliação Psicossocial Relacionada ao Trabalho","NR01","Definido pelo número de vidas e quantidade"],["Ergonomia","Eventos","BLITZ - Blitz Ergonômica dos Postos de Trabalho","BLITZ","Definido pelo número de vidas e quantidade"],["Ergonomia","Eventos","TR - Treinamento em Ergonomia","TR","Definido pelo número de vidas e quantidade"],["Ergonomia","Gestão","Gestão em Ergonomia","ERGO/GEST","Definir nível do profissional e carga horária semanal na venda"],["Atividades Físicas","Ginástica Laboral","Programa de Ginástica Laboral e Pausa Ativa","PGL","Definir nível do profissional e carga horária semanal na venda"],["Atividades Físicas","Ginástica Laboral","Programa de Ginástica Laboral e Pausa Ativa On-line","PGL/ON-LINE","Definir nível do profissional e carga horária semanal na venda"],["Atividades Físicas","Ginástica Laboral","Ginástica Laboral Pontual","GL/PONT","Definir nível do profissional e carga horária semanal na venda"],["Atividades Físicas","Academia","Gestão de Academia/Almoxarifado","ACAD/ALMOX","Definir nível do profissional e carga horária semanal na venda"],["Terapias","Fisioterapia","Gestão Ambulatório Fisioterapia","FISIO/GEST","Definir nível do profissional e carga horária semanal na venda"],["Terapias","Quiropraxia","Gestão Ambulatório Quiropraxia","QUIRO/GEST","Definir nível do profissional e carga horária semanal na venda"],["Terapias","Massoterapia","Programa de Massoterapia","QM/GEST","Definir nível do profissional e carga horária semanal na venda"],["Terapias","Massoterapia","Massoterapia Pontual","QM/PONT","Definir nível do profissional e carga horária semanal na venda"],["Saúde Corporativa","Enfermagem","Gestão Ambulatório Enfermagem","ENF/GEST","Definir nível do profissional e carga horária semanal na venda"],["Saúde Corporativa","Medicina do Trabalho","Gestão Ambulatório Medicina do Trabalho","MEDTRAB/GEST","Definir nível do profissional e carga horária semanal na venda"],["Saúde Corporativa","Medicina do Trabalho","Fonoaudiologia/PCA","FONO/GEST","Definir nível do profissional e carga horária semanal na venda"]];
+function _catN(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
+function _catPilarDe(txt){var t=_catN(txt).trim();if(!t)return '';var p=_CAT_SERV.map(function(r){return r[0];}).filter(function(x){return _catN(x)===t;})[0];if(p)return p;if(t==='outros')return 'Outros';
+  if(/ergo|aet|aep|nr.?01|blitz/.test(t))return 'Ergonomia';
+  if(/ginastica|laboral|\bgl\b|academia|atividade|\baf\b|almox/.test(t))return 'Atividades Físicas';
+  if(/fisio|quiro|masso|\bqm\b|quick|terap/.test(t))return 'Terapias';
+  if(/enferm|medic|fono|saude|\bpca\b/.test(t))return 'Saúde Corporativa';
+  return '';}
+function cvCatPilar(){
+  var a=el('cv-area'),s=el('cv-tipo');if(!a||!s)return;
+  var h='<option value="">Selecione…</option>',cat='';
+  _CAT_SERV.forEach(function(r){if(r[0]!==a.value)return;if(r[1]!==cat){if(cat)h+='</optgroup>';cat=r[1];h+='<optgroup label="'+esc(cat)+'">';}h+='<option value="'+esc(r[2])+'">'+esc(r[2])+'</option>';});
+  if(cat)h+='</optgroup>';
+  h+='<option value="" data-outro="1">Outro (descrever)</option>';
+  s.innerHTML=h;if(a.value==='Outros')s.selectedIndex=s.options.length-1;cvCatServ();
+}
+function cvCatServ(){
+  var s=el('cv-tipo'),o=el('cv-tipo-outro'),b=el('cv-tipo-obs');if(!s)return;
+  var op=s.options[s.selectedIndex],isO=!!(op&&op.getAttribute('data-outro'));
+  if(o){o.style.display=isO?'':'none';if(isO)op.value=o.value.trim();}
+  var r=_CAT_SERV.filter(function(x){return x[2]===s.value;})[0];
+  if(b)b.textContent=(r&&r[4])?r[4]:'';
+}
+function cvCatOutro(){var s=el('cv-tipo'),o=el('cv-tipo-outro');if(!s||!o)return;var op=s.options[s.selectedIndex];if(op&&op.getAttribute('data-outro'))op.value=o.value.trim();}
+function cvCatInit(txt){
+  var a=el('cv-area');if(!a)return;
+  var ps=[];_CAT_SERV.forEach(function(r){if(ps.indexOf(r[0])<0)ps.push(r[0]);});ps.push('Outros');
+  a.innerHTML='<option value="">Selecione…</option>'+ps.map(function(p){return '<option>'+esc(p)+'</option>';}).join('');
+  var o=el('cv-tipo-outro');if(o)o.value='';
+  a.value=_catPilarDe(txt);cvCatPilar();
+  var s=el('cv-tipo'),n=_catN(txt).trim();
+  if(n&&s&&n!==_catN(a.value)){var c=_CAT_SERV.filter(function(r){return r[0]===a.value&&(_catN(r[2]).indexOf(n)>=0||_catN(r[1])===n||_catN(r[3])===n);});if(c.length===1){s.value=c[0][2];cvCatServ();}}
+}
+function cvCatAplicar(area,tipo){
+  var a=el('cv-area'),s=el('cv-tipo'),o=el('cv-tipo-outro');if(!a||!s)return;
+  var p=_catPilarDe(area)||(area?'Outros':'');a.value=p;cvCatPilar();
+  if(!tipo)return;
+  if(_CAT_SERV.some(function(r){return r[0]===p&&r[2]===tipo;})){s.value=tipo;}
+  else{var op=[].slice.call(s.options).filter(function(x){return x.getAttribute('data-outro');})[0];if(op){if(o)o.value=tipo;op.value=tipo;op.selected=true;}}
+  cvCatServ();
+}
 function abrirComunicacaoVenda(id){
   var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
   _cvId=id;
   var g=function(x,v){var e=el(x); if(e)e.value=v||'';};
   var sv=(l.serv&&!/^(NA|—|-)$/i.test(l.serv))?_cvServ(l.serv):'';
-  g('cv-area',sv);g('cv-tipo',sv);g('cv-resumo','');g('cv-volume','');g('cv-escopo','');g('cv-inicio','');
+  cvCatInit(sv);g('cv-resumo','');g('cv-volume','');g('cv-escopo','');g('cv-inicio','');
   var mob=String(l.prazoMobilizacao||'').trim();
   if(!mob&&l.dataVenda)mob=_cvMobPadrao(l);
   g('cv-mob',mob);
