@@ -3577,7 +3577,7 @@ function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).sl
 function _fvBR(iso){var m=/^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso||''));return m?m[3]+'/'+m[2]+'/'+m[1]:'';}
 function _fvAbertura(l){var iso=String((l&&l.dataVenda)||'').slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(iso)){var t=new Date();iso=t.getFullYear()+'-'+('0'+(t.getMonth()+1)).slice(-2)+'-'+('0'+t.getDate()).slice(-2);}var d=_cvDiaUtilApos(iso);return d?_fvIsoUTC(d):'';}
 function _fvV2(D,l){
-  D.v=2;D.abertura=_fvAbertura(l);
+  D.abertura=_fvAbertura(l);
   var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||''];if(tv)D.tipoVenda=tv;
   var ctr=_cvV('ft-ctr');if(ctr)D.numeroContrato=ctr;
   if(/^s/i.test(_cvV('cv-contrata'))){D.vagas=_cvV('cv-vagas');D.cargo=_cvV('cv-cargo');D.perfil=_cvV('cv-perfil');D.cargaHoraria=_cvV('cv-cargahor');if(!D.cargo)D.remuneracao=_cvV('cv-remun');}
