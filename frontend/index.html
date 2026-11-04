@@ -926,7 +926,7 @@ td .up{color:var(--ok);font-weight:700}
         <label style="display:flex;flex-direction:column;gap:4px">Status<select id="cad-status" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>LEAD</option><option>OPORTUNIDADE</option><option>EM NEGOCIAÇÃO</option><option>PAUSADA</option><option>VENDIDA</option><option>PERDIDA</option></select></label>
         <label style="display:flex;flex-direction:column;gap:4px">Data de envio<input id="cad-envio" type="date" disabled style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
         <label style="display:flex;flex-direction:column;gap:4px"><span id="cad-valor-lab">Valor (R$)</span><input id="cad-valor" type="text" inputmode="decimal" placeholder="0,00" oninput="maskMoney(this)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-        <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="cad-tipo" onchange="elevaiRecToggle()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>N/A</option><option>P</option><option>R</option></select></label>
+        <label style="display:flex;flex-direction:column;gap:4px">Tipo<select id="cad-tipo" required onchange="elevaiRecToggle()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="" disabled selected hidden>Selecione (P ou R)…</option><option>P</option><option>R</option></select></label>
         <div id="cad-recbox" style="display:none;grid-column:1/3;grid-template-columns:1fr 1fr;gap:12px 16px">
           <label style="display:flex;flex-direction:column;gap:4px">Valor mensal (R$)<input id="cad-valormensal" type="text" inputmode="decimal" placeholder="ex.: 10.000,00" oninput="maskMoney(this);elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Nº de meses (mín 3 · padrão 12)<input id="cad-nummeses" type="number" min="3" step="1" value="12" oninput="elevaiRecCalc()" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -2388,7 +2388,7 @@ async function elevaiCad(ev){
     empresaId:(hitEmp&&hitEmp.__id)?String(hitEmp.__id):'',
     unidade:g('cad-unidade')||'',fonte:g('cad-fonte')||'NA',campanha:g('cad-campanha')||'NA',icp:g('cad-icp'),
     cons:g('cad-cons')||'',serv:g('cad-serv')||'NA',prop:prop,valor:moneyNum('cad-valor'),
-    tipo:g('cad-tipo')||'N/A',envio:(prop==='SIM'&&envio)?envio:null,
+    tipo:g('cad-tipo')||'',envio:(prop==='SIM'&&envio)?envio:null,
     dias:(prop==='SIM'&&envio)?Math.max(0,Math.round((Date.now()-new Date(envio+'T00:00:00').getTime())/864e5)):null,
     tc:g('cad-tc')||'NOVO',status:g('cad-status'),
     cnpj:g('cad-cnpj')||'',razaoSocial:g('cad-razao')||'',endereco:g('cad-endereco')||'',
@@ -3585,6 +3585,7 @@ function _fvV2(D,l){
 }
 function _fvFaltam(){
   var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
+  var _lt=_cvLead();if(!_lt||!/^[PR]$/.test(String(_lt.tipo||'')))f.push(['cv-tipopr','Tipo da venda (P ou R): defina no card do lead']);
   var c=_cvV('cv-contrata');
   if(!c){f.push(['cv-contrata','Há contratação de equipe nesta venda? (Sim/Não)']);}
   else if(/^s/i.test(c)){
@@ -3787,7 +3788,7 @@ function _cvBlocos(l,saud,mark){
     '🚀 **'+_natInfo(l).lbl.toUpperCase()+': '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
     saud,
     'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.',
-    '**📋 ESCOPO TÉCNICO**\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
+    '**📋 ESCOPO TÉCNICO**\n- **Tipo de Venda:** '+(l.tipo==='R'?'Recorrente':(l.tipo==='P'?'Pontual':'A confirmar'))+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
     '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
     '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
     _cvViaDupla(l),
@@ -5227,7 +5228,7 @@ function openDrawer(id){curId=id;
      <label>Fonte<input id="le-fonte" value="${esc(l.fonte)}"></label>
      <label>Campanha<input id="le-campanha" value="${esc(l.campanha)}"></label>
      <label>ICP<select id="le-icp">${['NA','A','B','C','D'].map(o=>`<option${String(l.icp)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Tipo<select id="le-tipo" onchange="leRecCalc()">${['N/A','P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
+     <label>Tipo<select id="le-tipo" onchange="leRecCalc()"><option value="" disabled hidden${/^[PR]$/.test(String(l.tipo))?'':' selected'}>Selecione (P ou R)…</option>${['P','R'].map(o=>`<option${String(l.tipo)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Valor (R$)<input id="le-valor" type="text" inputmode="decimal" value="${moneyFmt(l.valor||0)}" oninput="maskMoney(this)" title="Recorrente: calculado automaticamente (mensal × meses) ao editar os campos abaixo — pode ser ajustado manualmente depois."></label>
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
