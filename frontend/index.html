@@ -1100,7 +1100,7 @@ td .up{color:var(--ok);font-weight:700}
     </details>
     <label>Assinatura<input id="cv-ass"></label>
     <div id="cv-chk" style="display:flex;flex-wrap:wrap;gap:6px;margin:8px 0"></div>
-    <label>Pré-visualização (é exatamente este texto que vai ao Teams)<textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" readonly></textarea></label>
+    <label>Pré-visualização (este texto vai ao Teams e pode ser editado; mantenha @Nome para marcar a pessoa) <a href="#" onclick="cvOutRestaurar();return false">↺ restaurar texto automático</a><textarea id="cv-out" rows="15" style="font-family:inherit;font-size:12.5px" oninput="cvOutEdit()"></textarea></label>
   </div>
   <div class="mf"><button class="btn gh" onclick="document.getElementById('ov-venda').classList.remove('on')">Fechar</button><button class="btn gh" onclick="copiarDadosVenda()" title="Dados estruturados (JSON)">{ } Copiar dados</button><button class="btn gh" onclick="enviarParaImplantacao()" title="Abre o painel de Implantação já com os dados da venda para você revisar e confirmar">🚀 Enviar para Implantação</button><button class="btn gh" onclick="enviarParaFaturamento()" title="Abre o sistema de Faturamento já com cliente, contrato e serviço para você revisar e confirmar (inclui valor mensal)">💲 Enviar para Faturamento</button><button class="btn gh" onclick="testarMarcacoesTeams()" title="Posta no canal uma mensagem de TESTE para conferir as marcações (@). Depois você apaga no Teams.">🧪 Testar marcações</button><button class="btn gh" onclick="copiarComunicacaoVenda()">📋 Copiar texto</button><button class="btn" id="fv-go" onclick="fluxoVendaRodar()" title="Grava a ficha no card, lança no Faturamento, envia o comunicado ao Teams e abre a Implantação, tudo de uma vez. Se faltar campo obrigatório, nada é disparado e o campo é destacado.">▶ Fechar venda e disparar tudo</button><button class="btn gh" id="cv-send" onclick="enviarComunicacaoVenda()" title="Avulso: só o comunicado ao Teams">Só o Teams</button></div>
 </div></div>
@@ -3761,8 +3761,24 @@ function _cvAtivoHtml(l){var a=_cvAtivo(l),n=_natInfo(l),h='<b>Natureza: '+esc(n
   }else{h+='nenhum contrato ativo nem venda anterior localizados na base';
     if(n.k!=='NOVA')h+='<br><span style="color:#C9822B">⚠ Natureza '+esc(n.lbl)+', mas o cliente não aparece na base: conferir o cadastro de contratos.</span>';}
   return h+_cvFatHtml(l)+_cvFatSimHtml(l);}
+/* 04/11/2026 — Léo: texto do comunicado editável. Se o comercial editar a pré-visualização, o envio usa o texto editado (mantendo as marcações @Nome). */
+var _cvManual={id:null,txt:''};
+function _cvEditado(l){return (_cvManual.id&&l&&_cvManual.id===l.spid&&_cvManual.txt)?_cvManual.txt:'';}
+function cvOutEdit(){var l=_cvLead(),o=el('cv-out');if(!l||!o)return;_cvManual={id:l.spid,txt:o.value};}
+function cvOutRestaurar(){_cvManual={id:null,txt:''};cvRender();if(typeof toast==='function')toast('Texto automático restaurado.');}
+function _cvBlocosDeTexto(txt){
+  var bl=String(txt).split(/\n{2,}/).map(function(b){return b.trim();}).filter(Boolean);
+  Object.keys(_CV_PESSOAS).forEach(function(k){
+    var p=_cvPessoa(k),tag='@'+p.nome;
+    if(String(txt).indexOf(tag)<0)return;
+    bl=bl.map(function(b){return b.split(tag).join('<at>'+p.nome+'</at>');});
+    if(!_cvEnts.some(function(e){return e.mentioned&&e.mentioned.id===p.email;}))_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});
+  });
+  return bl;
+}
 function _cvBlocos(l,saud,mark){
   if(mark)_cvEnts=[];
+  if(mark&&_cvEditado(l))return _cvBlocosDeTexto(_cvEditado(l));
   var focais=_cvV('cv-focais').split('\n').map(function(x){return x.trim();}).filter(Boolean);
   var foc=focais.length?focais.join('; '):'A confirmar';
   var resumo=_cvV('cv-resumo')||(_cvEst(_cvV('cv-tipo'))==='C'?_cvV('cv-tipo'):'')||'A confirmar';
@@ -3770,14 +3786,12 @@ function _cvBlocos(l,saud,mark){
   return [
     '🚀 **'+_natInfo(l).lbl.toUpperCase()+': '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
     saud,
-    'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.\n\nAbaixo, os detalhes para o start da operação:',
-    '**📋 ESCOPO TÉCNICO**\n- **Tipo de Serviço:** '+_cvTxt(_cvV('cv-tipo'))+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
+    'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.',
+    '**📋 ESCOPO TÉCNICO**\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
     '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
     '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
     _cvViaDupla(l),
     _cvBlocoResp(l,mark),
-    '**💰 BUDGET**\n- **Valor Contratado:** Detalhamento financeiro disponível com o Comercial/Financeiro.',
-    'Agradeço o apoio de todos e desejo sucesso nessa nova operação.',
     nome
   ].filter(function(b){return b!=='';});
 }
@@ -3788,7 +3802,7 @@ function _cvChecklist(l){
 }
 function cvRender(){
   var l=_cvLead();if(!l)return;
-  var out=el('cv-out');if(out)out.value=_cvBlocos(l,_cvSaud()).join('\n\n');
+  var out=el('cv-out');if(out){var ed=_cvEditado(l);if(ed){if(out.value!==ed)out.value=ed;}else out.value=_cvBlocos(l,_cvSaud()).join('\n\n');}
   var cor={C:['#2E7D5B','Completo'],P:['#C9822B','Pendente'],NA:['#8A7A78','Não aplicável'],D:['#B23A48','Divergente']};
   var chk=el('cv-chk');if(chk)chk.innerHTML=_cvChecklist(l).map(function(x){var c=cor[x[1]];return '<span style="font-size:11px;border:1px solid '+c[0]+';color:'+c[0]+';border-radius:999px;padding:2px 9px;background:#fff">'+esc(x[0])+': '+c[1]+'</span>';}).join('');
   var fs=el('ft-status');if(fs)fs.innerHTML=_ftStatusHtml(l);
@@ -3868,10 +3882,10 @@ function _cvRespKey(l){
   if(/fisio|atividade|ginastica|laboral|\bgl\b|\baf\b/.test(t))return 'dhanilo';
   return '';
 }
-function _cvAt(k,mark){var p=_cvPessoa(k);if(!mark)return '@'+p.nome;_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});return '<at>'+p.nome+'</at>';}
+function _cvAt(k,mark){var p=_cvPessoa(k);if(!mark)return '@'+p.nome;if(!_cvEnts.some(function(e){return e.mentioned&&e.mentioned.id===p.email;}))_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});return '<at>'+p.nome+'</at>';}
 function _cvBlocoResp(l,mark){
   var k=_cvRespKey(l);
-  return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+'\n- **Para ciência:** '+_cvAt('joao',mark)+' e '+_cvAt('rafael',mark);
+  return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+'\n- **Para ciência:** '+['joao','rafael'].filter(function(x){return x!==k;}).map(function(x){return _cvAt(x,mark);}).join(' e ');
 }
 /* Teste das marcações: posta no canal uma mensagem "TESTE — pode apagar". Por padrão marca só quem clica; os 5 nomes só se confirmar. */
 function testarMarcacoesTeams(){
