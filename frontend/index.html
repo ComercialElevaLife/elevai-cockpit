@@ -1607,7 +1607,7 @@ function mnCopiar(){ const t=q('mn-corpo'); t.select(); try{document.execCommand
 async function enviarRenovacao(){
   if(!MNC)return; const para=q('mn-para').value.trim();
   if(!para||para.indexOf('@')<0){ alert('Informe um e-mail válido do responsável.'); return; }
-  if(!confirm('Enviar a minuta por e-mail para '+para+'\ncom cópia para leonardo@ e rafael@elevalife.com.br?')) return;
+  if(!(await sigeConfirm('Enviar a minuta por e-mail para '+para+'\ncom cópia para leonardo@ e rafael@elevalife.com.br?'))) return;
   const btn=q('mn-send'); btn.disabled=true; const old=btn.textContent; btn.textContent='Enviando...';
   try{
     const r=await fetch('/api/enviar-renovacao',{method:'POST',headers:{'Content-Type':'application/json'},
@@ -1729,7 +1729,7 @@ function renderTarefas(){
   if(!rows.length)tb.innerHTML='<tr><td colspan="8" class="empty">Nenhuma tarefa nos filtros atuais.</td></tr>';
 }
 function tkToggle(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; arr[i].feito=!arr[i].feito; persistLeadTasks(spid,arr,function(){renderTarefas();}); }
-function tkDel(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; if(!confirm('Excluir esta tarefa?'))return; arr.splice(i,1); persistLeadTasks(spid,arr,function(){renderTarefas();}); }
+async function tkDel(spid,i){ const l=_leadBySpid(spid); if(!l)return; const arr=_parseTasks(l); if(!arr[i])return; if(!(await sigeConfirm('Excluir esta tarefa?')))return; arr.splice(i,1); persistLeadTasks(spid,arr,function(){renderTarefas();}); }
 function tkOpen(spid){ const l=_leadBySpid(spid); if(!l){alert('Lead não encontrado na base.');return;} const mk=document.getElementById('mask'); if(mk)mk.classList.remove('on'); const btn=document.querySelector('.nav button[data-v=\"crm\"]'); if(btn)btn.click(); setTimeout(function(){ try{ if(window.openDrawer&&l._sid!=null)window.openDrawer(l._sid); }catch(e){} },80); }
 async function persistLeadTasks(spid,tasksArr,onOk,onFail){
   if(!spid){ toast('sem id — não salvou'); if(onOk)onOk(); return; }
@@ -2219,7 +2219,7 @@ function cancelEmpEdit(){
 window.cancelEmpEdit=cancelEmpEdit;
 async function deleteEmpresa(id){
   const it=_empresasList().find(e=>String(e.__id)===String(id)); if(!it)return;
-  if(!confirm('Excluir permanentemente a empresa "'+(it.cliente||it.razaoSocial||'')+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.'))return;
+  if(!(await sigeConfirm('Excluir permanentemente a empresa "'+(it.cliente||it.razaoSocial||'')+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.')))return;
   try{
     const r=await fetch('/api/empresas',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
     const j=await r.json().catch(()=>({}));
@@ -2283,7 +2283,7 @@ window.cancelConEdit=cancelConEdit;
 async function deleteContato(id){
   const it=(STORE.contatos||[]).find(c=>String(c.__id)===String(id)); if(!it)return;
   const nomeCompleto=((it.nome||'')+' '+(it.sobrenome||'')).trim();
-  if(!confirm('Excluir permanentemente o contato "'+nomeCompleto+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.'))return;
+  if(!(await sigeConfirm('Excluir permanentemente o contato "'+nomeCompleto+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.')))return;
   try{
     const r=await fetch('/api/contatos',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
     const j=await r.json().catch(()=>({}));
@@ -2477,9 +2477,9 @@ function cancelCadEdit(){
   const f2=q('cad-fase2'); if(f2)f2.open=false;
 }
 window.cancelCadEdit=cancelCadEdit;
-function deleteLeadCad(id){
+async function deleteLeadCad(id){
   const it=(STORE.leads||[]).find(l=>String(l.__id)===String(id)); if(!it)return;
-  if(!confirm('Excluir permanentemente a oportunidade "'+(it.cliente||it.nome||'')+'"? Isso remove o registro do SharePoint (inclusive do Kanban) e não pode ser desfeito.'))return;
+  if(!(await sigeConfirm('Excluir permanentemente a oportunidade "'+(it.cliente||it.nome||'')+'"? Isso remove o registro do SharePoint (inclusive do Kanban) e não pode ser desfeito.')))return;
   if(window.deleteLead){
     window.deleteLead(id, function(){
       if(String(window._cadEditId)===String(id)) cancelCadEdit();
@@ -3259,6 +3259,34 @@ function _festa(){
     document.body.appendChild(m);setTimeout(function(){m.remove();},3200);
   }catch(e){}
 }
+/* 04/11/2026 — troca do confirm() nativo por janela própria (padrão ElevaLife). Uso: if(!(await sigeConfirm('texto')))return; — a função que chama precisa ser async. */
+function sigeConfirm(msg,opt){
+  opt=opt||{};
+  return new Promise(function(resolve){
+    var old=document.getElementById('sige-confirm-ov');if(old)old.remove();
+    var perigo=/^\s*(excluir|remover|apagar|reverter|desfazer)/i.test(String(msg));
+    var ov=document.createElement('div');ov.id='sige-confirm-ov';
+    ov.style.cssText='position:fixed;left:0;top:0;right:0;bottom:0;background:rgba(58,42,46,.55);z-index:100050;display:flex;align-items:center;justify-content:center;padding:16px;font-family:Montserrat,Arial,sans-serif';
+    var bx=document.createElement('div');
+    bx.style.cssText='background:#fff;border:1px solid #EADDE0;border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.25);max-width:440px;width:100%;padding:20px 22px;color:#3A2A2E';
+    var h=document.createElement('div');h.textContent=opt.titulo||'Confirmar';
+    h.style.cssText='font:700 16px Montserrat Alternates,Montserrat,Arial,sans-serif;color:#5E2A30;margin-bottom:8px';
+    var p=document.createElement('div');p.textContent=String(msg);
+    p.style.cssText='font-size:13.5px;line-height:1.5;white-space:pre-line;margin-bottom:16px';
+    var row=document.createElement('div');row.style.cssText='display:flex;gap:8px;justify-content:flex-end';
+    var no=document.createElement('button');no.type='button';no.textContent=opt.voltar||'Voltar';
+    no.style.cssText='padding:8px 16px;border-radius:8px;border:1px solid #EADDE0;background:#fff;color:#3A2A2E;font:600 13px Montserrat,Arial,sans-serif;cursor:pointer';
+    var yes=document.createElement('button');yes.type='button';yes.textContent=opt.ok||(perigo?'Sim, continuar':'Confirmar');
+    yes.style.cssText='padding:8px 16px;border-radius:8px;border:0;background:'+(perigo?'#B23A48':'#8B3A42')+';color:#fff;font:600 13px Montserrat,Arial,sans-serif;cursor:pointer';
+    function fim(v){document.removeEventListener('keydown',kd,true);ov.remove();resolve(v);}
+    function kd(e){if(e.key==='Escape'){e.preventDefault();e.stopPropagation();fim(false);}}
+    no.onclick=function(){fim(false);};yes.onclick=function(){fim(true);};
+    ov.onclick=function(e){if(e.target===ov)fim(false);};
+    document.addEventListener('keydown',kd,true);
+    row.appendChild(no);row.appendChild(yes);bx.appendChild(h);bx.appendChild(p);bx.appendChild(row);ov.appendChild(bx);document.body.appendChild(ov);
+    (perigo?no:yes).focus();
+  });
+}
 function notifyTeams(l){
   /* 03/11/2026 — em vez do cartão simples + confirm(), abre a pré-visualização do comunicado padrão (nada sai sem o usuário ver). */
   if(window.trigNovaVenda&&!window.trigNovaVenda())return;
@@ -3267,7 +3295,7 @@ function notifyTeams(l){
   setTimeout(function(){fluxoVendaRodar();},800);
 }
 function reenviarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; abrirComunicacaoVenda(id); }
-function retratarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!confirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?'))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
+async function retratarVenda(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return; if(!(window.getTeamsWebhook&&window.getTeamsWebhook())){alert('Webhook do Teams não configurado (⚙ Automação).');return;} if(!(await sigeConfirm('Postar no Teams um aviso de que a venda de "'+(l.cliente||'')+'" deve ser DESCONSIDERADA (teste/cancelada)?')))return; var card={type:"message",attachments:[{contentType:"application/vnd.microsoft.card.adaptive",content:{type:"AdaptiveCard","$schema":"http://adaptivecards.io/schemas/adaptive-card.json",version:"1.4",body:[{type:"TextBlock",size:"Large",weight:"Bolder",color:"Attention",text:"❌ Desconsiderar aviso de venda"},{type:"TextBlock",wrap:true,text:"O aviso anterior de venda referente a **"+(l.cliente||"—")+"** deve ser desconsiderado (lançamento de teste ou cancelado)."},{type:"FactSet",facts:[{title:"Cliente",value:(l.cliente||"—")+" · "+(l.unidade||"")},{title:"Serviço",value:(l.serv||"—")}]}]}}]}; _teamsPost(card).then(function(ok){ if(typeof toast==='function')toast(ok?'Retratação enviada ao Teams.':'Falha ao enviar (ver ⚙ Automação).'); }); }
 window.reenviarVenda=reenviarVenda;window.retratarVenda=retratarVenda;
 /* 21/08/2026 — "Nova comunicação de venda" (P7): gera o texto no modelo exato trazido pelo Léo,
    pronto pra copiar/colar no Teams (não posta sozinho — regra dele: "apenas entregue o texto pronto
@@ -3734,18 +3762,18 @@ function fluxoVendaRodar(){
       .then(function(){_fvFim(l);});
   });
 }
-function fvReverterFat(){
+async function fvReverterFat(){
   var l=_cvLead();if(!l)return;
-  if(!confirm('Desfazer o lançamento deste lead no Faturamento? A Versão provisória/retida será marcada como Encerrada (nada é apagado). Só funciona enquanto o Financeiro não a tornou Vigente.'))return;
+  if(!(await sigeConfirm('Desfazer o lançamento deste lead no Faturamento? A Versão provisória/retida será marcada como Encerrada (nada é apagado). Só funciona enquanto o Financeiro não a tornou Vigente.')))return;
   fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({modo:'reverter',leadId:String(l.id||l._sid||'')})}).then(function(r){return r.json();}).then(function(j){
     if(j&&j.reverteu){delete _FV.passos.fat;_fvFim(l);if(typeof toast==='function')toast('Lançamento revertido no Faturamento ✓');}
     else if(typeof toast==='function')toast((j&&(j.bloqueio||j.error))||'Não foi possível reverter.');
   }).catch(function(){if(typeof toast==='function')toast('Falha de rede ao reverter.');});
 }
 window.fluxoVendaRodar=fluxoVendaRodar;window.fvMostrarTudo=fvMostrarTudo;window.fvReverterFat=fvReverterFat;
-function cvSimEnviar(modo){
+async function cvSimEnviar(modo){
   var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.dados.clienteId||!s.servOk)return;
-  if(modo==='gravar'&&!confirm(s.nivel===1?'Gravar no Faturamento como VIGENTE (valor conferido com o documento)? Se a lista Status não aceitar Vigente, entra como Provisório. O Financeiro será avisado.':('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.')))return;
+  if(modo==='gravar'&&!(await sigeConfirm(s.nivel===1?'Gravar no Faturamento como VIGENTE (valor conferido com o documento)? Se a lista Status não aceitar Vigente, entra como Provisório. O Financeiro será avisado.':('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.'))))return;
   box.textContent='Enviando…';
   fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:modo},s.dados))})
    .then(function(r){return r.json();})
@@ -3947,12 +3975,12 @@ function _cvBlocoResp(l,mark){
   return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+'\n- **Para ciência:** '+['joao','rafael'].filter(function(x){return x!==k;}).map(function(x){return _cvAt(x,mark);}).join(' e ');
 }
 /* Teste das marcações: posta no canal uma mensagem "TESTE — pode apagar". Por padrão marca só quem clica; os 5 nomes só se confirmar. */
-function testarMarcacoesTeams(){
+async function testarMarcacoesTeams(){
   if(window.getModoTeste&&window.getModoTeste()){if(typeof toast==='function')toast('🧪 Modo teste ligado: nada é enviado ao Teams. Desligue para testar as marcações.');return;}
   var u=window.getTeamsWebhook?window.getTeamsWebhook():'';
   if(!u){alert('Webhook do Teams não configurado (⚙ Automação).');return;}
-  if(!confirm('Enviar ao canal do Teams uma mensagem de TESTE de marcação (@) marcando só você?\n\nDepois, apague a mensagem no Teams (⋯ > Excluir).'))return;
-  var todos=confirm('Marcar TAMBÉM os 5 nomes do comunicado (Dhanilo, Alexandre, Cristiano, João e Rafael)?\n\nOK = eles recebem notificação.\nCancelar = só você.');
+  if(!(await sigeConfirm('Enviar ao canal do Teams uma mensagem de TESTE de marcação (@) marcando só você?\n\nDepois, apague a mensagem no Teams (⋯ > Excluir).')))return;
+  var todos=(await sigeConfirm('Marcar TAMBÉM os 5 nomes do comunicado (Dhanilo, Alexandre, Cristiano, João e Rafael)?\n\nOK = eles recebem notificação.\nCancelar = só você.'));
   _cvUsuario(function(usr){
     _cvEnts=[];
     var eu=usr&&usr.email?usr.email:'',nome=(usr&&usr.nome)||'Você';
@@ -3968,7 +3996,7 @@ function testarMarcacoesTeams(){
   });
 }
 window.testarMarcacoesTeams=testarMarcacoesTeams;
-function enviarComunicacaoVenda(){
+async function enviarComunicacaoVenda(){
   var l=_cvLead();if(!l||_cvBusy)return;
   if(window.getModoTeste&&window.getModoTeste()){if(typeof toast==='function')toast('🧪 Modo teste: comunicado NÃO enviado ao Teams.');return;}
   var u=window.getTeamsWebhook?window.getTeamsWebhook():'';
@@ -3977,7 +4005,7 @@ function enviarComunicacaoVenda(){
   var m='Enviar o comunicado de nova venda de "'+(l.cliente||'—')+'" ao canal do Teams?';
   if(pend)m+='\n\n'+pend+' item(ns) seguem como "A confirmar".';
   if(l.comunicadoEm)m+='\n\nATENÇÃO: já foi enviado em '+_cvQuando(l.comunicadoEm)+(l.comunicadoPor?' por '+l.comunicadoPor:'')+'. Enviar de novo?';
-  if(!confirm(m))return;
+  if(!(await sigeConfirm(m)))return;
   _cvBusy=true;var btn=el('cv-send');if(btn)btn.disabled=true;
   _cvUsuario(function(usr){
     cvRender();
@@ -5499,8 +5527,8 @@ function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){ if(v==='V
         _aplicarEfeitosStatus(l,era,v,function(){ if(curId===id)openDrawer(id); render(); }); },
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
-function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
-  if(!confirm('Excluir definitivamente o lead "'+(l.cliente||'')+(l.unidade?' — '+l.unidade:'')+'"?\nIsso remove o registro da base viva.'))return;
+async function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
+  if(!(await sigeConfirm('Excluir definitivamente o lead "'+(l.cliente||'')+(l.unidade?' — '+l.unidade:'')+'"?\nIsso remove o registro da base viva.')))return;
   if(window.deleteLead){ window.deleteLead(l.spid, function(){ closeDrawer(); }, function(){ alert('Falha ao excluir. Tente novamente.'); }); }
   else { alert('Exclusão indisponível.'); } }
 function closeDrawer(){el('drawer').classList.remove('on');curId=null;var dov=el('drawer-ov'); if(dov)dov.style.display='none'; _bellSync();}
@@ -5632,13 +5660,13 @@ function opServRowHtml(){
 function opAddServ(){ var sl=el('op-serv-list'); if(!sl)return; sl.insertAdjacentHTML('beforeend',opServRowHtml()); }
 function opRemServ(btn){ var sl=el('op-serv-list'); if(!sl)return; var rows=sl.querySelectorAll('.op-serv-row'); if(rows.length<=1)return; btn.closest('.op-serv-row').remove(); }
 window.opAddServ=opAddServ;window.opRemServ=opRemServ;
-function opFechar(){
+async function opFechar(){
   /* 11/09/2026 -- Léo: não pode "sumir" uma notificação do scan sem a tratativa concluída de
      verdade -- se este formulário foi aberto a partir do sino (window._notifPendenteOp) e ainda
      não foi salvo, avisa antes de fechar; a notificação continua pendente no sino (nada foi
      marcado como aprovado ainda -- ver notifAprovar/_notifConcluirOportunidade). */
   if(window._notifPendenteOp){
-    var seguir=confirm('Esta oportunidade veio de uma notificação do sino e ainda não foi salva.\n\nSe sair agora, ela continua pendente em Aprovações para você retomar depois.\n\nFechar mesmo assim?');
+    var seguir=(await sigeConfirm('Esta oportunidade veio de uma notificação do sino e ainda não foi salva.\n\nSe sair agora, ela continua pendente em Aprovações para você retomar depois.\n\nFechar mesmo assim?'));
     if(!seguir)return;
     window._notifPendenteOp=null;
   }
