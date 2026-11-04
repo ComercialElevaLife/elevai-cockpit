@@ -3623,6 +3623,13 @@ function _fvFaltam(){
     var tc=_cvV('cv-cargo')&&_cvV('cv-perfil'),tp=_cvV('cv-remun')&&_cvV('cv-benef');
     if(!tc&&!tp){[['cv-cargo','Cargo (ou remuneração + benefício)'],['cv-perfil','Nível / perfil do cargo'],['cv-remun','Remuneração (se não informar o cargo)'],['cv-benef','Benefício (se não informar o cargo)']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});}
   }
+  /* 04/11/2026 — trava Faturamento (PR 1): cadastro do cliente + dados do contrato recorrente que o SIGE já tem */
+  var _lg=_cvLead()||{};
+  if(String(_lg.cnpj||'').replace(/\D/g,'').length!==14)f.push(['cv-cnpj','CNPJ do cliente (14 dígitos): complete o cadastro do cliente no card do lead']);
+  if(!String(_lg.razaoSocial||'').trim())f.push(['cv-razao','Razão social do cliente: complete o cadastro do cliente no card do lead']);
+  if(_lt&&String(_lt.tipo||'')==='R'){
+    [['ft-ctr','Nº do contrato'],['ft-ini','Início da vigência'],['ft-fim','Fim da vigência'],['ft-cod','Código do serviço (NF)'],['ft-prazo','Prazo de faturamento'],['ft-aprov','Aprovador da medição (focal do cliente)'],['ft-aprovmail','E-mail do aprovador']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});
+  }
   return f;
 }
 function _fvMarcar(falt){
