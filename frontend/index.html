@@ -4985,6 +4985,7 @@ window.evPick=function(inp,tipoId,evId,msgId,leadId){
       .catch(function(){msg.style.color='#B23A48';msg.textContent='Falha de conexão ao enviar o print.';});
   });
 };
+window.evRemover=function(tipoId,evId,msgId,fileId){var ev=document.getElementById(evId),tp=document.getElementById(tipoId),ms=document.getElementById(msgId),fl=fileId&&document.getElementById(fileId);if(ev)ev.value='';if(tp)tp.value='';if(fl)fl.value='';if(ms){ms.style.color='#8A7A78';ms.textContent='Evidência removida deste card; o registro anterior fica no Histórico. Salve para confirmar.';}};
 function _vendaOk(l){return !!(l.dataVenda&&String(l.evidencia||'').trim()&&String(l.evidenciaTipo||'').trim());}
 function _normCli(s){return String(s||'').normalize('NFD').replace(/[̀-ͯ]/g,'').toUpperCase().replace(/[^A-Z0-9]/g,'');}
 function _vendaDuplicadas(l){
@@ -5010,7 +5011,7 @@ function _gateVenda(l,onOk,onCancel){
   h+='<label>Data da formalização<input type="date" id="gv-dt" value="'+esc(l.dataVenda||'')+'" style="'+inp+'"></label>';
   h+='<label>Tipo de evidência<select id="gv-tp" style="'+inp+'"><option value="">Selecione…</option>'+_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>';}).join('')+'</select></label>';
   h+='<label>Número do pedido/contrato ou link do arquivo (print do e-mail ou WhatsApp)<input id="gv-ev" value="'+esc(l.evidencia||'')+'" style="'+inp+'" placeholder="Ex.: PC 092985 · contrato 10007000 · link do SharePoint"></label>';
-  h+='<label>Ou anexe o print da tela (JPEG ou PNG) — ex.: cliente confirmou por e-mail<input type="file" id="gv-file" accept="image/jpeg,image/png" style="'+inp+'" onchange="evPick(this,\'gv-tp\',\'gv-ev\',\'gv-evmsg\',\''+String(l.spid||l.id||'').replace(/[^A-Za-z0-9]/g,'')+'\')"><span id="gv-evmsg" style="font-size:11px;color:#8A7A78">'+_evLink(l.evidencia)+'</span></label>';
+  h+='<label>Ou anexe o print da tela (JPEG ou PNG) — ex.: cliente confirmou por e-mail<input type="file" id="gv-file" accept="image/jpeg,image/png" style="'+inp+'" onchange="evPick(this,\'gv-tp\',\'gv-ev\',\'gv-evmsg\',\''+String(l.spid||l.id||'').replace(/[^A-Za-z0-9]/g,'')+'\')"><span id="gv-evmsg" style="font-size:11px;color:#8A7A78">'+_evLink(l.evidencia)+'</span> <a href="#" onclick="evRemover(\'gv-tp\',\'gv-ev\',\'gv-evmsg\',\'gv-file\');return false" style="font-size:11px;color:#B23A48">remover evidência</a></label>';
   h+='<div id="gv-err" style="color:#B23A48;font-size:12px;min-height:16px;margin-bottom:8px"></div>';
   h+='<div style="display:flex;gap:8px;justify-content:flex-end"><button id="gv-cancel" style="padding:8px 14px;border:1px solid #C99AA0;background:#fff;border-radius:8px;cursor:pointer;font:inherit">Cancelar</button><button id="gv-ok" style="padding:8px 14px;border:0;background:#8B3A42;color:#fff;border-radius:8px;cursor:pointer;font:inherit;font-weight:600">Registrar venda</button></div></div>';
   ov.innerHTML=h;document.body.appendChild(ov);
@@ -5022,7 +5023,7 @@ function _gateVenda(l,onOk,onCancel){
     if(!tp){er.textContent='Selecione o tipo de evidência.';return;}
     if(!ev){er.textContent='Informe o número do pedido/contrato, o link do arquivo ou anexe o print.';return;}
     if(dups.length&&!$g('gv-dup').checked){er.textContent='Confirme que não é uma venda duplicada.';return;}
-    var f={dataVenda:dt,evidenciaTipo:tp,evidencia:ev};
+    var f={dataVenda:dt,evidenciaTipo:tp,evidencia:ev};if(String(l.evidencia||'').trim()&&String(l.evidencia).trim()!==ev)f.histEventosJson=_histAppend(l,'Evidência alterada ao registrar a venda: '+String(l.evidencia).trim()+' → '+ev);
     $g('gv-ok').disabled=true;
     window.persistLeadFields(l.spid,f,function(){
       Object.assign(l,f);l._dupOk=true;
@@ -5232,7 +5233,7 @@ function openDrawer(id){curId=id;
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Natureza da venda<select id="le-natureza"><option value="">Automático (${_natInfo(Object.assign({},l,{natureza:''})).lbl})</option>${['NOVA','UPSELL','CROSS'].map(o=>`<option value="${o}"${String(l.natureza||'')===o?' selected':''}>${_NAT[o].lbl}</option>`).join('')}</select></label>
-     <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>Print da tela (JPEG ou PNG)<input type="file" id="le-evfile" accept="image/jpeg,image/png" onchange="evPick(this,'le-evtipo','le-evid','le-evmsg','${esc(l.spid||l.id)}')"><span id="le-evmsg" style="font-size:11px;color:#8A7A78">${_evLink(l.evidencia)}</span></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
+     <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>Print da tela (JPEG ou PNG)<input type="file" id="le-evfile" accept="image/jpeg,image/png" onchange="evPick(this,'le-evtipo','le-evid','le-evmsg','${esc(l.spid||l.id)}')"><span id="le-evmsg" style="font-size:11px;color:#8A7A78">${_evLink(l.evidencia)}</span> <a href="#" onclick="evRemover('le-evtipo','le-evid','le-evmsg','le-evfile');return false" style="font-size:11px;color:#B23A48">remover evidência</a></label>      <label>Motivo da troca/remoção da evidência (obrigatório se já havia uma registrada)<input id="le-evmot" placeholder="Ex.: print errado, revisão do cliente"></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
      <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
      <label>Contato — tipo<select id="le-contatotipo">${['','Técnico','Comercial'].map(o=>`<option value="${o}"${String(l.contatoTipo||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
@@ -5340,6 +5341,14 @@ function saveLead(id){
   }
   /* 31/08/2026 — "só vira oportunidade quando tem proposta" (Léo): registra essa virada
      explicitamente no histórico, em vez do texto genérico de "dados atualizados". */
+  /* 04/11/2026 — Léo: evidência editável/removível mantendo o registro. Trocar ou remover uma evidência já registrada exige motivo e fica no Histórico (o arquivo antigo continua no SharePoint). */
+  var _evOld=String(l.evidencia||'').trim(),_evNew=String(f.evidencia||'').trim(),_tpOld=String(l.evidenciaTipo||''),_tpNew=String(f.evidenciaTipo||'');
+  if(_evOld&&(_evOld!==_evNew||_tpOld!==_tpNew)){
+    var _mot=((el('le-evmot')||{}).value||'').trim();
+    if(!_mot){if(typeof toast==='function')toast('Informe o motivo da alteração da evidência.');var _me=el('le-evmot');if(_me)_me.focus();return;}
+    var _au=(typeof _cvU!=='undefined'&&_cvU&&_cvU.nome)||'';
+    _tmp.histEventosJson=_histAppend(_tmp,(_evNew?'Evidência alterada: ':'Evidência removida: ')+_evOld+(_tpOld?' ('+_tpOld+')':'')+(_evNew?' → '+_evNew+(_tpNew?' ('+_tpNew+')':''):'')+'. Motivo: '+_mot+(_au?'. Por: '+_au:'')+(l.comunicadoEm?'. Atenção: a venda já foi comunicada; avisar o Financeiro.':''));
+  }
   var _virouOp=(!_isOportunidade(l)&&String(f.prop||'')==='SIM');
   _tmp.histEventosJson=_histAppend(_tmp,_virouOp?'Lead virou oportunidade (proposta enviada)':_diffLabel(l,f));
   f.histEventosJson=_tmp.histEventosJson;
