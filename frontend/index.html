@@ -3857,14 +3857,14 @@ function _cvCard(blocos,ents){
 }
 /* 03/11/2026 — Léo: responsável pelo projeto (por pilar/serviço) e ciência (João e Rafael) no comunicado, com marcação (@) no Teams.
    AF/GL/Fisio = Dhanilo Cruz · Ergonomia/AET = Alexandre Berloffa · Enfermagem/QM (Massoterapia)/Med Trab = Cristiano Goulart. Nomes vêm do time-eleva.js (se existir); sem pilar reconhecido, fica "A confirmar" e não marca ninguém. */
-var _CV_PESSOAS={dhanilo:['Dhanilo Cruz','dhanilo@elevalife.com.br'],alexandre:['Alexandre Berloffa','alexandre.berloffa@elevalife.com.br'],cristiano:['Cristiano Goulart','cristiano@elevalife.com.br'],joao:['João Barbosa','joao@elevalife.com.br'],rafael:['Rafael Piacenti','rafael@elevalife.com.br']};
+var _CV_PESSOAS={dhanilo:['Dhanilo Cruz','dhanilo@elevalife.com.br'],alexandre:['Alexandre Berloffa','alexandre@elevalife.com.br'],cristiano:['Cristiano Goulart','cristiano@elevalife.com.br'],joao:['João Barbosa','joao@elevalife.com.br'],rafael:['Rafael Piacenti','rafael@elevalife.com.br']};
 var _cvEnts=[];
 function _cvPessoa(k){var p=_CV_PESSOAS[k],n=p[0];try{(window.TIME_ELEVA||[]).forEach(function(t){if(String(t.e).toLowerCase()===p[1])n=t.n;});}catch(e){}return {nome:n,email:p[1]};}
 function _cvSemAcento(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
 function _cvRespKey(l){
   var t=_cvSemAcento([_cvV('cv-area'),_cvV('cv-tipo'),(l&&l.serv)||''].join(' '));
   if(/ergo|\baet\b|\baep\b/.test(t))return 'alexandre';
-  if(/enferm|\benf\b|masso|quick|\bqm\b|medicina|med\.? ?trab|medtrab|saude ocupacional/.test(t))return 'cristiano';
+  if(/enferm|\benf\b|masso|quick|\bqm\b|medicina|med\.? ?trab|medtrab|saude ocupacional|saude corporativa|psicolog|nutri/.test(t))return 'cristiano';
   if(/fisio|atividade|ginastica|laboral|\bgl\b|\baf\b/.test(t))return 'dhanilo';
   return '';
 }
