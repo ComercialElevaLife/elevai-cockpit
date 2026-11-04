@@ -1057,6 +1057,7 @@ td .up{color:var(--ok);font-weight:700}
     <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px">
       <label>Pilar / área<select id="cv-area" onchange="cvCatPilar()"></select></label>
       <label>Serviço específico<select id="cv-tipo" onchange="cvCatServ()"></select><input id="cv-tipo-outro" placeholder="Descreva o serviço (manual)" style="display:none" oninput="cvCatOutro()"><span id="cv-tipo-obs" style="font-size:11px;color:#8A7A78"></span></label>
+      <div id="cv-equipe" style="grid-column:1/3;font-size:12px;color:#3A2A2E;display:grid;gap:4px"></div>
       <label style="grid-column:1/3">Resumo do projeto<input id="cv-resumo" placeholder="ex.: Ginástica Laboral nas unidades de Joinville"></label>
       <label>Volume de entrega<input id="cv-volume" placeholder="ex.: 2 profissionais, 40h/mês"></label>
       <label>Detalhamento do escopo<input id="cv-escopo" placeholder="ex.: sessões de 15 min por setor"></label>
@@ -3570,7 +3571,7 @@ function _cvFatSimHtml(l){
    Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
 var _FV={passos:{},busy:false};
 var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
-var _FV_FICHA=['area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef'];
+var _FV_FICHA=['area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef','coord'];
 (function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
 /* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
 function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
@@ -3586,6 +3587,7 @@ function _fvV2(D,l){
 function _fvFaltam(){
   var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
   var _lt=_cvLead();if(!_lt||!/^[PR]$/.test(String(_lt.tipo||'')))f.push(['cv-tipopr','Tipo da venda (P ou R): defina no card do lead']);
+  var _cs=_COORD_AREA[_cvV('cv-area')]||[];if(_cs.length>1&&!_cvV('cv-coord'))f.push(['cv-coord','Coordenador da carteira: escolha qual coordenador atende esta carteira']);
   var c=_cvV('cv-contrata');
   if(!c){f.push(['cv-contrata','Há contratação de equipe nesta venda? (Sim/Não)']);}
   else if(/^s/i.test(c)){
@@ -3627,8 +3629,8 @@ function _fvCamposCard(l){
 }
 function _fvFichaAplicar(l){
   var fi=_ftJ(l.vendaFicha)||{};
-  _FV_FICHA.forEach(function(k){if(fi[k]&&k!=='area'&&k!=='tipo'){var e=el('cv-'+k);if(e)e.value=fi[k];}});
-  if(fi.area||fi.tipo)cvCatAplicar(fi.area,fi.tipo);
+  _FV_FICHA.forEach(function(k){if(fi[k]&&k!=='area'&&k!=='tipo'&&k!=='coord'){var e=el('cv-'+k);if(e)e.value=fi[k];}});
+  if(fi.area||fi.tipo)cvCatAplicar(fi.area,fi.tipo);if(fi.coord)cvEquipe(fi.coord);
 }
 var _fvT=null;
 function _fvAuto(){
@@ -3826,6 +3828,19 @@ function _catPilarDe(txt){var t=_catN(txt).trim();if(!t)return '';var p=_CAT_SER
   if(/fisio|quiro|masso|\bqm\b|quick|terap/.test(t))return 'Terapias';
   if(/enferm|medic|fono|saude|\bpca\b/.test(t))return 'Saúde Corporativa';
   return '';}
+var _CAT_RESP={'Ergonomia':'alexandre','Ginástica Laboral':'dhanilo','Academia':'dhanilo','Fisioterapia':'dhanilo','Quiropraxia':'dhanilo','Massoterapia':'cristiano','Enfermagem':'cristiano','Medicina do Trabalho':'cristiano'};
+var _COORD_AREA={'Ergonomia':['daniele','alexandre'],'Atividades Físicas':['geovane','william']};
+function _catRespKey(serv){var r=_CAT_SERV.filter(function(x){return x[2]===serv;})[0];if(!r)return '';return r[0]==='Ergonomia'?'alexandre':(_CAT_RESP[r[1]]||'');}
+function cvEquipe(keep){
+  var box=el('cv-equipe');if(!box)return;
+  var prev=(keep===undefined)?_cvV('cv-coord'):String(keep||'');
+  var k=_cvRespKey(_cvLead()||{}),cs=_COORD_AREA[_cvV('cv-area')]||[],h='';
+  if(k)h+='<div><b>Líder de Área:</b> '+esc(_cvPessoa(k).nome)+'</div>';
+  if(cs.length===1){h+='<div><b>Coordenador da carteira:</b> '+esc(_cvPessoa(cs[0]).nome)+' (automático)</div><input type="hidden" id="cv-coord" value="'+esc(cs[0])+'">';}
+  else if(cs.length>1){h+='<label>Coordenador da carteira (obrigatório)<select id="cv-coord"><option value="" disabled selected hidden>Selecione…</option>'+cs.map(function(x){return '<option value="'+esc(x)+'"'+(x===prev?' selected':'')+'>'+esc(_cvPessoa(x).nome)+'</option>';}).join('')+'</select></label>';}
+  else{h+='<input type="hidden" id="cv-coord" value="">';}
+  box.innerHTML=h;
+}
 function cvCatPilar(){
   var a=el('cv-area'),s=el('cv-tipo');if(!a||!s)return;
   var h='<option value="">Selecione…</option>',cat='';
@@ -3839,11 +3854,11 @@ function cvCatServ(){
   var op=s.options[s.selectedIndex],isO=!!(op&&op.getAttribute('data-outro'));
   if(o){o.style.display=isO?'':'none';if(isO)op.value=o.value.trim();}
   var r=_CAT_SERV.filter(function(x){return x[2]===s.value;})[0];
-  if(b)b.textContent=(r&&r[4])?r[4]:'';
+  if(b)b.textContent=(r&&r[4])?r[4]:'';cvEquipe();
 }
 function cvCatOutro(){var s=el('cv-tipo'),o=el('cv-tipo-outro');if(!s||!o)return;var op=s.options[s.selectedIndex];if(op&&op.getAttribute('data-outro'))op.value=o.value.trim();}
 function cvCatInit(txt){
-  var a=el('cv-area');if(!a)return;
+  var a=el('cv-area');if(!a)return;var _c0=el('cv-coord');if(_c0)_c0.value='';
   var ps=[];_CAT_SERV.forEach(function(r){if(ps.indexOf(r[0])<0)ps.push(r[0]);});ps.push('Outros');
   a.innerHTML='<option value="">Selecione…</option>'+ps.map(function(p){return '<option>'+esc(p)+'</option>';}).join('');
   var o=el('cv-tipo-outro');if(o)o.value='';
@@ -3915,11 +3930,11 @@ function _cvCard(blocos,ents){
 }
 /* 03/11/2026 — Léo: responsável pelo projeto (por pilar/serviço) e ciência (João e Rafael) no comunicado, com marcação (@) no Teams.
    AF/GL/Fisio = Dhanilo Cruz · Ergonomia/AET = Alexandre Berloffa · Enfermagem/QM (Massoterapia)/Med Trab = Cristiano Goulart. Nomes vêm do time-eleva.js (se existir); sem pilar reconhecido, fica "A confirmar" e não marca ninguém. */
-var _CV_PESSOAS={dhanilo:['Dhanilo Cruz','dhanilo@elevalife.com.br'],alexandre:['Alexandre Berloffa','alexandre.berloffa@elevalife.com.br'],cristiano:['Cristiano Goulart','cristiano@elevalife.com.br'],joao:['João Barbosa','joao@elevalife.com.br'],rafael:['Rafael Piacenti','rafael@elevalife.com.br']};
+var _CV_PESSOAS={dhanilo:['Dhanilo Cruz','dhanilo@elevalife.com.br'],alexandre:['Alexandre Berloffa','alexandre.berloffa@elevalife.com.br'],cristiano:['Cristiano Goulart','cristiano@elevalife.com.br'],joao:['João Barbosa','joao@elevalife.com.br'],rafael:['Rafael Piacenti','rafael@elevalife.com.br'],daniele:['Daniele Cunha','daniele.cunha@elevalife.com.br'],geovane:['Geovane Oliveira','geovane@elevalife.com.br'],william:['William Lima','william@elevalife.com.br']};
 var _cvEnts=[];
 function _cvPessoa(k){var p=_CV_PESSOAS[k],n=p[0];try{(window.TIME_ELEVA||[]).forEach(function(t){if(String(t.e).toLowerCase()===p[1])n=t.n;});}catch(e){}return {nome:n,email:p[1]};}
 function _cvSemAcento(s){return String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();}
-function _cvRespKey(l){
+function _cvRespKey(l){var _rk=_catRespKey(_cvV('cv-tipo'));if(_rk)return _rk;
   var t=_cvSemAcento([_cvV('cv-area'),_cvV('cv-tipo'),(l&&l.serv)||''].join(' '));
   if(/ergo|\baet\b|\baep\b/.test(t))return 'alexandre';
   if(/enferm|\benf\b|masso|quick|\bqm\b|medicina|med\.? ?trab|medtrab|saude ocupacional|saude corporativa|psicolog|nutri/.test(t))return 'cristiano';
