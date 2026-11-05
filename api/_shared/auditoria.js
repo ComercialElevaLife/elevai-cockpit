@@ -22,7 +22,7 @@ const _c = (s, n) => String(s == null ? '' : s).slice(0, n);
 function registrar(req, acao, d) {
   d = d || {};
   const linha = {
-    Title: _c(d.resumo || acao, 250), quando: new Date().toISOString(), usuario: _usuario(req) || 'desconhecido',
+    Title: _c(d.resumo || acao, 250), quando: new Date().toISOString(), usuario: _usuario(req) || 'sistema (automático)',
     acao: _c(acao, 60), entidade: _c(d.entidade, 60), registroId: _c(d.registroId, 64), registroNome: _c(d.registroNome, 250),
     resumo: _c(d.resumo || acao, 250), detalhe: _c(d.detalhe, 20000), origem: _c(d.origem || 'sistema', 30), ip: _ip(req),
   };

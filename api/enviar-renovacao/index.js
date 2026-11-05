@@ -2,6 +2,7 @@
 //  TO  = responsável do contrato   |   CC (fixo) = leonardo@ + rafael@elevalife.com.br
 // Requer no app Entra a permissão Graph "Mail.Send" (Application) + consentimento.
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain } = require('../_shared/crud');
 
 const SENDER  = process.env.RENOV_SENDER || 'leonardo@elevalife.com.br';
@@ -37,6 +38,7 @@ module.exports = async function (context, req) {
       saveToSentItems: true,
     };
     await g.graph('POST', '/users/' + encodeURIComponent(SENDER) + '/sendMail', msg);
+    await AUD.registrar(req, 'enviou', { entidade: 'renovacao', resumo: 'Enviou minuta de renovação por e-mail: ' + assunto, detalhe: 'para: ' + to + (cc && cc.length ? ' · cc: ' + cc.join(', ') : '') });
     context.res = json(200, { ok:true, de: SENDER, para: to, cc });
   } catch (e) {
     context.res = json(e.status || 500, { ok:false, error:String(e.message || e), body:e.body });

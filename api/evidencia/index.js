@@ -4,6 +4,7 @@
 // GET  ?n=<nome>        -> devolve a imagem (só usuários @elevalife.com.br logados).
 // No card fica só "print:<nome>" (cabe nos 255 caracteres do campo Evidência).
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain, readUser } = require('../_shared/crud');
 
 const GRAPH = 'https://graph.microsoft.com/v1.0';
@@ -46,6 +47,7 @@ module.exports = async function (context, req) {
     const t = await r.text();
     if (!r.ok) { context.log && context.log('evidencia PUT ' + r.status + ': ' + t); context.res = json(502, { ok: false, error: 'não foi possível gravar no SharePoint (' + r.status + ')' }); return; }
     context.log && context.log('evidencia gravada por ' + readUser(req) + ': ' + nome);
+    await AUD.registrar(req, 'anexou', { entidade: 'evidencia', resumo: 'Anexou evidência: ' + nome });
     context.res = json(200, { ok: true, nome });
   } catch (e) {
     context.res = json(500, { ok: false, error: String((e && e.message) || e) });
