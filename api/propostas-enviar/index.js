@@ -6,6 +6,7 @@
 //  Ordem: 1) e-mail  2) Kanban. Se o e-mail falha, o Kanban NÃO é tocado.
 //  Requer Mail.Send (Application) — já usado por /api/enviar-renovacao.
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const H = require('../_shared/historico');
 const { LISTS, toFields, fromFields } = require('../_shared/schema');
 const { json, requireDomain, readUser } = require('../_shared/crud');
@@ -143,6 +144,7 @@ module.exports = async function (context, req) {
     } catch (e) {
       resp.kanban = { ok: false, error: String(e.message || e) };
     }
+    await AUD.registrar(req, 'enviou', { entidade: 'proposta', registroId: String((b.lead && b.lead.id) || ''), registroNome: (b.lead && b.lead.cliente) || '', resumo: 'Enviou proposta por e-mail: ' + ((b.lead && b.lead.cliente) || ''), detalhe: 'para: ' + [].concat(para || []).join(', ') + (cc && cc.length ? ' · cc: ' + [].concat(cc).join(', ') : '') });
     context.res = json(200, resp);
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String(e.message || e), body: e.body });
