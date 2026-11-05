@@ -4,6 +4,7 @@
 //  - Sem body.confirmar === true NADA é enviado: devolve a lista e o texto (ensaio).
 //  - Requer Mail.Send (Application), o mesmo já usado em /api/propostas-enviar.
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain, readUser } = require('../_shared/crud');
 
 const SENDER = process.env.SIGE_SENDER || 'sige@elevalife.com.br';
@@ -57,6 +58,7 @@ module.exports = async function (context, req) {
         resultados.push({ email, ok: true });
       } catch (e) { resultados.push({ email, ok: false, erro: String((e && e.message) || e).slice(0, 200) }); }
     }
+    await AUD.registrar(req, 'enviou', { entidade: 'solicitar-telefones', resumo: 'Enviou pedido de telefones ao time (' + resultados.filter(r => r.ok).length + ' de ' + resultados.length + ' e-mails)', detalhe: JSON.stringify(resultados).slice(0, 4000) });
     context.res = json(200, { ok: resultados.every(r => r.ok), remetente: SENDER, resultados });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String((e && e.message) || e) });
