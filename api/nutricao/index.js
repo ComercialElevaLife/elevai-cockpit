@@ -1,6 +1,7 @@
 // /api/nutricao — avisa a responsável pelo fluxo de nutrição (Clara) quando um lead é PAUSADO (esfriou).
 // Envia e-mail via Graph sendMail (Mail.Send). Destinatário configurável via NUTRICAO_TO.
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain } = require('../_shared/crud');
 
 const SENDER = process.env.RENOV_SENDER || 'leonardo@elevalife.com.br';
@@ -39,6 +40,7 @@ module.exports = async function (context, req) {
       saveToSentItems: true,
     };
     await g.graph('POST', '/users/' + encodeURIComponent(SENDER) + '/sendMail', msg);
+    await AUD.registrar(req, 'enviou', { entidade: 'nutricao', resumo: 'Enviou aviso de lead pausado (nutrição): ' + (l.cliente || ''), detalhe: 'para: ' + to });
     context.res = json(200, { ok: true, to: to, cc: CC });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String(e.message || e), body: e.body });
