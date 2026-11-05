@@ -7,6 +7,7 @@
 //         'gravar' só grava se a App Setting FAT_SYNC_LIVE=1 (desligada por padrão) e se o lead ainda não foi lançado.
 // Acesso: somente contas @elevalife.com.br logadas (requireDomain + regra /api/* do staticwebapp.config.json).
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain } = require('../_shared/crud');
 
 const BPM_HOST = process.env.FAT_SP_HOSTNAME || 'elevalife.sharepoint.com';
@@ -121,6 +122,7 @@ module.exports = async function (context, req) {
       await g.graph('PATCH', '/sites/' + sidR + '/lists/' + lidC + '/items/' + alvo.id + '/fields', { Status: 'Encerrado', ValidacaoStatus: 'Revertida pelo SIGE' });
       context.log('[faturamento-sync] REVERTEU lead=' + lidR + ' contrato=' + alvo.id + ' por=' + quem(req));
       const tR = await avisarTeams('↩️ SIGE reverteu o lançamento do lead ' + lidR + ' (Nº ' + s(alvo.f.Title) + ', v' + (Number(alvo.f.Versao) || 1) + ' marcada como Encerrada). Nada foi apagado.');
+      await AUD.registrar(req, 'reverteu', { entidade: 'faturamento', registroId: lidR, resumo: 'Reverteu lançamento no Faturamento (lead ' + lidR + ')', detalhe: 'contrato ' + alvo.id });
       context.res = json(200, { ok: true, modo: 'reverter', reverteu: true, contratoId: alvo.id, teams: tR });
       return;
     }
@@ -213,6 +215,7 @@ module.exports = async function (context, req) {
     await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: fi });
     context.log('[faturamento-sync] gravou lead=' + leadId + ' contrato=' + novoId + ' v' + versao + ' status=' + statusFinal + ' por=' + quem(req));
     const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + s(cli.f.Title) + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
+    await AUD.registrar(req, 'enviou', { entidade: 'faturamento', registroId: String(leadId), registroNome: s(cli.f.Title), resumo: 'Enviou ao Faturamento: ' + s(cli.f.Title) + ' · ' + servico + ' · ' + moeda(valor) + ' (' + statusFinal + ')', detalhe: 'contrato ' + novoId + ' · Nº ' + numero + ' v' + versao });
     context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t, ajustes: ajLinhas });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String((e && e.message) || e).slice(0, 300) });
