@@ -643,6 +643,7 @@ td .up{color:var(--ok);font-weight:700}
     <!-- 24/09/2026 (v2): botão "🗄 Reativação" (coluna virtual/opt-in) removido -- Reativar agora é
          coluna real de COLS, sempre visível igual às demais, sem precisar de toggle. -->
     <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
+    <button class="btn ghost" onclick="abrirLixeira()" title="Oportunidades excluídas: ficam 30 dias e podem ser restauradas">🗑 Lixeira</button>
   </div>
 </header>
 <div class="bar">
@@ -1263,7 +1264,7 @@ async function deleteLead(gid,onOk,onFail){
   try{
     const r=await fetch('/api/leads',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:gid})});
     let j=null; try{ j=await r.json(); }catch(e){}
-    if(r.ok&&j&&j.ok){ STORE.leads=(STORE.leads||[]).filter(x=>x.__id!==gid); STORE.leads.forEach((l,i)=>{l._sid=i;}); DATA_VER++; compute(); renderActive(true); toast('Lead excluído ✓'); if(onOk)onOk(); }
+    if(r.ok&&j&&j.ok){ STORE.leads=(STORE.leads||[]).filter(x=>x.__id!==gid); STORE.leads.forEach((l,i)=>{l._sid=i;}); DATA_VER++; compute(); renderActive(true); toast('Lead enviado para a Lixeira ✓ (30 dias para restaurar)'); if(onOk)onOk(); }
     else { toast('Falha ao excluir'); if(onFail)onFail(); }
   }catch(e){ toast('Falha ao excluir'); if(onFail)onFail(); }
 }
@@ -5672,9 +5673,37 @@ function setStatus(id,v){const l=_allLeads().find(x=>x.id===id);if(l){ if(v==='V
       function(){ l.status=era; if(eraMan===undefined)delete manual[id]; else manual[id]=eraMan; openDrawer(id); render(); });
   }openDrawer(id);render();}
 async function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;}); if(!l)return;
-  if(!(await sigeConfirm('Excluir definitivamente o lead "'+(l.cliente||'')+(l.unidade?' — '+l.unidade:'')+'"?\nIsso remove o registro da base viva.')))return;
+  if(!(await sigeConfirm('Mover para a Lixeira o lead "'+(l.cliente||'')+(l.unidade?' — '+l.unidade:'')+'"?\nFica 30 dias na Lixeira (qualquer pessoa pode restaurar); depois disso é excluído de vez. Fica registrado quem excluiu e quando.')))return;
   if(window.deleteLead){ window.deleteLead(l.spid, function(){ closeDrawer(); }, function(){ alert('Falha ao excluir. Tente novamente.'); }); }
   else { alert('Exclusão indisponível.'); } }
+/* 05/11/2026 — Lixeira (Léo): excluir manda para a Lixeira por 30 dias; qualquer pessoa restaura; passado o prazo o servidor exclui de vez. */
+async function abrirLixeira(){
+  var ov=el('lixeira-ov');
+  if(!ov){ov=document.createElement('div');ov.id='lixeira-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(58,42,46,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';ov.onclick=function(e){if(e.target===ov)ov.style.display='none';};document.body.appendChild(ov);}
+  ov.style.display='flex';
+  var cx='<div style="background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:16px 18px;color:#3A2A2E">';
+  ov.innerHTML=cx+'<b>Carregando a lixeira…</b></div>';
+  try{
+    var r=await fetch('/api/leads?lixeira=1');var j=await r.json();var it=(j&&j.items)||[];
+    it.sort(function(a,b){return String(b.lixeiraEm||'').localeCompare(String(a.lixeiraEm||''));});
+    var h=cx+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">🗑 Lixeira — oportunidades excluídas</b><button class="btn ghost" onclick="document.getElementById(\'lixeira-ov\').style.display=\'none\'">Fechar</button></div><p style="font-size:12px;color:#8A7A78;margin:0 0 10px">Ficam aqui por 30 dias. Passado esse prazo, sem restauração, são excluídas de vez. O histórico guarda quem excluiu e quando.</p>';
+    if(!it.length)h+='<p>A lixeira está vazia.</p>';
+    it.forEach(function(x){
+      var qd=''; try{qd=new Date(x.lixeiraEm).toLocaleString('pt-BR');}catch(e){}
+      h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><div><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||'')+' · '+esc(x.status||'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
+    });
+    ov.innerHTML=h+'</div>';
+  }catch(e){ov.innerHTML=cx+'<b>Não consegui abrir a lixeira.</b> Tente de novo.</div>';}
+}
+async function restaurarLixeira(gid){
+  try{
+    var r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:gid,fields:{lixeiraEm:'',lixeiraPor:''}})});
+    var j=await r.json();
+    if(r.ok&&j&&j.ok){if(typeof toast==='function')toast('Restaurado ✓ — recarregando…');setTimeout(function(){location.reload();},700);}
+    else alert('Não consegui restaurar. Tente de novo.');
+  }catch(e){alert('Não consegui restaurar. Tente de novo.');}
+}
+window.abrirLixeira=abrirLixeira;window.restaurarLixeira=restaurarLixeira;
 function closeDrawer(){el('drawer').classList.remove('on');curId=null;var dov=el('drawer-ov'); if(dov)dov.style.display='none'; _bellSync();}
 /* 12/09/2026 -- ver comentário na CSS .bell-recuado: o sino fica escondido enquanto o drawer do
    Kanban OU o modal de Nova Oportunidade estiverem abertos (senão ele tampa o "x" de fechar). */

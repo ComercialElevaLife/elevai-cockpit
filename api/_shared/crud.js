@@ -59,7 +59,8 @@ function makeHandler(kind) {
           const cc = c; cc.p.catch(() => { if (_getCache[kind] === cc) delete _getCache[kind]; });
         }
         const raw = await c.p;
-        const items = raw.map(r => Object.assign({ __id: r.id }, fromFields(kind, r.fields)));
+        let items = raw.map(r => Object.assign({ __id: r.id }, fromFields(kind, r.fields)));
+        if (def.lixeira) items = await _tratarLixeira(kind, listId, items, req);
         context.res = json(200, { ok: true, kind, count: items.length, items });
         return;
       }
@@ -102,6 +103,13 @@ function makeHandler(kind) {
         if (foto) {
           const hx = await _auditar(() => H.registrarExclusao(kind, itemId, foto, readUser(req) || 'desconhecido'));
           if (!hx.ok) { context.res = json(503, { ok: false, error: 'Não foi possível registrar o histórico da exclusão; nada foi excluído. Tente de novo.' }); return; }
+        }
+        if (def.lixeira) {
+          // 05/11/2026 -- Léo: exclusão liberada a todos, registrada (quem e quando) e com Lixeira de 30 dias; depois a limpeza exclui de vez.
+          await g.updateItem(listId, itemId, { lixeiraEm: new Date().toISOString(), lixeiraPor: readUser(req) || 'desconhecido' });
+          delete _getCache[kind];
+          context.res = json(200, { ok: true, kind, deleted: itemId, lixeira: true, historicoOk: true });
+          return;
         }
         await g.deleteItem(listId, itemId);
         delete _getCache[kind];
@@ -146,6 +154,34 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
     ? await _auditar(() => H.registrarEdicao(kind, itemId, antes, fields, fields.alteradoPor))
     : { ok: false };
   context.res = json(200, { ok: true, kind, id: itemId, updated: fields, historicoOk: he.ok });
+}
+
+// 05/11/2026 -- Lixeira (Léo): registros com lixeiraEm ficam fora da lista normal; GET ?lixeira=1 devolve só a lixeira (com os dias que restam).
+// Limpeza "preguiçosa" (o Static Web App gerenciado não tem timer): a cada 30 min, no GET, exclui de vez o que passou de 30 dias, SÓ depois de gravar a foto no histórico.
+const LIXEIRA_DIAS = 30;
+const _purgaT = {};
+async function _tratarLixeira(kind, listId, items, req) {
+  const dia = 86400000, agora = Date.now();
+  const naLix = items.filter(i => i.lixeiraEm);
+  const removidos = {};
+  if (naLix.length && agora - (_purgaT[kind] || 0) > 30 * 60000) {
+    _purgaT[kind] = agora;
+    for (const i of naLix) {
+      const t = Date.parse(i.lixeiraEm);
+      if (!(t > 0) || agora - t <= LIXEIRA_DIAS * dia) continue;
+      try {
+        const foto = await g.getItem(listId, i.__id);
+        const hx = await _auditar(() => H.registrarExclusao(kind, i.__id, foto, 'sistema (30 dias na lixeira)'));
+        if (!hx.ok) continue;
+        await g.deleteItem(listId, i.__id);
+        removidos[i.__id] = true; delete _getCache[kind];
+      } catch (e) { console.error('LIXEIRA_PURGA_FALHOU', e && (e.message || e)); }
+    }
+  }
+  if (req.query && req.query.lixeira === '1') {
+    return naLix.filter(i => !removidos[i.__id]).map(i => Object.assign(i, { lixeiraRestam: Math.max(0, Math.ceil(LIXEIRA_DIAS - (agora - Date.parse(i.lixeiraEm)) / dia)) }));
+  }
+  return items.filter(i => !i.lixeiraEm);
 }
 
 // Roda a gravação do histórico sem nunca derrubar a operação principal; devolve { ok }.
