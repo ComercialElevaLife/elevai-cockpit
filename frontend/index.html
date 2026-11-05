@@ -1064,6 +1064,8 @@ td .up{color:var(--ok);font-weight:700}
       <label>Data de início<input id="cv-inicio" placeholder="dd/mm/aaaa ou A confirmar"></label>
       <label>Mobilização<input id="cv-mob" placeholder="ex.: 30 dias após o pedido"></label>
       <label style="grid-column:1/3">Endereço de execução<input id="cv-endereco"></label>
+      <label>Cidade do serviço<input id="cv-cidade" placeholder="define os feriados (faltas e horas extras)"></label>
+      <label>UF<input id="cv-uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></label>
       <label style="grid-column:1/3">Horários / frequência<input id="cv-horarios" placeholder="ex.: Seg a Sex, 08:00 às 17:00"></label>
 <label style="grid-column:1/3">Há contratação de equipe nesta venda?<select id="cv-contrata"><option value="">— escolha —</option><option>Sim</option><option>Não</option></select></label>
 <label>Cargo<input id="cv-cargo" placeholder="com o cargo, o RH aplica a tabela salarial"></label>
@@ -3330,6 +3332,13 @@ function _cvTxt(v){return _cvEst(v)==='P'?'A confirmar':String(v).trim();}
 function _cvLead(){return _allLeads().find(function(x){return x.id===_cvId;});}
 var _CV_SERV={ERGO:'Ergonomia',GL:'Ginástica Laboral',FISIO:'Fisioterapia',ENF:'Enfermagem do Trabalho',AET:'AET','MED TRAB':'Medicina do Trabalho',FONO:'Fonoaudiologia'};
 function _cvServ(v){return String(v||'').split(/\s*[;,]\s*/).map(function(x){return _CV_SERV[x.trim().toUpperCase()]||x.trim();}).filter(Boolean).join(' / ');}
+/* 05/11/2026 — Cidade do serviço (exigida pelo Faturamento: define os feriados de faltas e horas extras). Sugestão: cadastro da empresa (município/UF) ou o fim do endereço "…, Cidade/UF"; o usuário confirma no formulário. */
+function _cvCidadeDe(l){
+  var emp=(STORE.empresas||[]).find(function(e){return l.empresaId&&String(e.__id||'')===String(l.empresaId);})||(STORE.empresas||[]).find(function(e){return String(e.cliente||e.razaoSocial||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();});
+  if(emp&&emp.municipio)return [String(emp.municipio).trim(),String(emp.uf||'').trim().toUpperCase().slice(0,2)];
+  var m=String(l.endereco||'').match(/,\s*([^,\/·]+?)\s*\/\s*([A-Za-z]{2})\b/);
+  return m?[m[1].trim(),m[2].toUpperCase()]:['',''];
+}
 function _cvUn(l){var u=String(l.unidade||'').trim();return /^(NA|—|-|n[aã]o informado)$/i.test(u)?'':u;}
 function _cvCliUn(l){var u=_cvUn(l);return (l.cliente||'—')+(u?' — '+u:'');}
 /* Comunicado de venda — natureza, mobilização padrão e cliente ativo (via dupla). */
@@ -3613,7 +3622,7 @@ function _cvFatSimHtml(l){
    Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
 var _FV={passos:{},busy:false};
 var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
-var _FV_FICHA=['area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef','coord'];
+var _FV_FICHA=['cidade','uf','area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef','coord'];
 (function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
 /* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
 function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
@@ -3648,6 +3657,8 @@ function _fvFaltam(){
   var _lg=_cvLead()||{};
   if(String(_lg.cnpj||'').replace(/\D/g,'').length!==14)f.push(['cv-cnpj','CNPJ do cliente (14 dígitos): complete o cadastro do cliente no card do lead']);
   if(!String(_lg.razaoSocial||'').trim())f.push(['cv-razao','Razão social do cliente: complete o cadastro do cliente no card do lead']);
+  if(!_cvV('cv-cidade'))f.push(['cv-cidade','Cidade do serviço (define os feriados no Faturamento)']);
+  if(!/^[A-Za-z]{2}$/.test(_cvV('cv-uf')))f.push(['cv-uf','UF da cidade do serviço (2 letras, ex.: SP)']);
   if(_lt&&String(_lt.tipo||'')==='R'){
     [['ft-ctr','Nº do contrato'],['ft-ini','Início da vigência'],['ft-fim','Fim da vigência'],['ft-cod','Código do serviço (NF)'],['ft-prazo','Prazo de faturamento'],['ft-aprov','Aprovador da medição (focal do cliente)'],['ft-aprovmail','E-mail do aprovador']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});
   }
@@ -3940,6 +3951,7 @@ function abrirComunicacaoVenda(id){
   if(!mob&&l.dataVenda)mob=_cvMobPadrao(l);
   g('cv-mob',mob);
   g('cv-endereco',l.endereco||'');g('cv-horarios','');
+  var _cd=_cvCidadeDe(l);g('cv-cidade',_cd[0]);g('cv-uf',_cd[1]);
   var focais=(_opContatos()||[]).filter(function(c){
     return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();
   }).map(function(c){var nome=[c.nome,c.sobrenome].filter(Boolean).join(' ');return [nome||'—',c.cargo||'—',(c.email||c.telefone||'—')].join(' - ');}).join('\n');
@@ -4059,9 +4071,10 @@ function enviarParaImplantacao(){
   var l=_cvLead();if(!l)return;
   var end=_cvV('cv-endereco')||l.endereco||'',uf='',mm=end.match(/\/\s*([A-Za-z]{2})\b/g);
   if(mm)uf=mm[mm.length-1].replace(/[^A-Za-z]/g,'').toUpperCase();
+  var _uv=_cvV('cv-uf').toUpperCase();if(/^[A-Z]{2}$/.test(_uv))uf=_uv;
   var cod=String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase();
   var tipo=_cvV('cv-tipo');
-  var D={v:1,programa:(l.cliente||'')+(tipo?' / '+tipo:''),empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',cnae:l.cnae||'',grauRisco:String(l.grauRisco||'').replace(/[^0-9]/g,'').slice(0,1),uf:uf,area:_CV_AREA_PAINEL[cod]||'',endereco:end,jornada:_cvV('cv-horarios'),unidade:_cvUn(l)};_fvV2(D,l);
+  var D={v:1,programa:(l.cliente||'')+(tipo?' / '+tipo:''),empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',cnae:l.cnae||'',grauRisco:String(l.grauRisco||'').replace(/[^0-9]/g,'').slice(0,1),uf:uf,cidade:_cvV('cv-cidade'),area:_CV_AREA_PAINEL[cod]||'',endereco:end,jornada:_cvV('cv-horarios'),unidade:_cvUn(l)};_fvV2(D,l);
   var b=btoa(unescape(encodeURIComponent(JSON.stringify(D)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
   window._IMPL_URL='https://elevalife-sistemas.github.io/painel-implantacao-servicos/#nova='+b;window.open(window._IMPL_URL,'_blank','noopener');
   if(typeof toast==='function')toast('Painel de Implantação aberto. Faça o login (se pedir) e revise o formulário.');
@@ -4116,9 +4129,10 @@ function _ftStatusHtml(l){
 function _ftPayload(l){
   var end=_cvV('cv-endereco')||l.endereco||'',uf='',mm=end.match(/\/\s*([A-Za-z]{2})\b/g);
   if(mm)uf=mm[mm.length-1].replace(/[^A-Za-z]/g,'').toUpperCase();
+  var _uv=_cvV('cv-uf').toUpperCase();if(/^[A-Z]{2}$/.test(_uv))uf=_uv;
   var d=_ftLer();
   return {v:1,origem:'SIGE-novasreceitas',
-    cliente:{nome:l.cliente||'',razao:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',endereco:end,uf:uf},
+    cliente:{nome:l.cliente||'',razao:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',endereco:end,uf:uf,cidade:_cvV('cv-cidade')},
     area:_ftAreaDe(l),servico:_cvV('cv-tipo')||_cvServ(l.serv||''),unidade:_cvUn(l),
     contrato:{numero:d.ctr,oc:d.oc,inicio:d.ini,fim:d.fim,valorMensal:d.valor,numMeses:l.numMeses||'',indice:d.ind,mesReajuste:d.mes,diaLimiteNF:d.dia,coord:d.coord,coordEmail:d.coordmail,aprov:d.aprov,aprovEmail:d.aprovmail},
     item:{codigo:d.cod,prazoFat:d.prazo,condPag:l.condPagamento||'',obs:_cvV('cv-fat')}};
