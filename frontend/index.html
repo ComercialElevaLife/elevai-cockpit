@@ -2404,7 +2404,7 @@ async function elevaiCad(ev){
      histEventosJson por esse formulário — o drawer é quem registra edições posteriores, via saveLead).
      Texto usa a mesma regra de "Lead vs Oportunidade" (campo prop=Proposta?) — quase sempre nasce
      como Lead, mas se alguém já cadastrar com Proposta=SIM, o histórico já reflete isso certo. */
-  if(!editId) rec.histEventosJson=JSON.stringify([{ts:new Date().toISOString(),texto:(rec.prop==='SIM'?'Oportunidade criada':'Lead criado'),por:'(você)'}]);
+  if(!editId) rec.histEventosJson=JSON.stringify([{ts:new Date().toISOString(),texto:(rec.prop==='SIM'?'Oportunidade criada':'Lead criado'),por:(window.__heu||'(você)')}]);
   const btn=q('cad-btn'), msg=q('cad-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Enviando...';
   try{
@@ -4629,9 +4629,12 @@ function _kindLabel(l){ return l.status==='LEAD'?'Lead':'Oportunidade'; }
    de sub-etapa (setSubEtapa) e edição de dados comerciais (saveLead). Não é retroativo — leads
    antigos começam com o histórico vazio, mostrado no drawer com uma nota explicando isso. */
 function _historico(l){ try{ var a=JSON.parse(l.histEventosJson||'[]'); return Array.isArray(a)?a:[]; }catch(e){ return []; } }
+function _heuInit(){ if(window.__heuTried)return; window.__heuTried=1; try{ _cvUsuario(function(u){ window.__heu=(u&&(u.nome||u.email))||''; }); }catch(e){} }
+setTimeout(_heuInit,1500);
 function _histAppend(l,texto){
+  _heuInit();
   var arr=_historico(l);
-  arr.unshift({ts:new Date().toISOString(),texto:texto,por:'(você)'});
+  arr.unshift({ts:new Date().toISOString(),texto:texto,por:(window.__heu||'(você)')});
   if(arr.length>50)arr=arr.slice(0,50);
   return JSON.stringify(arr);
 }
@@ -4864,7 +4867,7 @@ function _efeitosStatus(l,era,novoStatus){
     mudou=true;
     var arr; try{ arr=JSON.parse(histAtual||'[]'); }catch(e){ arr=[]; }
     if(!Array.isArray(arr))arr=[];
-    arr.unshift({ts:new Date().toISOString(),texto:txt,por:'(você)'});
+    arr.unshift({ts:new Date().toISOString(),texto:txt,por:(window.__heu||'(você)')});
     if(arr.length>50)arr=arr.slice(0,50);
     histAtual=JSON.stringify(arr);
   }
@@ -5183,7 +5186,7 @@ function _criarOportunidadeDeEmpresa(empresaId,status){
   var rec={dt:dt,y:d.getFullYear(),m:d.getMonth()+1,cliente:(hit.cliente||hit.razaoSocial||''),empresaId:String(hit.__id||''),
     unidade:'',origem:'NÃO SÓCIOS',cons:'',fonte:'NA',campanha:'NA',icp:'',prop:(propSim?'SIM':'NÃO'),
     status:status,tipo:'N/A',valor:0,tc:'NOVO',serv:'NA',cnpj:(hit.cnpj||''),razaoSocial:(hit.razaoSocial||''),
-    histEventosJson:JSON.stringify([{ts:new Date().toISOString(),texto:(isLead?'Lead criado':'Oportunidade criada')+' a partir do Cadastro (arrastar no Kanban) — status inicial: '+status,por:'(você)'}])};
+    histEventosJson:JSON.stringify([{ts:new Date().toISOString(),texto:(isLead?'Lead criado':'Oportunidade criada')+' a partir do Cadastro (arrastar no Kanban) — status inicial: '+status,por:(window.__heu||'(você)')}])};
   (async function(){
     try{
       var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
@@ -5282,7 +5285,63 @@ function _subEtapaTabsHtml(l){
     return '<button type="button" class="substep'+(s===cur?' on':'')+'" onclick="setSubEtapa('+l.id+',\''+sq+'\')">'+esc(s)+'</button>';
   }).join('')+'</div>';
 }
+/* 05/11/2026 — Histórico completo (regra fixa do Léo): trilha só de acréscimo gravada pelo SERVIDOR (lista Historico_Comercial),
+   com O QUE mudou (antes → depois) e QUEM mudou. A linha do tempo antiga (histEventosJson) continua no drawer; o botão abaixo abre
+   a trilha completa, que também importa sozinha os eventos antigos na 1ª abertura. */
 function _historicoHtml(l){
+  return _historicoHtmlBase(l)+'<div style="margin-top:8px"><button type="button" class="btn" onclick="abrirHistCompleto('+l.id+')">📜 Histórico completo (quem e o quê)</button></div>';
+}
+function _histTipo(r){
+  var c=String(r.campo||''), a=String(r.acao||'');
+  if(a==='criou'||a==='excluiu')return 'Criação/exclusão';
+  if(a==='migracao'||a==='evento')return 'Anterior';
+  if(c==='status'||c==='subEtapa')return 'Status';
+  if(c==='Tarefas')return 'Tarefas';
+  if(c==='evidencia'||c==='evidenciaTipo')return 'Evidência';
+  if(/^(vendaFicha|ftDados|fluxoVenda)/.test(c)||c==='dataVenda')return 'Venda/contrato';
+  return 'Dados';
+}
+function abrirHistCompleto(id){
+  var l=_allLeads().find(function(x){return x.id===id;});
+  if(!l||!l.spid){ toast('Registro sem id — não há histórico a mostrar.'); return; }
+  var ov=document.getElementById('ov-hist'); if(ov)ov.remove();
+  ov=document.createElement('div'); ov.id='ov-hist';
+  ov.style.cssText='position:fixed;inset:0;background:rgba(58,42,46,.55);z-index:9999;display:flex;align-items:center;justify-content:center;padding:12px';
+  ov.innerHTML='<div style="background:#fff;border-radius:12px;max-width:880px;width:100%;max-height:88vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.3);font-family:Montserrat,sans-serif">'
+    +'<div style="padding:14px 16px;border-bottom:1px solid #EADDE0;display:flex;align-items:center;gap:10px"><div style="flex:1"><div style="font-weight:700;color:#5E2A30">📜 Histórico — '+esc(l.cliente||'')+(l.unidade?' · '+esc(l.unidade):'')+'</div><div class="meta" style="margin-top:2px">Só leitura. Registrado automaticamente pelo sistema: o que mudou e quem mudou.</div></div><button type="button" class="btn" onclick="document.getElementById(\'ov-hist\').remove()">Fechar</button></div>'
+    +'<div id="hist-filtros" style="padding:8px 16px;display:flex;gap:8px;flex-wrap:wrap;border-bottom:1px solid #EADDE0"></div>'
+    +'<div id="hist-lista" style="padding:10px 16px;overflow:auto;flex:1"><div class="meta">Carregando…</div></div></div>';
+  ov.addEventListener('click',function(e){ if(e.target===ov)ov.remove(); });
+  document.body.appendChild(ov);
+  fetch('/api/historico?entidade=leads&registroId='+encodeURIComponent(l.spid),{credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      if(!j||!j.ok)throw new Error((j&&j.error)||'falha ao ler o histórico');
+      var rows=j.items||[]; window.__histRows=rows;
+      var tipos=[],autores=[]; rows.forEach(function(r){var t=_histTipo(r); if(tipos.indexOf(t)<0)tipos.push(t); if(r.autor&&autores.indexOf(r.autor)<0)autores.push(r.autor);});
+      var sel='padding:6px;border:1px solid #EADDE0;border-radius:8px;font-family:inherit';
+      el('hist-filtros').innerHTML='<select id="hist-ft" style="'+sel+'" onchange="_histRender()"><option value="">Todos os tipos</option>'+tipos.map(function(t){return '<option>'+esc(t)+'</option>';}).join('')+'</select>'
+        +'<select id="hist-fa" style="'+sel+'" onchange="_histRender()"><option value="">Todas as pessoas</option>'+autores.map(function(a){return '<option>'+esc(a)+'</option>';}).join('')+'</select>'
+        +'<span class="meta" id="hist-cnt" style="align-self:center"></span>';
+      _histRender();
+    })
+    .catch(function(e){ var d=el('hist-lista'); if(d)d.innerHTML='<div class="meta" style="color:#B23A48">Não foi possível carregar o histórico: '+esc(String(e.message||e))+'</div>'; });
+}
+function _histRender(){
+  var rows=window.__histRows||[], ft=(el('hist-ft')||{}).value||'', fa=(el('hist-fa')||{}).value||'';
+  var vis=rows.filter(function(r){return (!ft||_histTipo(r)===ft)&&(!fa||r.autor===fa);});
+  var c=el('hist-cnt'); if(c)c.textContent=vis.length+' de '+rows.length+' registro(s)';
+  var box=el('hist-lista'); if(!box)return;
+  if(!vis.length){ box.innerHTML='<div class="meta">Nenhum registro.</div>'; return; }
+  box.innerHTML=vis.map(function(r){
+    var d=new Date(r.quando); var qd=isNaN(+d)?esc(r.quando||''):(d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+    var mostraAD=(r.antes||r.depois)&&r.acao==='editou'&&r.campo&&r.campo!=='Tarefas'&&String(r.antes).length+String(r.depois).length>120;
+    return '<div class="task" style="margin-bottom:6px"><div class="t1">'+esc(r.resumo||'')+'</div>'
+      +(mostraAD?'<div class="meta" style="margin-top:2px;word-break:break-word"><b>Antes:</b> '+esc(String(r.antes).slice(0,400))+'<br><b>Depois:</b> '+esc(String(r.depois).slice(0,400))+'</div>':'')
+      +'<div class="t2">'+qd+' · '+esc(r.autor||'')+' · <span style="color:#8A7A78">'+esc(_histTipo(r))+(r.origem==='migracao'?' (importado)':'')+'</span></div></div>';
+  }).join('');
+}
+function _historicoHtmlBase(l){
   var arr=_historico(l);
   if(!arr.length)return '<div class="meta">Histórico de eventos começou a ser registrado em 31/08/2026 — mudanças anteriores a esta data não aparecem aqui.</div>';
   return arr.map(function(e){
