@@ -13,6 +13,7 @@ let _tok = { value: null, exp: 0 };
 let _siteId = null;
 const _listCache = {}; // displayName -> listId
 const _colsOk = {}; // listId -> colunas já conferidas nesta instância
+const _idxOk = {}; // listId -> índices já conferidos nesta instância
 
 async function getToken() {
   const now = Date.now();
@@ -35,21 +36,21 @@ async function getToken() {
   return _tok.value;
 }
 
-async function graph(method, path, body, _retry) {
+async function graph(method, path, body, _retry, extraHeaders) {
   const token = await getToken();
   const r = await fetch(path.startsWith('http') ? path : GRAPH + path, {
     method,
-    headers: {
+    headers: Object.assign({
       Authorization: 'Bearer ' + token,
       'Content-Type': 'application/json',
-    },
+    }, extraHeaders || {}),
     body: body ? JSON.stringify(body) : undefined,
   });
   const text = await r.text();
   let j = null;
   try { j = text ? JSON.parse(text) : null; } catch (_) { j = { raw: text }; }
   /* 20/10/2026 — permissão nova concedida no Azure só vale num token novo: se veio 403 com token em cache, renova e tenta 1 vez */
-  if (r.status === 403 && !_retry) { _tok = { value: null, exp: 0 }; return graph(method, path, body, true); }
+  if (r.status === 403 && !_retry) { _tok = { value: null, exp: 0 }; return graph(method, path, body, true, extraHeaders); }
   if (!r.ok) {
     const err = new Error('Graph ' + method + ' ' + path + ' -> ' + r.status + ': ' + text);
     err.status = r.status;
@@ -136,6 +137,7 @@ async function ensureList(def) {
   /* 21/10/2026 — desempenho: a checagem de colunas custa 1 chamada ao SharePoint e rodava em TODA requisição.
      Agora roda 1 vez por lista a cada inicialização do servidor (um deploy reinicia e confere de novo). */
   if (created || !_colsOk[id]) { await ensureColumns(id, def.columns); _colsOk[id] = true; } // idempotente: repara listas antigas de schema mínimo
+  if (def.indexed && !_idxOk[id]) { _idxOk[id] = true; await ensureIndexes(id, def.indexed); } // best-effort, 1 vez por inicialização
   return { id, created };
 }
 
@@ -186,4 +188,61 @@ async function updateItem(listId, itemId, fields) {
   return graph('PATCH', `/sites/${siteId}/lists/${listId}/items/${itemId}/fields`, fields);
 }
 
-module.exports = { graph, getToken, getSiteId, findList, ensureList, ensureColumns, listItems, listItemsMeta, listItemIds, deleteItem, updateItem, addItem, HOSTNAME, SITEPATH };
+/* 05/11/2026 — Histórico: índices nas colunas usadas em filtro (SharePoint recusa consulta filtrada em coluna
+   sem índice quando a lista passa de 5.000 itens). Best-effort: se o Graph não aceitar, só loga. */
+async function ensureIndexes(listId, names) {
+  try {
+    const siteId = await getSiteId();
+    const j = await graph('GET', `/sites/${siteId}/lists/${listId}/columns?$select=id,name,indexed`);
+    for (const c of (j.value || [])) {
+      if (names.indexOf(c.name) === -1 || c.indexed === true) continue;
+      try { await graph('PATCH', `/sites/${siteId}/lists/${listId}/columns/${c.id}`, { indexed: true }); }
+      catch (e) { console.error('Falha ao indexar coluna:', c.name, e.message || e); }
+    }
+  } catch (e) { console.error('Falha ao conferir índices:', e.message || e); }
+}
+
+// Um item (campos) pelo id
+async function getItem(listId, itemId) {
+  const siteId = await getSiteId();
+  const j = await graph('GET', `/sites/${siteId}/lists/${listId}/items/${itemId}?expand=fields`);
+  return (j && j.fields) || {};
+}
+
+// Datas de criação da lista (usada pela migração do histórico antigo)
+async function getListMeta(listId) {
+  const siteId = await getSiteId();
+  return graph('GET', `/sites/${siteId}/lists/${listId}?$select=id,createdDateTime`);
+}
+
+// Itens filtrados (ex.: "fields/registroId eq '123'"). Cabeçalho Prefer permite filtrar mesmo se o índice ainda não existir.
+async function listItemsFiltered(listId, filter, max) {
+  const siteId = await getSiteId();
+  const out = [];
+  let url = `/sites/${siteId}/lists/${listId}/items?expand=fields&$top=200&$filter=${encodeURIComponent(filter)}`;
+  while (url && out.length < (max || 5000)) {
+    const j = await graph('GET', url, undefined, false, { Prefer: 'HonorNonIndexedQueriesWarningMayFailRandomly' });
+    for (const it of (j.value || [])) out.push({ id: it.id, fields: it.fields || {} });
+    url = j['@odata.nextLink'] || null;
+  }
+  return out;
+}
+
+// Grava vários itens em lotes de 20 (Graph $batch). Devolve [{ idx, status }] por item.
+async function batchAddItems(listId, fieldsArr) {
+  const siteId = await getSiteId();
+  const out = [];
+  for (let i = 0; i < fieldsArr.length; i += 20) {
+    const chunk = fieldsArr.slice(i, i + 20);
+    const j = await graph('POST', '/$batch', {
+      requests: chunk.map((f, k) => ({
+        id: String(k + 1), method: 'POST', url: `/sites/${siteId}/lists/${listId}/items`,
+        headers: { 'Content-Type': 'application/json' }, body: { fields: f },
+      })),
+    });
+    for (const r of ((j && j.responses) || [])) out.push({ idx: i + Number(r.id) - 1, status: r.status });
+  }
+  return out;
+}
+
+module.exports = { ensureIndexes, getItem, getListMeta, listItemsFiltered, batchAddItems, graph, getToken, getSiteId, findList, ensureList, ensureColumns, listItems, listItemsMeta, listItemIds, deleteItem, updateItem, addItem, HOSTNAME, SITEPATH };
