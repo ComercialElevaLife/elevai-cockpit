@@ -6,6 +6,7 @@
 //  Ordem: 1) e-mail  2) Kanban. Se o e-mail falha, o Kanban NÃO é tocado.
 //  Requer Mail.Send (Application) — já usado por /api/enviar-renovacao.
 const g = require('../_shared/graph');
+const H = require('../_shared/historico');
 const { LISTS, toFields, fromFields } = require('../_shared/schema');
 const { json, requireDomain, readUser } = require('../_shared/crud');
 
@@ -194,6 +195,8 @@ async function atualizarKanban(lead, b, user) {
     if (serv) campos.serv = serv;
     if (lead.tipo) campos.tipo = lead.tipo;
     await g.updateItem(listId, it.id, campos);
+    // 05/11/2026 -- Histórico (regra fixa): envio de proposta também registra o que mudou e quem mudou.
+    try { await H.registrarEdicao('leads', it.id, it.fields, campos, por || 'proposta-enviar', 'sistema'); } catch (e) { console.error('HISTORICO_FALHOU', e.message || e); }
     const resFup = tarefaFup ? await agendarFup(user, tarefaFup, { id: it.id, cliente: atual.cliente || lead.cliente, unidade: atual.unidade || lead.unidade,
       serv: campos.serv || atual.serv, valor: campos.valor || atual.valor, status: 'EM NEGOCIAÇÃO', subEtapa: 'FUP', cons: atual.cons,
       contato: atual.nome || lead.nome, contatoEmail: atual.email || lista(b.para)[0], telefone: atual.tel || atual.telefone }) : null;
@@ -216,6 +219,7 @@ async function atualizarKanban(lead, b, user) {
   if (numMeses) rec.numMeses = numMeses;
   if (!rec.cliente) throw new Error('informe a empresa para criar a oportunidade');
   const created = await g.addItem(listId, toFields('leads', rec));
+  try { await H.registrarCriacao('leads', created.id, rec, por || 'proposta-enviar', 'sistema'); } catch (e) { console.error('HISTORICO_FALHOU', e.message || e); }
   const resFup = await agendarFup(user, tarefaFup, { id: created.id, cliente: rec.cliente, unidade: rec.unidade, serv, valor, status: rec.status,
     subEtapa: 'FUP', cons: rec.cons, contato: rec.nome, contatoEmail: rec.email });
   return { ok: true, acao: 'criada', id: created.id, para: 'EM NEGOCIAÇÃO · FUP', fup: resFup };

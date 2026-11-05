@@ -2,6 +2,7 @@
 // Só aceita POST e só CRIA lead (nunca lê/edita/apaga a base). Defaults seguros no servidor.
 const { LISTS, toFields } = require('../_shared/schema');
 const g = require('../_shared/graph');
+const H = require('../_shared/historico');
 const { json } = require('../_shared/crud');
 
 module.exports = async function (context, req) {
@@ -29,6 +30,8 @@ module.exports = async function (context, req) {
     };
     const { id } = await g.ensureList(LISTS.leads);
     const created = await g.addItem(id, toFields('leads', rec));
+    // 05/11/2026 -- Histórico (regra fixa): lead vindo do formulário público (sem login) também é registrado.
+    try { await H.registrarCriacao('leads', created.id, rec, 'formulário público (sem login)', 'automatico'); } catch (e) { console.error('HISTORICO_FALHOU', e.message || e); }
     context.res = json(201, { ok: true, id: created.id });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String(e.message || e) });
