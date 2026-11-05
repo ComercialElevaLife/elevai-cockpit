@@ -5,6 +5,7 @@
 const LISTS = {
   leads: {
     displayName: 'Leads_Comercial',
+    lixeira: true, // 05/11/2026 — exclusão vai para a Lixeira por 30 dias (ver crud.js); depois disso o servidor exclui de vez
     titleFrom: 'nome',
     columns: [
       { name: 'y', type: 'number' },
@@ -102,6 +103,9 @@ const LISTS = {
       { name: 'fluxoVenda', type: 'text', long: true },
       // 05/11/2026 — Léo: trava em 2 níveis. pendencias = JSON {ids,itens} do que ficou pendente ao efetivar a venda ("concluído com pendência"); vazio de itens = 100% enviado.
       { name: 'pendencias', type: 'text', long: true },
+      // 05/11/2026 — Léo: Lixeira. lixeiraEm = quando foi para a lixeira (ISO); lixeiraPor = quem excluiu. Vazio = registro ativo.
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
       // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
       // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
