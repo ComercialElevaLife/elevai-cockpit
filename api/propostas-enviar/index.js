@@ -172,6 +172,7 @@ async function atualizarKanban(lead, b, user) {
     const it = itens.find(r => String(r.id) === String(lead.id));
     if (!it) throw new Error('oportunidade não encontrada no Kanban');
     const atual = fromFields('leads', it.fields);
+    if (atual.lixeiraEm) throw new Error('oportunidade está na Lixeira — restaure antes de enviar proposta'); // 05/11/2026 -- Lixeira: nenhum fluxo age sobre excluído
     if (['VENDIDA', 'PERDIDA', 'PAUSADA'].includes(String(atual.status || '').toUpperCase())) {
       throw new Error('oportunidade está em ' + atual.status + ' — reative no Kanban ou crie uma nova');
     }
