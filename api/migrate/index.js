@@ -1,6 +1,7 @@
 const { LISTS, toFields } = require('../_shared/schema');
 const g = require('../_shared/graph');
-const { json, requireDomain } = require('../_shared/crud');
+const H = require('../_shared/historico');
+const { json, requireDomain, readUser } = require('../_shared/crud');
 
 async function bulkInsert(siteId, listId, records) {
   let done = 0; const errors = [];
@@ -23,9 +24,10 @@ async function bulkInsert(siteId, listId, records) {
 // GET/POST /api/migrate?dedup=1&commit=1 -> APLICA (remove as copias extras)
 // Regra: agrupa por TODOS os campos do schema EXCETO auditoria (alteradoEm/alteradoPor).
 //        Em cada grupo repetido mantem 1 (prioriza o que tem alteradoEm; senao o de menor id) e apaga o resto.
-async function dedupLists(commit) {
+async function dedupLists(commit, autor) {
   const report = {};
   for (const kind of Object.keys(LISTS)) {
+    if (kind === 'historico') continue; // 05/11/2026 -- a trilha de auditoria nunca é deduplicada nem apagada
     const def = LISTS[kind];
     const id = await g.findList(def.displayName);
     if (!id) { report[kind] = { skipped: true, reason: 'lista nao existe' }; continue; }
@@ -49,7 +51,8 @@ async function dedupLists(commit) {
       });
       const drop = arr.slice(1);
       if (amostra.length < 8) amostra.push({ manter: arr[0].id, remover: drop.map(x => x.id) });
-      if (commit) { for (const d of drop) { try { await g.deleteItem(id, d.id); removed++; } catch (e) {} } }
+      // 05/11/2026 -- Histórico (regra fixa): antes de apagar a cópia, grava a foto completa dela; sem a foto, não apaga.
+      if (commit) { for (const d of drop) { try { const hx = await H.registrarExclusao(kind, d.id, d.fields || {}, autor, 'migrate-dedup'); if (!hx.ok) continue; await g.deleteItem(id, d.id); removed++; } catch (e) {} } }
     }
     report[kind] = { total: items.length, gruposDuplicados: dupGroups, linhasExtras: extras, removidas: commit ? removed : 0, aplicado: !!commit, amostra };
   }
@@ -66,16 +69,26 @@ module.exports = async function (context, req) {
   const body = req.body || {};
   const report = {};
   try {
-    if (dedup) { context.res = await dedupLists(commit); return; }
+    if (dedup) {
+      if (commit && req.query.confirmo !== 'sim') { context.res = json(400, { ok: false, error: 'Operação destrutiva: repita com &confirmo=sim' }); return; }
+      context.res = await dedupLists(commit, readUser(req) || 'desconhecido'); return;
+    }
+    if (fresh && req.query.confirmo !== 'sim') { context.res = json(400, { ok: false, error: 'fresh=1 apaga a lista inteira antes de recarregar: repita com &confirmo=sim' }); return; }
     const siteId = await g.getSiteId();
     for (const kind of Object.keys(LISTS)) {
+      if (kind === 'historico') continue; // 05/11/2026 -- nunca carregar/limpar o histórico por aqui
       const data = body[kind];
       if (!Array.isArray(data)) { report[kind] = { skipped: true, reason: 'sem dados no corpo' }; continue; }
       const def = LISTS[kind];
       const { id } = await g.ensureList(def);
       let ids = await g.listItemIds(id);
       let cleared = 0;
-      if (ids.length > 0 && fresh) { for (const it of ids) { try { await g.deleteItem(id, it); cleared++; } catch (e) {} } ids = []; }
+      if (ids.length > 0 && fresh) {
+        // 05/11/2026 -- Histórico (regra fixa): registra quem apagou a lista inteira e quantos itens havia.
+        const hx = await H.gravar([H._linha(kind, 'LISTA', def.displayName, readUser(req) || 'desconhecido', 'excluiu', { campo: '', resumo: 'Lista apagada por inteiro (fresh) e recarregada: ' + ids.length + ' itens', antes: '', depois: '' }, 'migrate-fresh')]);
+        if (!hx.ok) { report[kind] = { skipped: true, reason: 'histórico não gravou; nada foi apagado' }; continue; }
+        for (const it of ids) { try { await g.deleteItem(id, it); cleared++; } catch (e) {} } ids = [];
+      }
       if (ids.length > 0 && !force) { report[kind] = { skipped: true, existing: ids.length, hint: '?fresh=1 limpa e recarrega' }; continue; }
       const { done, errors } = await bulkInsert(siteId, id, data.map(r => toFields(kind, r)));
       report[kind] = { cleared, inserted: done, total: data.length, errorCount: errors.length, errors: errors.slice(0, 3) };
