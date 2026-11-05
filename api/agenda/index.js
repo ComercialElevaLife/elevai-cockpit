@@ -8,6 +8,7 @@
 //  - body.dryRun=true devolve o evento montado sem gravar nada (usado para conferir o layout).
 // Requer no app Entra a permissão Graph "Calendars.ReadWrite" (Application) + consentimento.
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { LISTS, fromFields } = require('../_shared/schema');
 const { json, requireDomain, readUser } = require('../_shared/crud');
 const A = require('../_shared/agenda');
@@ -46,7 +47,9 @@ module.exports = async function (context, req) {
     }
     const b = req.body || {};
     if (b.acao === 'excluir') { // apaga/cancela o evento do Outlook (e do Teams) quando a tarefa é excluída no S.I.G.E.
-      context.res = json(200, await A.excluirEvento({ organizador: user, mailbox: b.mailbox, eventId: b.eventId })); return;
+      const rx = await A.excluirEvento({ organizador: user, mailbox: b.mailbox, eventId: b.eventId });
+      await AUD.registrar(req, 'excluiu', { entidade: 'tarefa', registroId: b.eventId, resumo: 'Excluiu compromisso/tarefa da agenda', detalhe: String(b.cardId || '') });
+      context.res = json(200, rx); return;
     }
     const card = await resumoDoCard(b);
     const r = await A.criarEvento({
@@ -55,6 +58,7 @@ module.exports = async function (context, req) {
       eventId: b.eventId || '', mailbox: b.mailbox || '', // se vier eventId, atualiza o evento existente
       card, dryRun: b.dryRun === true,
     });
+    if (!r.dryRun) await AUD.registrar(req, b.eventId ? 'editou' : 'tarefa', { entidade: 'tarefa', registroId: String(b.cardId || ''), registroNome: b.cliente, resumo: (b.eventId ? 'Atualizou' : 'Criou') + ' tarefa/compromisso: ' + (b.titulo || ''), detalhe: 'tipo: ' + (b.tipo || '') + ' · início: ' + (b.inicioLocal || '') });
     context.res = json(r.dryRun ? 200 : 201, r);
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: A.explicarErro(e, (e && e.mailbox) || user || 'usuário'), detalhe: String((e && e.message) || e), body: e && e.body });
