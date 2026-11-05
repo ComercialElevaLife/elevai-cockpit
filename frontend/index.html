@@ -4655,11 +4655,18 @@ function _histAppend(l,texto){
 /* 08/09/2026 — _logStatus() foi removida daqui: ver _efeitosStatus()/_aplicarEfeitosStatus(),
    perto de _reativarSeNecessario (linha ~3090), pra entender por quê (PATCHes concorrentes
    independentes na mesma linha do SharePoint causavam 409 silenciosos). */
+/* 05/11/2026 — o aviso do card agora diz QUAL campo mudou e de quê para quê (antes listava só 6 campos e, nos demais, o texto genérico "Dados do cadastro atualizados") */
 function _diffLabel(l,f){
-  var map=[['cons','Consultor'],['serv','Serviço'],['valor','Valor'],['prop','Proposta'],['tc','Cliente'],['valorFechamento','Valor de fechamento']];
+  var map=[['cons','Consultor'],['serv','Serviço'],['valor','Valor'],['valorMensal','Valor mensal'],['numMeses','Nº de meses'],['valorFechamento','Valor de fechamento'],['prop','Proposta'],['tc','Cliente (novo/atual)'],['tipo','Tipo (P/R)'],['fonte','Fonte'],['campanha','Campanha'],['icp','ICP'],['natureza','Natureza da venda'],['envio','Data de envio'],['dataVenda','Data da venda'],['cliente','Empresa'],['unidade','Unidade'],['nome','Contato'],['telefone','Telefone'],['email','E-mail'],['cnpj','CNPJ'],['razaoSocial','Razão social'],['endereco','Endereço'],['prazoMobilizacao','Mobilização'],['evidenciaTipo','Tipo da evidência'],['evidencia','Evidência'],['obs','Observação']];
   var ch=[];
-  map.forEach(function(p){ var k=p[0]; if(String(l[k]==null?'':l[k])!==String(f[k]==null?'':f[k]))ch.push(p[1]); });
-  return ch.length?('Dados atualizados: '+ch.join(', ')):'Dados do cadastro atualizados';
+  map.forEach(function(p){
+    var k=p[0]; if(!(k in f))return;
+    var a=l[k]==null?'':String(l[k]).trim(), b=f[k]==null?'':String(f[k]).trim();
+    var na=Number(a.replace(',','.')), nb=Number(b.replace(',','.'));
+    if(a===b||(a!==''&&b!==''&&isFinite(na)&&isFinite(nb)&&na===nb))return;
+    ch.push(p[1]+': '+(a?a.slice(0,40):'(vazio)')+' → '+(b?b.slice(0,40):'(vazio)'));
+  });
+  return ch.length?('Dados atualizados — '+ch.join('; ')):'Dados do cadastro salvos';
 }
 /* Abas de sub-etapa (drawer) — só fazem sentido dentro de EM NEGOCIAÇÃO (ver comentário do
    SUBETAPAS, acima). Clicar muda subEtapa e registra no histórico, num único PATCH. */
@@ -5303,7 +5310,22 @@ function _subEtapaTabsHtml(l){
    com O QUE mudou (antes → depois) e QUEM mudou. A linha do tempo antiga (histEventosJson) continua no drawer; o botão abaixo abre
    a trilha completa, que também importa sozinha os eventos antigos na 1ª abertura. */
 function _historicoHtml(l){
-  return _historicoHtmlBase(l)+'<div style="margin-top:8px"><button type="button" class="btn" onclick="abrirHistCompleto('+l.id+')">📜 Histórico completo (quem e o quê)</button></div>';
+  /* mostra já a linha do tempo antiga (rede de segurança) e, quando a trilha completa chega do servidor, troca pelas últimas 8 linhas dela */
+  if(l.spid)setTimeout(function(){ _histInline(l); },0);
+  return '<div id="hist-inline">'+_historicoHtmlBase(l)+'</div><div style="margin-top:8px"><button type="button" class="btn" onclick="abrirHistCompleto('+l.id+')">📜 Histórico completo (quem e o quê)</button></div>';
+}
+function _histInline(l){
+  fetch('/api/historico?entidade=leads&registroId='+encodeURIComponent(l.spid),{credentials:'same-origin'})
+    .then(function(r){return r.json();})
+    .then(function(j){
+      var box=document.getElementById('hist-inline'); if(!box||!j||!j.ok)return;
+      var rows=j.items||[]; if(!rows.length)return;
+      box.innerHTML=rows.slice(0,8).map(function(r){
+        var d=new Date(r.quando); var qd=isNaN(+d)?'':(d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
+        return '<div class="task"><div class="t1">'+esc(r.resumo||'')+'</div><div class="t2">'+qd+(r.autor?' · '+esc(r.autor):'')+'</div></div>';
+      }).join('')+(rows.length>8?'<div class="meta">+ '+(rows.length-8)+' registro(s) anteriores no histórico completo.</div>':'');
+    })
+    .catch(function(){});
 }
 function _histTipo(r){
   var c=String(r.campo||''), a=String(r.acao||'');
