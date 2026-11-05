@@ -5349,6 +5349,8 @@ function _historicoHtml(l){
   if(l.spid)setTimeout(function(){ _histInline(l); },0);
   return '<div id="hist-inline">'+_historicoHtmlBase(l)+'</div><div style="margin-top:8px"><button type="button" class="btn" onclick="abrirHistCompleto('+l.id+')">📜 Histórico completo (quem e o quê)</button></div>';
 }
+/* 05/11/2026 — rastreio: mostra o NOME de quem fez a ação (a partir do e-mail do login), com o e-mail ao lado. */
+function _quemNome(e){e=String(e||'');if(!e||e.indexOf('@')<0)return e;var n='';try{(window.TIME_ELEVA||[]).forEach(function(t){if(String(t.e).toLowerCase()===e.toLowerCase())n=t.n;});}catch(x){}return n?n+' ('+e+')':e;}
 function _histInline(l){
   fetch('/api/historico?entidade=leads&registroId='+encodeURIComponent(l.spid),{credentials:'same-origin'})
     .then(function(r){return r.json();})
@@ -5357,14 +5359,14 @@ function _histInline(l){
       var rows=j.items||[]; if(!rows.length)return;
       box.innerHTML=rows.slice(0,8).map(function(r){
         var d=new Date(r.quando); var qd=isNaN(+d)?'':(d.toLocaleDateString('pt-BR')+' '+d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}));
-        return '<div class="task"><div class="t1">'+esc(r.resumo||'')+'</div><div class="t2">'+qd+(r.autor?' · '+esc(r.autor):'')+'</div></div>';
+        return '<div class="task"><div class="t1">'+esc(r.resumo||'')+'</div><div class="t2">'+qd+(r.autor?' · '+esc(_quemNome(r.autor)):'')+'</div></div>';
       }).join('')+(rows.length>8?'<div class="meta">+ '+(rows.length-8)+' registro(s) anteriores no histórico completo.</div>':'');
     })
     .catch(function(){});
 }
 function _histTipo(r){
   var c=String(r.campo||''), a=String(r.acao||'');
-  if(a==='criou'||a==='excluiu')return 'Criação/exclusão';
+  if(a==='criou'||a==='excluiu'||a==='restaurou')return 'Criação/exclusão';
   if(a==='migracao'||a==='evento')return 'Anterior';
   if(c==='status'||c==='subEtapa')return 'Status';
   if(c==='Tarefas')return 'Tarefas';
@@ -5392,7 +5394,7 @@ function abrirHistCompleto(id){
       var tipos=[],autores=[]; rows.forEach(function(r){var t=_histTipo(r); if(tipos.indexOf(t)<0)tipos.push(t); if(r.autor&&autores.indexOf(r.autor)<0)autores.push(r.autor);});
       var sel='padding:6px;border:1px solid #EADDE0;border-radius:8px;font-family:inherit';
       el('hist-filtros').innerHTML='<select id="hist-ft" style="'+sel+'" onchange="_histRender()"><option value="">Todos os tipos</option>'+tipos.map(function(t){return '<option>'+esc(t)+'</option>';}).join('')+'</select>'
-        +'<select id="hist-fa" style="'+sel+'" onchange="_histRender()"><option value="">Todas as pessoas</option>'+autores.map(function(a){return '<option>'+esc(a)+'</option>';}).join('')+'</select>'
+        +'<select id="hist-fa" style="'+sel+'" onchange="_histRender()"><option value="">Todas as pessoas</option>'+autores.map(function(a){return '<option value="'+esc(a)+'">'+esc(_quemNome(a))+'</option>';}).join('')+'</select>'
         +'<span class="meta" id="hist-cnt" style="align-self:center"></span>';
       _histRender();
     })
@@ -5409,7 +5411,7 @@ function _histRender(){
     var mostraAD=(r.antes||r.depois)&&r.acao==='editou'&&r.campo&&r.campo!=='Tarefas'&&String(r.antes).length+String(r.depois).length>120;
     return '<div class="task" style="margin-bottom:6px"><div class="t1">'+esc(r.resumo||'')+'</div>'
       +(mostraAD?'<div class="meta" style="margin-top:2px;word-break:break-word"><b>Antes:</b> '+esc(String(r.antes).slice(0,400))+'<br><b>Depois:</b> '+esc(String(r.depois).slice(0,400))+'</div>':'')
-      +'<div class="t2">'+qd+' · '+esc(r.autor||'')+' · <span style="color:#8A7A78">'+esc(_histTipo(r))+(r.origem==='migracao'?' (importado)':'')+'</span></div></div>';
+      +'<div class="t2">'+qd+' · '+esc(_quemNome(r.autor||''))+' · <span style="color:#8A7A78">'+esc(_histTipo(r))+(r.origem==='migracao'?' (importado)':'')+'</span></div></div>';
   }).join('');
 }
 function _historicoHtmlBase(l){
