@@ -2,6 +2,7 @@
 const { LISTS, toFields, fromFields } = require('./schema');
 const g = require('./graph');
 const H = require('./historico');
+const A = require('./auditoria');
 
 // Identidade do usuário logado, injetada pela SWA no header x-ms-client-principal (base64 JSON)
 function readPrincipal(req) {
@@ -81,6 +82,7 @@ function makeHandler(kind) {
         // 05/11/2026 -- Histórico (regra fixa): toda criação é registrada com o autor real. Falha aqui não desfaz a criação,
         // mas é sinalizada na resposta (historicoOk:false) e no log do servidor (HISTORICO_FALHOU).
         const hc = await _auditar(() => H.registrarCriacao(kind, created.id, rec, readUser(req) || 'desconhecido'));
+        await A.registrar(req, 'criou', { entidade: kind, registroId: created.id, registroNome: rec[def.titleFrom] || rec.cliente || rec.nome, resumo: 'Criou ' + kind + (rec.cliente ? ': ' + rec.cliente : '') });
         context.res = json(201, { ok: true, kind, id: created.id, historicoOk: hc.ok, item: Object.assign({ __id: created.id }, fromFields(kind, created.fields || {})) });
         return;
       }
@@ -102,6 +104,7 @@ function makeHandler(kind) {
         try { foto = await g.getItem(listId, itemId); } catch (e) { if (e.status !== 404) throw e; }
         if (foto) {
           const hx = await _auditar(() => H.registrarExclusao(kind, itemId, foto, readUser(req) || 'desconhecido'));
+          if (hx.ok) await A.registrar(req, 'excluiu', { entidade: kind, registroId: itemId, registroNome: foto.Title || foto.cliente || foto.nome, resumo: (def.lixeira ? 'Enviou para a Lixeira ' : 'Excluiu ') + kind + ': ' + (foto.cliente || foto.Title || itemId) });
           if (!hx.ok) { context.res = json(503, { ok: false, error: 'Não foi possível registrar o histórico da exclusão; nada foi excluído. Tente de novo.' }); return; }
         }
         if (def.lixeira) {
@@ -150,9 +153,11 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   try { antes = await g.getItem(listId, itemId); } catch (e) { console.error('HISTORICO: não leu o registro antes da edição', e.message || e); }
   await g.updateItem(listId, itemId, fields);
   delete _getCache[kind];
+  const restaurou = !!(def.lixeira && antes && antes.lixeiraEm && fields.lixeiraEm === '');
   const he = antes
-    ? await _auditar(() => H.registrarEdicao(kind, itemId, antes, fields, fields.alteradoPor))
+    ? await _auditar(() => (restaurou ? H.registrarRestauracao(kind, itemId, antes, fields.alteradoPor) : Promise.resolve({ ok: true })).then(r1 => r1 && r1.ok ? H.registrarEdicao(kind, itemId, antes, fields, fields.alteradoPor) : r1))
     : { ok: false };
+  await A.registrar(req, restaurou ? 'restaurou' : 'editou', { entidade: kind, registroId: itemId, registroNome: (antes && (antes.Title || antes.cliente || antes.nome)) || '', resumo: (restaurou ? 'Restaurou da Lixeira ' : 'Editou ') + kind + ': ' + ((antes && (antes.cliente || antes.Title)) || itemId), detalhe: restaurou ? '' : Object.keys(fields).filter(k => k !== 'alteradoEm' && k !== 'alteradoPor').join(', ') });
   context.res = json(200, { ok: true, kind, id: itemId, updated: fields, historicoOk: he.ok });
 }
 
