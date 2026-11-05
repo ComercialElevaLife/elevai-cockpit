@@ -1,6 +1,7 @@
 // crud.js — fábrica de handler GET/POST/PATCH por tipo (leads|vendas|eventos)
 const { LISTS, toFields, fromFields } = require('./schema');
 const g = require('./graph');
+const H = require('./historico');
 
 // Identidade do usuário logado, injetada pela SWA no header x-ms-client-principal (base64 JSON)
 function readPrincipal(req) {
@@ -76,7 +77,10 @@ function makeHandler(kind) {
         if (kind === 'leads' && !rec.origemFunil) rec.origemFunil = 'NOVO';
         const created = await g.addItem(listId, toFields(kind, rec));
         delete _getCache[kind];
-        context.res = json(201, { ok: true, kind, id: created.id, item: Object.assign({ __id: created.id }, fromFields(kind, created.fields || {})) });
+        // 05/11/2026 -- Histórico (regra fixa): toda criação é registrada com o autor real. Falha aqui não desfaz a criação,
+        // mas é sinalizada na resposta (historicoOk:false) e no log do servidor (HISTORICO_FALHOU).
+        const hc = await _auditar(() => H.registrarCriacao(kind, created.id, rec, readUser(req) || 'desconhecido'));
+        context.res = json(201, { ok: true, kind, id: created.id, historicoOk: hc.ok, item: Object.assign({ __id: created.id }, fromFields(kind, created.fields || {})) });
         return;
       }
 
@@ -91,9 +95,17 @@ function makeHandler(kind) {
         const body = req.body || {};
         const itemId = body.id || body.__id || (req.query && req.query.id);
         if (!itemId) { context.res = json(400, { ok: false, error: 'faltou id do item' }); return; }
+        // 05/11/2026 -- Histórico (regra fixa): exclusão só acontece DEPOIS de gravar a foto completa do registro no histórico.
+        // Se não conseguir gravar a foto, NÃO exclui (a exclusão é irreversível; o histórico é a única cópia).
+        let foto = null;
+        try { foto = await g.getItem(listId, itemId); } catch (e) { if (e.status !== 404) throw e; }
+        if (foto) {
+          const hx = await _auditar(() => H.registrarExclusao(kind, itemId, foto, readUser(req) || 'desconhecido'));
+          if (!hx.ok) { context.res = json(503, { ok: false, error: 'Não foi possível registrar o histórico da exclusão; nada foi excluído. Tente de novo.' }); return; }
+        }
         await g.deleteItem(listId, itemId);
         delete _getCache[kind];
-        context.res = json(200, { ok: true, kind, deleted: itemId });
+        context.res = json(200, { ok: true, kind, deleted: itemId, historicoOk: true });
         return;
       }
 
@@ -125,9 +137,21 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   }
   fields.alteradoEm = new Date().toISOString();
   fields.alteradoPor = readUser(req) || 'desconhecido';
+  // 05/11/2026 -- Histórico (regra fixa): lê o registro ANTES de gravar, para registrar o que mudou (antes -> depois) e quem mudou.
+  let antes = null;
+  try { antes = await g.getItem(listId, itemId); } catch (e) { console.error('HISTORICO: não leu o registro antes da edição', e.message || e); }
   await g.updateItem(listId, itemId, fields);
   delete _getCache[kind];
-  context.res = json(200, { ok: true, kind, id: itemId, updated: fields });
+  const he = antes
+    ? await _auditar(() => H.registrarEdicao(kind, itemId, antes, fields, fields.alteradoPor))
+    : { ok: false };
+  context.res = json(200, { ok: true, kind, id: itemId, updated: fields, historicoOk: he.ok });
+}
+
+// Roda a gravação do histórico sem nunca derrubar a operação principal; devolve { ok }.
+async function _auditar(fn) {
+  try { const r = await fn(); return { ok: !!(r && r.ok) }; }
+  catch (e) { console.error('HISTORICO_FALHOU', e && (e.message || e)); return { ok: false }; }
 }
 
 function json(status, obj) {
