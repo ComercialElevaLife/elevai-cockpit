@@ -19,6 +19,7 @@ const ROTULOS = {
   prazoMobilizacao: 'Mobilização', vendaFicha: 'Ficha da venda', ftDados: 'Dados de contrato/faturamento',
   tarefasJson2: 'Tarefas', servicosJson: 'Serviços da oportunidade', origemFunil: 'Origem no funil',
   natureza: 'Natureza da venda', fupSeq: 'Nº do FUP',
+  lixeiraEm: 'Na lixeira desde', lixeiraPor: 'Excluído por', pendencias: 'Pendências da venda',
 };
 const rotulo = (k) => ROTULOS[k] || k;
 
