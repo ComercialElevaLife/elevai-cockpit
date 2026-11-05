@@ -4,6 +4,7 @@
 // Os dados de remuneração NÃO ficam em arquivo estático: só saem desta rota.
 const { LISTS, fromFields } = require('../_shared/schema');
 const g = require('../_shared/graph');
+const AUD = require('../_shared/auditoria'); // 05/11/2026 -- rastreio: toda ação do usuário fica registrada (back)
 const { json, requireDomain, readUser } = require('../_shared/crud');
 
 const PERMITIDOS = ['leonardo@elevalife.com.br', 'rafael@elevalife.com.br', 'joao@elevalife.com.br'];
@@ -113,6 +114,7 @@ module.exports = async function (context, req) {
       const campos = { chave: b.k, cliente: String(b.cliente || ''), valor: Number(b.valor) || 0, fator: b.fator, nota: String(b.nota || '').slice(0, 250), alteradoEm: new Date().toISOString(), alteradoPor: readUser(req) || 'desconhecido' };
       if (ex) await g.updateItem(listId, ex.id, campos);
       else await g.addItem(listId, Object.assign({ Title: campos.cliente || '(sem titulo)' }, campos));
+      await AUD.registrar(req, 'editou', { entidade: 'variaveis', registroNome: campos.cliente, resumo: 'Editou variável de remuneração: ' + (campos.cliente || b.k), detalhe: 'fator: ' + b.fator + ' · valor: ' + campos.valor });
       context.res = json(200, { ok: true, k: b.k, fator: b.fator });
       return;
     }
