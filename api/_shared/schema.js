@@ -360,6 +360,28 @@ const LISTS = {
       { name: 'origem', type: 'text' },        // sistema | migracao | automatico
     ],
   },
+
+  // --- Auditoria (05/11/2026, regra fixa do Léo): registro SÓ NO BACK de tudo o que o usuário logado faz
+  // (criar, editar, excluir, restaurar, enviar, baixar relatório, criar tarefa...), para revisão quando necessário.
+  // Uma linha por ação (o detalhe campo-a-campo continua no Historico_Comercial, que aparece na tela).
+  // Só de acréscimo; leitura restrita (api/auditoria, GET só para a lista de revisores). usuario vem do servidor, nunca da tela.
+  auditoria: {
+    displayName: 'Auditoria_Comercial',
+    titleFrom: 'resumo',
+    indexed: ['quando'],
+    columns: [
+      { name: 'quando', type: 'text' },        // ISO
+      { name: 'usuario', type: 'text' },       // e-mail do usuário logado
+      { name: 'acao', type: 'text' },          // criou | editou | excluiu | restaurou | enviou | baixou | tarefa ...
+      { name: 'entidade', type: 'text' },      // leads | vendas | proposta | relatorio ...
+      { name: 'registroId', type: 'text' },
+      { name: 'registroNome', type: 'text' },
+      { name: 'resumo', type: 'text' },        // frase curta (até 250)
+      { name: 'detalhe', type: 'text', long: true },
+      { name: 'origem', type: 'text' },        // sistema | tela | automatico
+      { name: 'ip', type: 'text' },
+    ],
+  },
 };
 
 function toFields(kind, rec) {
