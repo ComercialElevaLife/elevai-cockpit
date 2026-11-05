@@ -2602,6 +2602,13 @@ function setChipsOn(which){
       F.serv=Array.isArray(_sv.serv)?_sv.serv:[]; F.cons=Array.isArray(_sv.cons)?_sv.cons:[];
     }catch(e){}
   }
+  /* 05/11/2026 — correção: _saleDtOf é usada aqui (compute) e este bloco roda antes do bloco que a define (escopo próprio); sem esta cópia a tela não carregava */
+  function _saleDtOf(l){
+    if(!l)return '';
+    if(l.dataVenda)return String(l.dataVenda).slice(0,10);
+    try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
+    return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
+  }
   fillFilters(); populateCadDatalists(); populateCodServ();
   updateFltToggle();
   applyPeriod();
