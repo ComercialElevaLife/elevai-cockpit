@@ -1407,6 +1407,13 @@ function passDims(r,isLead){
   if(isLead && F.prop && r.prop!==undefined && r.prop!==F.prop) return false;
   return true;
 }
+/* 05/11/2026 — correção (2): _saleDtOf precisa estar no MESMO escopo de compute() (que a usa); a cópia anterior ficou em outro bloco */
+function _saleDtOf(l){
+  if(!l)return '';
+  if(l.dataVenda)return String(l.dataVenda).slice(0,10);
+  try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
+  return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
+}
 function compute(){
   /* 25/08/2026 — leads inativados (backlog: nem perdidos nem pausados, "Inativar" no drawer do
      Kanban) ficam de fora deste filtro compartilhado — que alimenta o Painel KPI, o Kanban e a
