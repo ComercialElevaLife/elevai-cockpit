@@ -100,6 +100,8 @@ const LISTS = {
       // 03/11/2026 — Léo: fluxo único da venda. vendaFicha = ficha da venda salva no card (JSON: resumo, volume, escopo, início, horários, focais, requisitos); fluxoVenda = resultado de cada passo (JSON).
       { name: 'vendaFicha', type: 'text', long: true },
       { name: 'fluxoVenda', type: 'text', long: true },
+      // 05/11/2026 — Léo: trava em 2 níveis. pendencias = JSON {ids,itens} do que ficou pendente ao efetivar a venda ("concluído com pendência"); vazio de itens = 100% enviado.
+      { name: 'pendencias', type: 'text', long: true },
       // 25/08/2026 — "inativar" oportunidade (Léo): backlog — nem perdida nem pausada, some do
       // Kanban/Painel por padrão (não entra em indicador nenhum) mas o registro continua existindo,
       // reversível a qualquer momento ("↩ Reativar" no drawer). SIM / '' (vazio = ativa, comportamento
