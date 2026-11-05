@@ -331,6 +331,29 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
+  // --- Histórico das negociações (05/11/2026, regra fixa do Léo): trilha de auditoria SÓ DE ACRÉSCIMO.
+  // Cada linha = uma mudança (ou criação/exclusão) de um registro, com O QUE mudou (campo, antes, depois)
+  // e QUEM mudou (usuário logado, lido no servidor — não vem da tela). Nenhuma rota do sistema edita ou
+  // apaga linhas desta lista (api/historico só aceita GET). Gravação feita em _shared/historico.js.
+  // Nomes sem dígito no final de propósito (ver aviso em observacoesLead: SharePoint mutila nomes assim).
+  historico: {
+    displayName: 'Historico_Comercial',
+    titleFrom: 'resumo',
+    indexed: ['registroId', 'quando'],      // índice: evita o limite de 5.000 itens do SharePoint nas consultas por negociação
+    columns: [
+      { name: 'entidade', type: 'text' },      // leads | empresas | contatos | vendas | contratos
+      { name: 'registroId', type: 'text' },    // id do item na lista de origem
+      { name: 'registroNome', type: 'text' },  // nome/cliente no momento da mudança
+      { name: 'acao', type: 'text' },          // criou | editou | excluiu | evento | migracao
+      { name: 'campo', type: 'text' },         // coluna alterada (ou 'Tarefas', 'status', ...)
+      { name: 'antes', type: 'text', long: true },
+      { name: 'depois', type: 'text', long: true },
+      { name: 'resumo', type: 'text' },        // frase legível (até 250 caracteres)
+      { name: 'autor', type: 'text' },         // e-mail do usuário logado (ou origem automática)
+      { name: 'quando', type: 'text' },        // ISO
+      { name: 'origem', type: 'text' },        // sistema | migracao | automatico
+    ],
+  },
 };
 
 function toFields(kind, rec) {
