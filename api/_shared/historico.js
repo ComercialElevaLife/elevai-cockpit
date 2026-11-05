@@ -5,7 +5,7 @@
 const { LISTS } = require('./schema');
 const g = require('./graph');
 
-const IGNORAR = new Set(['alteradoEm', 'alteradoPor', 'histEventosJson', 'tarefasJson', 'Title', '__id', 'id']);
+const IGNORAR = new Set(['alteradoEm', 'alteradoPor', 'histEventosJson', 'tarefasJson', 'Title', '__id', 'id', 'lixeiraEm', 'lixeiraPor']); // lixeira*: o que importa é a linha "Restaurado da Lixeira" (registrarRestauracao)
 const MAX_TXT = 20000;   // limite de texto guardado em antes/depois (coluna multi-linha)
 const MAX_RESUMO = 250;  // a coluna Title/resumo é de linha única (255)
 
@@ -138,4 +138,10 @@ async function registrarExclusao(entidade, registroId, fotoCampos, autor, origem
   return gravar([_linha(entidade, registroId, nome, autor, 'excluiu', { campo: '', resumo: 'Registro excluído: ' + (nome || registroId), antes: JSON.stringify(copia), depois: '', max: 60000 }, origem)]);
 }
 
-module.exports = { diffCampos, diffTarefas, gravar, registrarCriacao, registrarEdicao, registrarExclusao, rotulo, _linha };
+// 05/11/2026 -- Restauração da Lixeira: uma linha legível (em vez de dois "campo -> (vazio)").
+async function registrarRestauracao(entidade, registroId, antes, autor, origem) {
+  const nome = _nomeDe(antes);
+  return gravar([_linha(entidade, registroId, nome, autor, 'restaurou', { campo: '', resumo: 'Restaurado da Lixeira' + (nome ? ': ' + nome : ''), antes: _s((antes || {}).lixeiraEm), depois: '' }, origem)]);
+}
+
+module.exports = { diffCampos, diffTarefas, gravar, registrarCriacao, registrarEdicao, registrarExclusao, registrarRestauracao, rotulo, _linha };
