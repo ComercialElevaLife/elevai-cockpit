@@ -64,6 +64,7 @@ async function carregarVendas() {
     const raw = await g.listItemsMeta(id);
     for (const r of raw) {
       const x = fromFields(kind, r.fields);
+      if (x.lixeiraEm) continue; // 05/11/2026 -- Lixeira: o que foi excluído não entra em nenhum indicador
       if (kind === 'leads' && x.status !== 'VENDIDA') continue;
       if (x.inativo === 'SIM') continue; // backlog/duplicata marcada no Cockpit: fora de tudo
       if (!x.cliente || x.serv === 'N/A' || x.tipo === 'N/A' || !x.valor) continue;

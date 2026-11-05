@@ -22,7 +22,7 @@ async function resumoDoCard(b) {
       const { id: listId } = await g.ensureList(LISTS.leads);
       const itens = await g.listItemsMeta(listId);
       const it = itens.find(r => String(r.id) === card.id);
-      if (it) {
+      if (it && !fromFields('leads', it.fields).lixeiraEm) { // 05/11/2026 -- Lixeira: lead excluído não alimenta o card da agenda
         const l = fromFields('leads', it.fields);
         const pick = (novo, velho) => (novo !== null && novo !== undefined && novo !== '') ? novo : velho;
         card.cliente = pick(l.cliente, card.cliente); card.unidade = pick(l.unidade, card.unidade);
