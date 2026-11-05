@@ -3642,7 +3642,12 @@ function _saleDtOf(l){
   try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
   return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
 }
-function _fvFaltam(){
+/* 05/11/2026 — Léo: trava em 2 níveis. MÍNIMO bloqueia o "Efetivar venda"; PENDÊNCIA PERMITIDA deixa efetivar e viaja como "concluído com pendência" (registrada no card e no histórico). Ex.: contrato do recorrente que ainda não chegou; dados de kick-off (horários, requisitos, pontos focais). */
+var _FV_PEND_IDS=['cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
+function _fvFaltam(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])<0;});}
+function _fvPend(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])>=0;});}
+function _fvPendJson(){var p=_fvPend();return JSON.stringify({ids:p.map(function(r){return r[0];}),itens:p.map(function(r){return r[1];})});}
+function _fvFaltamTudo(){
   var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
   var _lt=_cvLead();if(!_lt||!/^[PR]$/.test(String(_lt.tipo||'')))f.push(['cv-tipopr','Tipo da venda (P ou R): defina no card do lead']);
   var _cs=_COORD_AREA[_cvV('cv-area')]||[];if(_cs.length>1&&!_cvV('cv-coord'))f.push(['cv-coord','Coordenador da carteira: escolha qual coordenador atende esta carteira']);
@@ -3690,6 +3695,7 @@ function _fvCamposCard(l){
   var c={vendaFicha:JSON.stringify(fi),ftDados:JSON.stringify(_ftLer())};
   var end=_cvV('cv-endereco');if(end&&end!==String(l.endereco||''))c.endereco=end;
   var mob=_cvV('cv-mob');if(mob&&mob!==String(l.prazoMobilizacao||''))c.prazoMobilizacao=mob;
+  if(_FV.passos&&Object.keys(_FV.passos).length){c.pendencias=_fvPendJson();_FV.pend=JSON.parse(c.pendencias).itens;}
   var v=_cvNumBR(_cvV('ft-valor'));if(v>0&&v!==Number(l.valorMensal||0))c.valorMensal=v;
   var cod=_cvV('ft-cod');if(cod&&cod!==String(l.codServico||''))c.codServico=cod;
   return c;
@@ -3705,12 +3711,13 @@ function _fvAuto(){
   _fvT=setTimeout(function(){
     var l=_cvLead();if(!l||!l.spid||!window.persistLeadFields)return;
     var c=_fvCamposCard(l);
-    if(String(l.vendaFicha||'')===c.vendaFicha&&String(l.ftDados||'')===c.ftDados&&Object.keys(c).length===2)return;
-    window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);},function(){});
+    var _np=(c.pendencias===undefined)?0:1;
+    if(String(l.vendaFicha||'')===c.vendaFicha&&String(l.ftDados||'')===c.ftDados&&Object.keys(c).length===2+_np&&(!_np||String(l.pendencias||'')===c.pendencias))return;
+    window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);_fvResumo();},function(){});
   },900);
 }
 function _fvCarregar(l){
-  var o=_ftJ(l.fluxoVenda)||{};_FV.passos=o.passos||{};_FV.busy=false;
+  var o=_ftJ(l.fluxoVenda)||{};_FV.passos=o.passos||{};_FV.busy=false;_FV.pend=((_ftJ(l.pendencias)||{}).itens)||null;
   var ov=el('ov-venda');if(ov&&!ov._fvIn){ov._fvIn=1;ov.addEventListener('change',_fvAuto);ov.addEventListener('input',function(e){var t=e.target;if(t&&t.classList&&t.classList.contains('fv-falta')&&String(t.value||'').trim())t.classList.remove('fv-falta');});}
   _fvCompactar();_fvResumo();
 }
@@ -3719,6 +3726,10 @@ function _fvResumo(falt){
   var box=el('fv-res'),l=_cvLead();if(!box||!l)return;
   var P=_FV.passos,h='',ks=['ficha','fat','teams','impl'],tem=ks.some(function(k){return P[k];});
   if(falt&&falt.length){h+='<div style="border:1px solid #B23A48;background:#FFF3F3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#B23A48">Nada foi disparado: faltam '+falt.length+' campo(s) obrigatório(s), destacados em vermelho abaixo.</b><ul style="margin:4px 0 0 18px;padding:0">'+falt.map(function(r){return '<li>'+esc(r[1])+'</li>';}).join('')+'</ul></div>';}
+  if(tem&&_FV.pend){
+    if(_FV.pend.length)h+='<div style="border:1px solid #C9822B;background:#FBF1E3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#C9822B">⚠ Venda CONCLUÍDA COM PENDÊNCIA ('+_FV.pend.length+')</b> — segue para Implantação e Faturamento com estes itens identificados como pendentes (registrados no card):<ul style="margin:4px 0 0 18px;padding:0">'+_FV.pend.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
+    else h+='<div style="border:1px solid #2E7D5B;background:#EEF7F2;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#2E7D5B">✓ Venda concluída: 100% das informações enviadas.</b></div>';
+  }
   if(tem){
     var cor={ok:'#2E7D5B',aviso:'#C9822B',erro:'#B23A48'},ic={ok:'✓',aviso:'⚠',erro:'✗'};
     h+='<div style="border:1px solid #EADDE0;background:#fff;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b>Fluxo da venda</b>'+(_FV.busy?' <span style="color:#8A7A78">(em andamento…)</span>':'')+'<ul style="list-style:none;margin:4px 0 0;padding:0">';
@@ -3792,6 +3803,7 @@ function fluxoVendaRodar(){
   var falt=_fvFaltam();
   if(falt.length){_fvMarcar(falt);_fvResumo(falt);return;}
   [].slice.call(document.querySelectorAll('#ov-venda .fv-falta')).forEach(function(e){e.classList.remove('fv-falta');});
+  _FV.pend=_fvPend().map(function(r){return r[1];});
   _FV.busy=true;var b=el('fv-go');if(b)b.disabled=true;_fvResumo();
   _cvUsuario(function(usr){
     _fvPasso(l,'ficha',function(d){_fvFicha(l,d);})
@@ -5323,6 +5335,14 @@ function _subEtapaTabsHtml(l){
 /* 05/11/2026 — Histórico completo (regra fixa do Léo): trilha só de acréscimo gravada pelo SERVIDOR (lista Historico_Comercial),
    com O QUE mudou (antes → depois) e QUEM mudou. A linha do tempo antiga (histEventosJson) continua no drawer; o botão abaixo abre
    a trilha completa, que também importa sozinha os eventos antigos na 1ª abertura. */
+/* 05/11/2026 — pendências da venda visíveis no card (gravadas em l.pendencias ao efetivar/editar a ficha) */
+function _pendCardHtml(l){
+  if(!l||l.status!=='VENDIDA'||!l.fluxoVenda)return '';
+  var o=null;try{o=JSON.parse(l.pendencias||'');}catch(e){}
+  if(!o||!Array.isArray(o.itens))return '';
+  if(!o.itens.length)return '<div style="flex-basis:100%;width:100%;font-size:12px;color:#2E7D5B;margin:2px 0">✓ Venda concluída: 100% das informações enviadas.</div>';
+  return '<div style="flex-basis:100%;width:100%;font-size:12px;border:1px solid #C9822B;background:#FBF1E3;border-radius:8px;padding:6px 10px;margin:2px 0"><b style="color:#C9822B">⚠ Concluída com pendência ('+o.itens.length+')</b>: '+o.itens.map(esc).join(' · ')+'</div>';
+}
 function _historicoHtml(l){
   /* mostra já a linha do tempo antiga (rede de segurança) e, quando a trilha completa chega do servidor, troca pelas últimas 8 linhas dela */
   if(l.spid)setTimeout(function(){ _histInline(l); },0);
@@ -5463,6 +5483,7 @@ function openDrawer(id){curId=id;
    </div>
    </details>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+     ${_pendCardHtml(l)}
      <button class="btn" onclick="saveLead(${id})">💾 Salvar dados</button>
      <button class="btn ghost" onclick="setStatus(${id},'PAUSADA')" title="Esfriou: marca como Pausada e avisa a Clara para o fluxo de nutrição">⏸ Pausar (esfriou)</button>
      <!-- 24/09/2026 (v2): botão "🗄 Inativar/↩ Reativar" removido -- arrastar pra Pausada (dormir)
