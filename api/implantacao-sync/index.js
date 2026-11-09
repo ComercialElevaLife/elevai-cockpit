@@ -191,6 +191,7 @@ module.exports = async function (context, req) {
             field_12: (/VENDAS|MARKETING/i.test(areaResp) || visual) ? 'A fazer' : 'A definir' };
           if (n === 1 && P[1]) campos.field_10 = iso(P[1]);
           ['field_7', 'field_8', 'field_9', 'field_13'].forEach(function (c) { if (nomesG[c] && m.f[c] !== undefined && m.f[c] !== null && m.f[c] !== '') campos[c] = m.f[c]; });
+          if (n === 1 && nomesG.field_13) campos.field_13 = 'Criada pelo SIGE por ' + (s(p.usuario) || 'SIGE') + ' em ' + iso(new Date()) + (s(m.f.field_13) ? ' | ' + s(m.f.field_13) : '');
           const extra = { EmailResponsavel: emailEtapa(visual ? 'RH' : areaResp, p.area, s(p.tipoVenda), s(p.usuario)), EmailCoordenador: s(p.coordenadorEmail), CriadoPor: s(p.usuario) || 'SIGE',
             TipoVenda: s(p.tipoVenda), Unidade: s(u.nome), Empresa: s(p.empresa), CNPJ: s(p.cnpj), UFPrestacaoServico: s(u.uf) };
           Object.keys(extra).forEach(function (c) { if (nomesG[c] && extra[c]) campos[c] = extra[c]; });
