@@ -182,6 +182,7 @@ module.exports = async function (context, req) {
     let clienteId = s(p.clienteId).trim();
     const servico = s(p.servico).trim(), numero = s(p.numero).trim();
     const valor = Number(p.valor) || 0;
+    const pont = s(p.tipo).toUpperCase() === 'P'; // venda pontual: o valor é o do pedido, não mensal
     const valorDoc = Number(p.valorDocumento) || 0; // valor mensal lido do pedido/contrato assinado (opcional; sem ele nunca entra como Vigente)
     const TOL = (process.env.FAT_TOLERANCIA !== undefined && process.env.FAT_TOLERANCIA !== '' && Number(process.env.FAT_TOLERANCIA) >= 0) ? Number(process.env.FAT_TOLERANCIA) : 1;
     if (!leadId) return erro('Falta o id do lead.');
@@ -247,7 +248,7 @@ module.exports = async function (context, req) {
       (criarCli ? 'Cliente: será CRIADO no Faturamento: "' + cliTitulo + '"' + (criarCli.CNPJ ? ' · CNPJ ' + criarCli.CNPJ : ' · sem CNPJ') + ' (não existe lá; nasce com Pendências para o Financeiro/coordenador completar: ' + String(criarCli.Pendencias || '').split('\n').filter(Boolean).length + ').' : 'Cliente: ' + cliTitulo + (achadoPor ? ' (já existe, encontrado por ' + achadoPor + '; não é alterado, não duplica).' : ' (existente, não é alterado).')),
       base ? 'Contrato: nova Versão v' + versao + ' do contrato Nº ' + s(base.f.Title) + ' (v' + (Number(base.f.Versao) || 1) + ' continua como está), copiando ' + copiar.length + ' item(ns).' : 'Contrato: novo, v' + versao + '.',
       'Nº: ' + numero + ' · Status: ' + statusFinal + (entraVigente ? '' : ' (não fatura)') + ' · Vigência: ' + (fmtBR(campos.Inicio) || 'a informar') + ' a ' + (fmtBR(campos.Fim) || 'a informar') + '.',
-      'Item novo: "' + servico + '" · ' + moeda(valor) + '/mês' + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + '.',
+      'Item novo: "' + servico + '" · ' + moeda(valor) + (pont ? ' (valor do pedido, venda pontual: sem valor mensal)' : '/mês') + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + '.',
       'Rastreio: Origem=SIGE · lead ' + leadId + ' · evidência ' + (tipo || '—') + '.'
     ];
     ajLinhas.forEach(function (x) { linhas.push(x); });
@@ -281,7 +282,7 @@ module.exports = async function (context, req) {
     if (p.oc) fi.NumPedido = s(p.oc); if (p.cod) fi.CodigoServicoNF = s(p.cod); if (Number(p.prazo)) fi.PrazoFaturamento = Number(p.prazo);
     await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: fi });
     context.log('[faturamento-sync] gravou lead=' + leadId + ' contrato=' + novoId + ' v' + versao + ' status=' + statusFinal + ' por=' + quem(req));
-    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + cliTitulo + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
+    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + cliTitulo + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + (pont ? ' (valor do pedido, venda pontual).' : '/mês.') + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
     await AUD.registrar(req, 'enviou', { entidade: 'faturamento', registroId: String(leadId), registroNome: cliTitulo, resumo: 'Enviou ao Faturamento: ' + cliTitulo + ' · ' + servico + ' · ' + moeda(valor) + ' (' + statusFinal + ')', detalhe: 'contrato ' + novoId + ' · Nº ' + numero + ' v' + versao });
     context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t, ajustes: ajLinhas });
   } catch (e) {
