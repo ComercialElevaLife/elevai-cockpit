@@ -4019,7 +4019,7 @@ function _cvRespKey(l){var _rk=_catRespKey(_cvV('cv-tipo'));if(_rk)return _rk;
 function _cvAt(k,mark){var p=_cvPessoa(k);if(!mark)return '@'+p.nome;if(!_cvEnts.some(function(e){return e.mentioned&&e.mentioned.id===p.email;}))_cvEnts.push({type:'mention',text:'<at>'+p.nome+'</at>',mentioned:{id:p.email,name:p.nome}});return '<at>'+p.nome+'</at>';}
 function _cvBlocoResp(l,mark){
   var k=_cvRespKey(l);
-  return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+'\n- **Para ciência:** '+['joao','rafael'].filter(function(x){return x!==k;}).map(function(x){return _cvAt(x,mark);}).join(' e ');
+var kc=_cvV('cv-coord');if(kc&&!_CV_PESSOAS[kc])kc='';return '**👤 RESPONSÁVEL PELO PROJETO**\n- **Responsável:** '+(k?_cvAt(k,mark):'A confirmar')+(kc&&kc!==k?'\n- **Coordenador da carteira:** '+_cvAt(kc,mark):'')+'\n- **Para ciência:** '+['joao','rafael'].filter(function(x){return x!==k;}).map(function(x){return _cvAt(x,mark);}).join(' e ');
 }
 /* Teste das marcações: posta no canal uma mensagem "TESTE — pode apagar". Por padrão marca só quem clica; os 5 nomes só se confirmar. */
 async function testarMarcacoesTeams(){
