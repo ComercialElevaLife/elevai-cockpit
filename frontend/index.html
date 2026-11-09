@@ -1068,13 +1068,13 @@ td .up{color:var(--ok);font-weight:700}
       <label>Cidade do serviço<input id="cv-cidade" placeholder="define os feriados (faltas e horas extras)"></label>
       <label>UF<input id="cv-uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></label>
       <label style="grid-column:1/3">Horários / frequência<input id="cv-horarios" placeholder="ex.: Seg a Sex, 08:00 às 17:00"></label>
-<label style="grid-column:1/3">Há contratação de equipe nesta venda?<select id="cv-contrata"><option value="">— escolha —</option><option>Sim</option><option>Não</option></select></label>
-<label>Cargo<input id="cv-cargo" placeholder="com o cargo, o RH aplica a tabela salarial"></label>
-<label>Nível / perfil<input id="cv-perfil" placeholder="ex.: Nível I"></label>
-<label>Nº de vagas<input id="cv-vagas" type="number" min="1"></label>
-<label>Carga horária semanal<input id="cv-cargahor" placeholder="ex.: 40"></label>
-<label>Remuneração (se não informar o cargo)<input id="cv-remun" placeholder="R$"></label>
-<label>Benefício (se não informar o cargo)<input id="cv-benef" placeholder="ex.: VR, VT, assistência médica"></label>
+<input id="cv-contrata" type="hidden" value="Sim">
+<label>Cargo vendido<select id="cv-cargo"><option value="">— escolha —</option><option>Especialista em Ergonomia Júnior</option><option>Especialista em Ergonomia Pleno</option><option>Especialista em Ergonomia Sênior</option><option>Não se aplica</option></select></label>
+<label>Step / nível (opcional)<input id="cv-perfil" placeholder="ex.: Step 2"></label>
+
+<label>Carga horária semanal (recorrente)<input id="cv-cargahor" placeholder="ex.: 40"></label>
+
+
     </div>
     <label>Pontos focais (cliente) — um por linha: Nome - Cargo - E-mail/Telefone<textarea id="cv-focais" rows="2"></textarea></label>
     <label>Requisitos de faturamento<textarea id="cv-fat" rows="2" placeholder="ex.: NF até dia 25, portal Ariba"></textarea></label>
@@ -3567,14 +3567,14 @@ function _cvFatSim(l){
   var m=_cvFatMatch(l), ft={}; try{ft=JSON.parse(l.ftDados||'{}')||{};}catch(e){}
   var gv=function(id,k){var e=el(id);return String(e?e.value:(ft[k]||'')).trim();};
   var ctr=gv('ft-ctr','ctr'),oc=gv('ft-oc','oc'),ini=gv('ft-ini','ini'),fim=gv('ft-fim','fim'),cod=gv('ft-cod','cod'),prazo=gv('ft-prazo','prazo');
-  var valor=_cvNumBR(gv('ft-valor','valor'))||Number(l.valorMensal)||0;
+  var _pont=String(l.tipo||'').toUpperCase()==='P';var valor=_cvNumBR(gv('ft-valor','valor'))||Number(l.valorMensal)||(_pont?Number(l.valor):0)||0;
   var tipo=l.evidenciaTipo||'',ref=l.evidencia||'';
   var forte=_CV_EV_FORTE.indexOf(tipo)>-1,temEv=!!(tipo&&ref);
   var numOk=_cvNumOk(ctr)&&!/^PROV/i.test(ctr);
   var vdoc=_cvNumBR(gv('ft-vdoc','vdoc')),confere=vdoc>0&&Math.abs(valor-vdoc)<=1;
   var ct=_cvFatContrato(m),nat=_natInfo(l).k,ret=[],av=[];
   if(!temEv)ret.push('sem evidência da venda registrada no lead');
-  if(!(valor>0))ret.push('valor mensal ausente ou zerado');
+  if(!(valor>0))ret.push(_pont?'valor do pedido ausente ou zerado':'valor mensal ausente ou zerado');
   if(m.clientes.length>1)ret.push('mais de um cliente do Faturamento corresponde (possível duplicidade)');
   if(numOk){var outro=f.contratos.filter(function(c){return String(c.numero||'').trim().toUpperCase()===ctr.toUpperCase()&&m.clientes.every(function(x){return x.id!==c.clienteId;});});if(outro.length)ret.push('o Nº '+ctr+' já existe em outro cliente do Faturamento');}
   if(forte&&!numOk)ret.push('a evidência é pedido/contrato, mas falta o Nº real');
@@ -3623,7 +3623,7 @@ function _cvFatSimHtml(l){
    Fonte única: endereço, mobilização, valor mensal e código do serviço são gravados de volta no card (sem duplicar). ===== */
 var _FV={passos:{},busy:false};
 var _FV_REQ=[['cv-area','Pilar / área'],['cv-tipo','Serviço específico'],['cv-resumo','Resumo do projeto'],['cv-volume','Volume de entrega'],['cv-escopo','Detalhamento do escopo'],['cv-inicio','Data de início (ou "A confirmar")'],['cv-mob','Mobilização'],['cv-endereco','Endereço de execução'],['cv-horarios','Horários / frequência'],['cv-focais','Pontos focais (cliente)'],['cv-fat','Requisitos de faturamento (ou "Não aplicável")'],['cv-docs','Requisitos operacionais (ou "Não aplicável")'],['ft-valor','Valor mensal (R$)']];
-var _FV_FICHA=['cidade','uf','area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','contrata','cargo','perfil','vagas','cargahor','remun','benef','coord'];
+var _FV_FICHA=['cidade','uf','area','tipo','resumo','volume','escopo','inicio','horarios','focais','fat','docs','cargo','perfil','cargahor','coord'];
 (function(){try{var s=document.createElement('style');s.textContent='.fv-falta{outline:2px solid #B23A48!important;background:#FFF3F3!important;border-radius:6px}#ov-venda.fv-compacto .fv-pronto{display:none!important}';document.head.appendChild(s);}catch(e){}})();
 /* 03/11/2026 — Léo: venda = start da implantação. Abertura = 1º dia útil APÓS a venda (nunca o próprio dia; fim de semana e feriado pulam). Vaga: cargo+nível OU remuneração+benefício. */
 function _fvIsoUTC(d){return d.getUTCFullYear()+'-'+('0'+(d.getUTCMonth()+1)).slice(-2)+'-'+('0'+d.getUTCDate()).slice(-2);}
@@ -3633,7 +3633,7 @@ function _fvV2(D,l){
   D.abertura=_fvAbertura(l);
   var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||''];if(tv)D.tipoVenda=tv;
   var ctr=_cvV('ft-ctr');if(ctr)D.numeroContrato=ctr;
-  if(/^s/i.test(_cvV('cv-contrata'))){D.vagas=_cvV('cv-vagas');D.cargo=_cvV('cv-cargo');D.perfil=_cvV('cv-perfil');D.cargaHoraria=_cvV('cv-cargahor');if(!D.cargo)D.remuneracao=_cvV('cv-remun');}
+  if(_cvV('cv-cargo')||_cvV('cv-perfil')||_cvV('cv-cargahor')){D.cargo=_cvV('cv-cargo');D.perfil=_cvV('cv-perfil');D.cargaHoraria=_cvV('cv-cargahor');}
   return D;
 }
 /* 04/11/2026 — data da venda estável: dataVenda manual; senão a 1ª vez que o histórico registra "→ VENDIDA" (evita que edições posteriores movam a venda de mês); senão alteradoEm; senão dt */
@@ -3652,13 +3652,7 @@ function _fvFaltamTudo(){
   var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
   var _lt=_cvLead();if(!_lt||!/^[PR]$/.test(String(_lt.tipo||'')))f.push(['cv-tipopr','Tipo da venda (P ou R): defina no card do lead']);
   var _cs=_COORD_AREA[_cvV('cv-area')]||[];if(_cs.length>1&&!_cvV('cv-coord'))f.push(['cv-coord','Coordenador da carteira: escolha qual coordenador atende esta carteira']);
-  var c=_cvV('cv-contrata');
-  if(!c){f.push(['cv-contrata','Há contratação de equipe nesta venda? (Sim/Não)']);}
-  else if(/^s/i.test(c)){
-    if(!_cvV('cv-vagas'))f.push(['cv-vagas','Número de vagas']);
-    var tc=_cvV('cv-cargo')&&_cvV('cv-perfil'),tp=_cvV('cv-remun')&&_cvV('cv-benef');
-    if(!tc&&!tp){[['cv-cargo','Cargo (ou remuneração + benefício)'],['cv-perfil','Nível / perfil do cargo'],['cv-remun','Remuneração (se não informar o cargo)'],['cv-benef','Benefício (se não informar o cargo)']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});}
-  }
+  /* 09/11/2026 — Léo: o comercial não decide vaga; informa só serviço e cargo vendido (Júnior/Pleno/Sênior) e a carga horária (recorrente). Sem pergunta de contratação, sem nº de vagas, remuneração ou benefício. */
   /* 04/11/2026 — trava Faturamento (PR 1): cadastro do cliente + dados do contrato recorrente que o SIGE já tem */
   var _lg=_cvLead()||{};
   if(String(_lg.cnpj||'').replace(/\D/g,'').length!==14)f.push(['cv-cnpj','CNPJ do cliente (14 dígitos): complete o cadastro do cliente no card do lead']);
@@ -4105,6 +4099,7 @@ function _ftDados(l){
   var d={};_FT_CAMPOS.forEach(function(k){d[k]='';});
   var f0=(_opContatos()||[]).filter(function(c){return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();})[0];
   d.valor=(l.valorMensal!=null&&l.valorMensal!=='')?String(Number(l.valorMensal).toFixed(2)).replace('.',','):'';
+  if(String(l.tipo||'').toUpperCase()==='P'&&Number(l.valor)>0)d.valor=String(Number(l.valor).toFixed(2)).replace('.',',');
   d.cod=l.codServico||'';d.coord=f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'';d.coordmail=f0?(f0.email||''):'';
   var g=_ftJ(l.ftDados)||{};Object.keys(g).forEach(function(k){if(g[k]!=null)d[k]=String(g[k]);});
   return d;
