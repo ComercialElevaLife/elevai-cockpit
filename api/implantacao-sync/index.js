@@ -140,6 +140,25 @@ module.exports = async function (context, req) {
       context.res = json(200, { ok: true, modo: 'comparar', cliente: p.cliente, abertura: iso(ab), etapasReais: reais.length, linhas: linhas });
       return;
     }
+    if (p.modo === 'listar') {
+      // Lista as implantações existentes (nome, empresa, CNPJ, unidade, UF, tipo de venda, prazo da etapa 1). Só leitura.
+      const mapa = {};
+      todos.forEach(function (i) {
+        const k = s(i.f.field_1).trim();
+        if (!k) return;
+        const o = mapa[k] || (mapa[k] = { cliente: k, empresa: '', cnpj: '', unidade: '', uf: '', tipoVenda: '', etapas: 0, etapa1Prazo: null });
+        o.etapas++;
+        if (!o.empresa) o.empresa = s(i.f.Empresa);
+        if (!o.cnpj) o.cnpj = s(i.f.CNPJ);
+        if (!o.unidade) o.unidade = s(i.f.Unidade);
+        if (!o.uf) o.uf = s(i.f.UFPrestacaoServico);
+        if (!o.tipoVenda) o.tipoVenda = s(i.f.TipoVenda);
+        if (parseInt(i.f.field_3, 10) === 1) o.etapa1Prazo = s(i.f.field_10).slice(0, 10) || null;
+      });
+      const lista = Object.keys(mapa).map(function (c) { return mapa[c]; });
+      context.res = json(200, { ok: true, modo: 'listar', total: lista.length, implantacoes: lista });
+      return;
+    }
     if (p.modo === 'gravar') { context.res = json(200, { ok: true, modo: 'gravar', gravou: false, aviso: 'Gravação ainda não habilitada: esta versão só simula.' }); return; }
     // modo 'simular' (padrão)
     const cliente = s(p.cliente).trim();
