@@ -96,6 +96,58 @@ async function avisarTeams(txt) {
   } catch (e) { return { ok: false, erro: String((e && e.message) || e).slice(0, 120) }; }
 }
 
+// Fase 4: acha o cliente no Faturamento (CNPJ primeiro; depois nome + unidade) ou monta o cadastro novo.
+// Regra anti-duplicidade: nunca cria se já existe; se estiver ambíguo, devolve erro para o Financeiro escolher.
+function resolverCliente(c, clis) {
+  c = c || {};
+  const dig = function (v) { return String(v == null ? '' : v).replace(/\D/g, ''); };
+  const nrm = function (v) { return String(v == null ? '' : v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim(); };
+  const nome = String(c.nome || c.razao || '').trim(), razao = String(c.razao || '').trim();
+  let un = String(c.unidade || '').trim();
+  if (/^n[aã]o informad/i.test(un)) un = '';
+  const cnpj = dig(c.cnpj);
+  if (!nome) return { erro: 'Cliente não encontrado no Faturamento e faltam os dados do cliente (nome) para cadastrá-lo.' };
+  if (cnpj.length === 14) {
+    let ach = clis.filter(function (x) { return dig(x.f.CNPJ) === cnpj; });
+    if (ach.length > 1 && un) { const f2 = ach.filter(function (x) { return nrm(x.f.Unidade) === nrm(un) || nrm(x.f.Title).indexOf(nrm(un)) >= 0; }); if (f2.length) ach = f2; }
+    if (ach.length === 1) return { achado: ach[0], por: 'CNPJ' };
+    if (ach.length > 1) return { erro: 'Há ' + ach.length + ' clientes com o CNPJ ' + c.cnpj + ' no Faturamento (' + ach.map(function (x) { return String(x.f.Title || ''); }).join('; ') + '): o Financeiro precisa escolher qual usar.' };
+  }
+  if (cnpj.length !== 14 && !un) return { erro: 'Cliente não encontrado no Faturamento e sem CNPJ nem unidade para conferir duplicidade: informe o CNPJ (ou a unidade) no lead antes de lançar.' };
+  if (un) {
+    const chave = nrm(nome + ' ' + un);
+    const porNome = clis.filter(function (x) { return nrm(x.f.Title) === chave || (razao && nrm(x.f.RazaoSocial) === nrm(razao) && nrm(x.f.Unidade) === nrm(un)); });
+    if (porNome.length === 1) {
+      const cj = dig(porNome[0].f.CNPJ);
+      if (cnpj.length === 14 && cj && cj !== cnpj) return { erro: 'Já existe "' + String(porNome[0].f.Title || '') + '" no Faturamento com outro CNPJ (' + String(porNome[0].f.CNPJ || '') + '). O Financeiro precisa conferir antes de lançar.' };
+      return { achado: porNome[0], por: 'nome + unidade' };
+    }
+    if (porNome.length > 1) return { erro: 'Há ' + porNome.length + ' clientes parecidos (' + porNome.map(function (x) { return String(x.f.Title || ''); }).join('; ') + ') no Faturamento: o Financeiro precisa escolher.' };
+  }
+  const pend = [];
+  if (cnpj.length !== 14) pend.push('Informar o CNPJ do cliente.');
+  if (!razao) pend.push('Informar a razão social.');
+  if (!c.area) pend.push('Informar a área do serviço.');
+  if (!c.local) pend.push('Informar a cidade do serviço.');
+  if (!c.coordenador || !c.coordenadorEmail) pend.push('Informar o coordenador (nome e e-mail).');
+  if (!c.aprovadorNome || !c.aprovadorEmail) pend.push('Informar o focal que aprova o boletim (nome e e-mail).');
+  pend.push('Informar a regra do pedido de compra (OC).');
+  return { criar: { Title: un ? nome + ' – ' + un : nome, RazaoSocial: razao, CNPJ: String(c.cnpj || '').trim(), Unidade: un, Local: String(c.local || '').trim(), Area: String(c.area || '').trim(), Coordenador: String(c.coordenador || '').trim(), CoordenadorEmail: String(c.coordenadorEmail || '').trim(), AprovadorNome: String(c.aprovadorNome || '').trim(), AprovadorEmail: String(c.aprovadorEmail || '').trim(), Ativo: true, Pendencias: pend.join('\n'), Observacoes: 'Cadastro criado automaticamente pelo SIGE' + (c.leadId ? ' (lead ' + c.leadId + ')' : '') + ' em ' + new Date().toISOString().slice(0, 10) + '. Conferir os dados.' } };
+}
+// Só envia ao SharePoint as colunas que existem em FAT_Clientes e, se a coluna for de escolha, só valores permitidos.
+function camposClienteValidos(cc, cols) {
+  const out = {};
+  Object.keys(cc).forEach(function (k) {
+    const col = cols.find(function (x) { return x.name === k; });
+    if (k !== 'Title' && !col) return;
+    const v = cc[k];
+    if (v === '' || v === null || v === undefined) return;
+    if (col && col.choice && col.choice.choices && col.choice.choices.indexOf(v) < 0) return;
+    out[k] = v;
+  });
+  return out;
+}
+
 module.exports = async function (context, req) {
   try {
     if (!requireDomain(context, req)) return;
@@ -126,21 +178,29 @@ module.exports = async function (context, req) {
       context.res = json(200, { ok: true, modo: 'reverter', reverteu: true, contratoId: alvo.id, teams: tR });
       return;
     }
-    const leadId = s(p.leadId).trim(), clienteId = s(p.clienteId).trim();
+    const leadId = s(p.leadId).trim();
+    let clienteId = s(p.clienteId).trim();
     const servico = s(p.servico).trim(), numero = s(p.numero).trim();
     const valor = Number(p.valor) || 0;
     const valorDoc = Number(p.valorDocumento) || 0; // valor mensal lido do pedido/contrato assinado (opcional; sem ele nunca entra como Vigente)
     const TOL = (process.env.FAT_TOLERANCIA !== undefined && process.env.FAT_TOLERANCIA !== '' && Number(process.env.FAT_TOLERANCIA) >= 0) ? Number(process.env.FAT_TOLERANCIA) : 1;
     if (!leadId) return erro('Falta o id do lead.');
-    if (!clienteId) return erro('Cliente não encontrado no Faturamento: cadastre o cliente lá (a criação automática de cliente é uma fase futura).');
+    // Fase 4: sem clienteId, o cliente é procurado (CNPJ, depois nome + unidade) ou criado mais abaixo.
     if (!servico || /^(AF|AE|GL|ACAD|GR)$/i.test(servico) || /^servi.o a confirmar$/i.test(servico)) return erro('Informe o nome do serviço (ex.: o Resumo do projeto), não só o código (AF, GL, ACAD, AE, GR).');
     if (!numero) return erro('Falta o Nº do contrato (use o provisório PROV-...).');
 
     const lidI = await listaId('FAT_Itens'), lidCli = await listaId('FAT_Clientes');
     const [cts, its, clis] = await Promise.all([itensRaw(lidC), itensRaw(lidI), itensRaw(lidCli)]);
-    const cli = clis.find(function (x) { return x.id === clienteId; });
-    if (!cli) return erro('Cliente id ' + clienteId + ' não existe no Faturamento.');
-    const doCli = cts.filter(function (c) { return s(c.f.ClienteId) === clienteId; });
+    let cli = clienteId ? clis.find(function (x) { return x.id === clienteId; }) : null;
+    if (clienteId && !cli) return erro('Cliente id ' + clienteId + ' não existe no Faturamento.');
+    let criarCli = null, achadoPor = '';
+    if (!cli) {
+      const rc = resolverCliente(p.cliente, clis);
+      if (rc.erro) return erro(rc.erro);
+      if (rc.achado) { cli = rc.achado; clienteId = String(cli.id); achadoPor = rc.por; } else { criarCli = rc.criar; }
+    }
+    const cliTitulo = cli ? s(cli.f.Title) : criarCli.Title;
+    const doCli = clienteId ? cts.filter(function (c) { return s(c.f.ClienteId) === clienteId; }) : [];
     const base = p.contratoBaseId ? doCli.find(function (c) { return c.id === s(p.contratoBaseId); }) : null;
     if (p.contratoBaseId && !base) return erro('Contrato base não pertence a esse cliente.');
     const ja = cts.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === leadId && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
@@ -180,11 +240,11 @@ module.exports = async function (context, req) {
     campos.Title = numero; campos.ClienteId = clienteId; campos.Versao = versao; campos.Status = statusFinal;
     if (p.ini) campos.Inicio = s(p.ini); if (p.fim) campos.Fim = s(p.fim);
     campos.Origem = 'SIGE'; campos.LeadId = leadId; campos.EvidenciaTipo = tipo; campos.EvidenciaRef = ref;
-    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : (entraVigente ? 'Validada automaticamente' : 'Aguardando validação'); campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = s(cli.f.Title);
+    campos.ValidacaoStatus = nivel === 3 ? 'Retida' : (entraVigente ? 'Validada automaticamente' : 'Aguardando validação'); campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = cliTitulo;
     if (nomesCol.indexOf('Observacoes') >= 0) campos.Observacoes = 'Lançado pelo SIGE (lead ' + leadId + ') como ' + statusFinal + (entraVigente ? ': valor conferido com o documento (' + moeda(valorDoc) + ', tolerância ' + moeda(TOL) + ').' : ': aguardando validação do Financeiro. Não fatura até mudar o Status para Vigente.') + (quemNome(req) ? ' Lançado por ' + quemNome(req) + '.' : '');
 
     const linhas = [
-      'Cliente: ' + s(cli.f.Title) + ' (existente, não é alterado).',
+      (criarCli ? 'Cliente: será CRIADO no Faturamento: "' + cliTitulo + '"' + (criarCli.CNPJ ? ' · CNPJ ' + criarCli.CNPJ : ' · sem CNPJ') + ' (não existe lá; nasce com Pendências para o Financeiro/coordenador completar: ' + String(criarCli.Pendencias || '').split('\n').filter(Boolean).length + ').' : 'Cliente: ' + cliTitulo + (achadoPor ? ' (já existe, encontrado por ' + achadoPor + '; não é alterado, não duplica).' : ' (existente, não é alterado).')),
       base ? 'Contrato: nova Versão v' + versao + ' do contrato Nº ' + s(base.f.Title) + ' (v' + (Number(base.f.Versao) || 1) + ' continua como está), copiando ' + copiar.length + ' item(ns).' : 'Contrato: novo, v' + versao + '.',
       'Nº: ' + numero + ' · Status: ' + statusFinal + (entraVigente ? '' : ' (não fatura)') + ' · Vigência: ' + (fmtBR(campos.Inicio) || 'a informar') + ' a ' + (fmtBR(campos.Fim) || 'a informar') + '.',
       'Item novo: "' + servico + '" · ' + moeda(valor) + '/mês' + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + '.',
@@ -206,6 +266,13 @@ module.exports = async function (context, req) {
     // ---- GRAVAÇÃO (só chega aqui com FAT_SYNC_LIVE=1, modo 'gravar', sem bloqueio) ----
     const sid = await siteId();
     for (const n of faltam) { try { await g.graph('POST', '/sites/' + sid + '/lists/' + lidC + '/columns', { name: n, text: {} }); } catch (e) { if (e.status !== 409) throw e; } }
+    if (criarCli) {
+      const ccol = await colunas(lidCli);
+      const campoCli = camposClienteValidos(criarCli, ccol);
+      const cn = await g.graph('POST', '/sites/' + sid + '/lists/' + lidCli + '/items', { fields: campoCli });
+      clienteId = String(cn.id); campos.ClienteId = clienteId;
+      context.log('[faturamento-sync] criou cliente ' + clienteId + ' (' + cliTitulo + ') lead~' + leadId + ' por~' + quem(req));
+    }
     const novo = await g.graph('POST', '/sites/' + sid + '/lists/' + lidC + '/items', { fields: campos });
     const novoId = String(novo.id);
     let n = 0;
@@ -214,8 +281,8 @@ module.exports = async function (context, req) {
     if (p.oc) fi.NumPedido = s(p.oc); if (p.cod) fi.CodigoServicoNF = s(p.cod); if (Number(p.prazo)) fi.PrazoFaturamento = Number(p.prazo);
     await g.graph('POST', '/sites/' + sid + '/lists/' + lidI + '/items', { fields: fi });
     context.log('[faturamento-sync] gravou lead=' + leadId + ' contrato=' + novoId + ' v' + versao + ' status=' + statusFinal + ' por=' + quem(req));
-    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + s(cli.f.Title) + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
-    await AUD.registrar(req, 'enviou', { entidade: 'faturamento', registroId: String(leadId), registroNome: s(cli.f.Title), resumo: 'Enviou ao Faturamento: ' + s(cli.f.Title) + ' · ' + servico + ' · ' + moeda(valor) + ' (' + statusFinal + ')', detalhe: 'contrato ' + novoId + ' · Nº ' + numero + ' v' + versao });
+    const t = await avisarTeams('📥 SIGE lançou no Faturamento um contrato ' + statusFinal.toUpperCase() + ': ' + cliTitulo + ' · Nº ' + numero + ' (v' + versao + ') · ' + servico + ' · ' + moeda(valor) + '/mês.' + (entraVigente ? ' Valor conferido com o documento; entra como Vigente.' : ' Não fatura até o Financeiro conferir e mudar o Status para Vigente.') + (ret.length ? ' Retido por: ' + ret.join('; ') + '.' : ''));
+    await AUD.registrar(req, 'enviou', { entidade: 'faturamento', registroId: String(leadId), registroNome: cliTitulo, resumo: 'Enviou ao Faturamento: ' + cliTitulo + ' · ' + servico + ' · ' + moeda(valor) + ' (' + statusFinal + ')', detalhe: 'contrato ' + novoId + ' · Nº ' + numero + ' v' + versao });
     context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: novoId, plano: plano, linhas: linhas, teams: t, ajustes: ajLinhas });
   } catch (e) {
     context.res = json(e.status || 500, { ok: false, error: String((e && e.message) || e).slice(0, 300) });

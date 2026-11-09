@@ -3596,7 +3596,7 @@ function _cvFatSim(l){
   var pl=[],cli=m.clientes.length===1?m.clientes[0]:null;
   if(cli)pl.push('Cliente: usar o existente "'+(cli.nome||cli.razao)+'" (nada é alterado nele).');
   else if(m.clientes.length)pl.push('Cliente: ambíguo, nada seria gravado até o Financeiro escolher.');
-  else pl.push('Cliente: criar "'+(l.razaoSocial||l.cliente||'—')+'"'+(l.cnpj?' · CNPJ '+l.cnpj:'')+' (conferir antes se não é duplicado).');
+  else pl.push('Cliente: criar "'+(l.razaoSocial||l.cliente||'—')+'"'+(l.cnpj?' · CNPJ '+l.cnpj:'')+' (o sistema confere antes o CNPJ e depois nome + unidade no Faturamento: se já existir, usa o existente e não duplica).');
   var numFinal=numOk?ctr:((ct&&_cvNumOk(ct.numero))?ct.numero:(ctr||'PROV-'+_cvNorm(l.cliente||'X').replace(/\s+/g,'-')+'-'+new Date().getFullYear()));
   var st=nivel===1?'Vigente':(nivel===2?'Provisório (não fatura)':'Retido (não fatura) e alerta ao Financeiro');
   var atuais=ct?m.itens.filter(function(i){return i.contratoId===ct.id;}):[];
@@ -3610,7 +3610,7 @@ function _cvFatSim(l){
   pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
   var iso=function(d){var q=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d||'').trim());return q?q[3]+'-'+q[2]+'-'+q[1]:'';};
   var servOk=!!serv&&!/^(AF|AE|GL|ACAD|GR)$/i.test(serv.trim())&&!/^servi.o a confirmar$/i.test(serv.trim());
-  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc};
+  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc,cliente:{leadId:String(l.id||l._sid||''),nome:String(l.cliente||'').trim(),razao:String(l.razaoSocial||'').trim(),cnpj:String(l.cnpj||'').trim(),unidade:String(l.unidade||'').trim(),area:({AF:'Atividades Físicas',ACAD:'Atividades Físicas',GL:'Atividades Físicas',AE:'Ergonomia',QM:'Terapias'})[String(l.serv||'').trim().toUpperCase()]||''}};
   return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl,dados:dados,servOk:servOk};
 }
 function _cvFatSimHtml(l){
