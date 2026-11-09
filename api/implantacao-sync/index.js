@@ -1,7 +1,7 @@
 // implantacao-sync — SIMULAÇÃO da criação automática de Implantação (09/11/2026).
 // Lê a lista "Implantação de Serviços Kanban" (site BPM) e devolve o que SERIA criado ao fechar uma venda,
 // espelhando as regras do painel (modelo = linhas sem cliente; prazos em dias úteis; responsáveis; status inicial).
-// NÃO GRAVA NADA. O modo 'gravar' ainda não existe (só será ligado depois de comparar com o painel e com aprovação).
+// Modo 'gravar' (cria só a etapa 1 com prazo; desligado salvo IMPL_SYNC_LIVE=1); 'simular' e 'listar' não gravam nada.
 // GET  -> { ok, live:false, lista, etapasModelo }
 // POST -> { modo:'simular', cliente, unidades:[{nome,cidade,uf,data}], area, tipoVenda, usuario, empresa, cnpj, endereco, cargo, cargaHoraria }
 //      -> { modo:'comparar', cliente, abertura:'AAAA-MM-DD', uf, cidade } compara prazos calculados x reais de uma implantação existente.
@@ -159,7 +159,58 @@ module.exports = async function (context, req) {
       context.res = json(200, { ok: true, modo: 'listar', total: lista.length, implantacoes: lista });
       return;
     }
-    if (p.modo === 'gravar') { context.res = json(200, { ok: true, modo: 'gravar', gravou: false, aviso: 'Gravação ainda não habilitada: esta versão só simula.' }); return; }
+    if (p.modo === 'gravar') {
+      // GRAVAÇÃO (Fase Implantação): só liga com IMPL_SYNC_LIVE=1 no Azure. Cria as etapas-modelo de cada unidade,
+      // com PRAZO SÓ NA ETAPA 1 (proposta do Cris: as demais só contam quando a anterior é concluída). Não duplica
+      // implantação já existente e, se qualquer etapa falhar, apaga o que acabou de criar (nada fica pela metade).
+      if (process.env.IMPL_SYNC_LIVE !== '1') { context.res = json(200, { ok: true, modo: 'gravar', gravou: false, live: false, aviso: 'Gravação desligada (IMPL_SYNC_LIVE). Use o modo simular.' }); return; }
+      const clienteG = s(p.cliente).trim();
+      if (!clienteG) return erro('Falta o nome do cliente.');
+      if (!s(p.area).trim()) return erro('Falta a área de serviço.');
+      if (!modelo.length) return erro('Modelo de etapas não encontrado na lista.');
+      const unidG = (Array.isArray(p.unidades) && p.unidades.length ? p.unidades : [{ nome: '' }]);
+      const existG = {};
+      todos.forEach(function (i) { const k = s(i.f.field_1).trim().toLowerCase(); if (k) existG[k] = 1; });
+      const sidG = await siteId();
+      const colsG = await g.graph('GET', '/sites/' + sidG + '/lists/' + LISTA_ID + '/columns?$top=500');
+      const nomesG = {};
+      (colsG.value || []).forEach(function (c) { nomesG[c.name] = 1; });
+      const criadas = [], puladas = [], avisosG = [];
+      let falha = '';
+      for (const u of unidG) {
+        const nomeFinal = u.nome ? clienteG + ' - ' + s(u.nome).trim() : clienteG;
+        if (existG[nomeFinal.toLowerCase()]) { puladas.push({ cliente: nomeFinal, motivo: 'já existe implantação com esse nome (não duplica)' }); continue; }
+        let ab = parseData(u.data);
+        if (!ab) { ab = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12)); avisosG.push(nomeFinal + ': data de abertura não informada; usada a data de hoje.'); }
+        const P = prazos(ab, u.uf, u.cidade);
+        for (const m of modelo) {
+          const n = parseInt(m.f.field_3, 10);
+          const areaResp = s(m.f.field_5);
+          const visual = /comunica[cç][aã]o visual/i.test(s(m.f.Title));
+          const campos = { Title: s(m.f.Title), field_1: nomeFinal, field_2: s(p.area), field_3: m.f.field_3, field_4: m.f.field_4, field_5: visual ? 'RH' : areaResp,
+            field_12: (/VENDAS|MARKETING/i.test(areaResp) || visual) ? 'A fazer' : 'A definir' };
+          if (n === 1 && P[1]) campos.field_10 = iso(P[1]);
+          ['field_7', 'field_8', 'field_9', 'field_13'].forEach(function (c) { if (nomesG[c] && m.f[c] !== undefined && m.f[c] !== null && m.f[c] !== '') campos[c] = m.f[c]; });
+          const extra = { EmailResponsavel: emailEtapa(visual ? 'RH' : areaResp, p.area, s(p.tipoVenda), s(p.usuario)), EmailCoordenador: s(p.coordenadorEmail), CriadoPor: s(p.usuario) || 'SIGE',
+            TipoVenda: s(p.tipoVenda), Unidade: s(u.nome), Empresa: s(p.empresa), CNPJ: s(p.cnpj), UFPrestacaoServico: s(u.uf) };
+          Object.keys(extra).forEach(function (c) { if (nomesG[c] && extra[c]) campos[c] = extra[c]; });
+          try {
+            const r = await g.graph('POST', '/sites/' + sidG + '/lists/' + LISTA_ID + '/items', { fields: campos });
+            criadas.push(String(r.id));
+          } catch (e) { falha = 'Falha na etapa ' + n + ' de ' + nomeFinal + ': ' + (e && e.message ? e.message : e); break; }
+        }
+        if (falha) break;
+      }
+      if (falha) {
+        let apagadas = 0;
+        for (const id of criadas) { try { await g.graph('DELETE', '/sites/' + sidG + '/lists/' + LISTA_ID + '/items/' + id); apagadas++; } catch (e) { /* segue apagando as demais */ } }
+        context.res = json(500, { ok: false, modo: 'gravar', gravou: false, error: falha, desfeitas: apagadas, criadasAntesDaFalha: criadas.length });
+        return;
+      }
+      try { AUD.registrar(req, 'gravou', { entidade: 'implantacao', registroId: clienteG, resumo: 'Criou implantação (' + clienteG + ')', detalhe: criadas.length + ' etapa(s); ' + puladas.length + ' unidade(s) puladas' }); } catch (e) { /* auditoria é best-effort */ }
+      context.res = json(200, { ok: true, modo: 'gravar', gravou: criadas.length > 0, live: true, etapasCriadas: criadas.length, itens: criadas, puladas: puladas, avisos: avisosG });
+      return;
+    }
     // modo 'simular' (padrão)
     const cliente = s(p.cliente).trim();
     if (!cliente) return erro('Falta o nome do cliente.');
