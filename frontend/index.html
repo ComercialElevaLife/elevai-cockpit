@@ -1417,6 +1417,13 @@ function _saleDtOf(l){
   try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
   return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
 }
+/* 09/11/2026 — data de venda REAL: dataVenda ou 1º evento '→ VENDIDA' do histórico. Sem isso devolve '' (não usa alteradoEm nem a data de entrada). */
+function _saleDtReal(l){
+  if(!l)return '';
+  if(l.dataVenda)return String(l.dataVenda).slice(0,10);
+  try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
+  return '';
+}
 function compute(){
   /* 25/08/2026 — leads inativados (backlog: nem perdidos nem pausados, "Inativar" no drawer do
      Kanban) ficam de fora deste filtro compartilhado — que alimenta o Painel KPI, o Kanban e a
@@ -1440,7 +1447,8 @@ function compute(){
     if(!passDims(r,true)) return false;
     /* 20/08/2026 — prioriza dataVenda (editável manualmente pelo Léo pra corrigir histórico
        lançado com data errada); fallback alteradoEm (automático) e por fim dt (criação). */
-    const saleDt=_saleDtOf(r);
+    const saleDt=_saleDtReal(r); /* 09/11/2026 — sem data real de venda: fora dos indicadores (não cai mais no dia da última edição) */
+    if(!saleDt) return false;
     return inRange({dt:saleDt});
   });
   /* 08/09/2026 -- Léo: os 3 indicadores que ele acompanha (ENTRADA LEAD / ENVIO PROPOSTA /
@@ -2699,7 +2707,7 @@ class App {
        shell já filtra pela data EFETIVA de fechamento (alteradoEm, fallback dt) — com fallback pro
        comportamento antigo caso RAW.vendidos não seja passado (compat). */
     const vvPainel=l=>(l.valorFechamento!=null&&l.valorFechamento!==''?(+l.valorFechamento||0):(+l.valor||0));
-    const vendidosSrc=RAW.vendidos||this.fL.filter(l=>l.status==='VENDIDA');
+    const vendidosSrc=(RAW.vendidos||this.fL.filter(l=>l.status==='VENDIDA')).filter(l=>_saleDtReal(l)); /* 09/11/2026 — venda sem data real (sem dataVenda e sem evento '→ VENDIDA' no histórico) NÃO entra nos indicadores: antes caía no dia da última edição do lead e inflava o mês corrente. Fica fora até a data ser confirmada com evidência. */
     this.fV=vendidosSrc.map(l=>{
       /* 20/08/2026 — prioriza dataVenda (editável, corrige histórico lançado com data errada). */
       const saleDt=_saleDtOf(l);
