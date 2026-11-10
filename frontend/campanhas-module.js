@@ -267,7 +267,8 @@
       if (q && norm([it.nome, it.sobrenome, it.cargo, it.empresaNome, it.email].join(' ')).indexOf(q) < 0) return false;
       return true;
     }).sort(function (a, b) { if (S.f.acao) return String(a.p.data || '9').localeCompare(String(b.p.data || '9')); return b.c.total - a.c.total; });
-    var hojeN = linhas.filter(function (x) { return acaoPrazo(x.p); }).length;
+    var hojeN = linhas.filter(function (x) { return (x.it.estado || 'Na fila') !== 'Na fila' && acaoPrazo(x.p); }).length;
+    var filaN = cont['Na fila'] || 0;
 
     var html = '<div class="cmp">' +
       '<div class="cmp-top"><h2>Campanhas</h2><span style="flex:1"></span>' +
@@ -279,7 +280,8 @@
       '<div class="cmp-kpi"><b>' + ((cont['Conectado'] || 0) + (cont['Em conversa'] || 0)) + '</b><span>conectados / em conversa</span></div>' +
       '<div class="cmp-kpi"><b>' + prontos + '</b><span>prontos para promover (nota ≥ ' + NOTA_MIN + ' + resposta)</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Qualificado'] || 0) + '</b><span>já promovidos ao Kanban</span></div>' +
-      '<div class="cmp-kpi"><b>' + hojeN + '</b><span>ações vencidas ou para hoje</span></div></div>' +
+      '<div class="cmp-kpi"><b>' + hojeN + '</b><span>ações vencidas ou para hoje (já abordados)</span></div>' +
+      '<div class="cmp-kpi"><b>' + Math.min(filaN, LIMITE_DIA) + ' de ' + filaN + '</b><span>na fila: envio de hoje (limite ' + LIMITE_DIA + ' por dia útil)</span></div></div>' +
       '<div class="cmp-bar"><input data-f="q" placeholder="Buscar nome, cargo, empresa..." value="' + esc(S.f.q) + '" style="min-width:230px">' +
       '<select data-f="campanha"><option value="">Todas as campanhas</option>' + camps.map(function (c) { return '<option' + (S.f.campanha === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
       '<select data-f="estado"><option value="">Todos os estados</option>' + ESTADOS.map(function (e) { return '<option' + (S.f.estado === e ? ' selected' : '') + '>' + e + '</option>'; }).join('') + '</select>' +
