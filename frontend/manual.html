@@ -57,6 +57,7 @@
   <a href="#auto">4. Ações automáticas</a>
   <a href="#faq">5. Dúvidas frequentes</a>
   <a href="#seg">6. Segurança / Credenciais</a>
+  <a href="#campanhas">7. Campanhas e prospecção no LinkedIn</a>
 </nav>
 
 <section id="visao">
@@ -196,6 +197,9 @@ flowchart LR
   <h3 class="sub">🎯 Qualificação</h3>
   <p>Prioriza os leads em aberto por um <b>score de 0 a 100</b> (ICP + proposta + valor + estágio + recência + cliente atual), mostrando quem chamar primeiro. <i>Em definição: integração com o ActiveCampaign (depende de aprovação).</i></p>
 
+  <h3 class="sub">📣 Campanhas</h3>
+  <p>Tela de gestão dos contatos de prospecção (LinkedIn e outras campanhas). Cada contato tem estado (Na fila, Convite enviado, Conectado, Em conversa, Qualificado, Sem fit, Não contatar), passo da cadência e uma <b>nota de 0 a 100</b> (lead scoring). Só quem atinge o critério é <b>promovido ao Kanban</b>, pelo botão <b>Promover ao Kanban</b>, como <b>LEAD</b> com Fonte LinkedIn. Aceita importação de lista em CSV. Regras completas e o playbook de prospecção estão na <a href="#campanhas">seção 7</a>.</p>
+
   <h3 class="sub">✅ Tarefas</h3>
   <p>Todas as tarefas de todos os leads em uma lista só (respeita os filtros mestres), com KPIs (pendentes, concluídas, atrasadas). Dá para concluir, excluir e “abrir no CRM”. Criar/editar em detalhe é feito na ficha do lead (CRM).</p>
 
@@ -273,6 +277,91 @@ flowchart LR
     </tr>
   </table>
   <div class="auto"><b>Higiene:</b> ao gerar um token, copie direto da tela (aparece 1× só) para o cofre; ao rotacionar, sempre <b>revogue/delete o antigo</b>; nunca cole um token em chat/e-mail sem necessidade. Última rotação: <b>04/08/2026</b> (SWA token + PAT).</div>
+</section>
+
+<section id="campanhas">
+  <h2><span class="n">7.</span> Campanhas e prospecção no LinkedIn</h2>
+  <p>Esta seção reúne o <b>playbook de prospecção no LinkedIn</b> do Léo e explica como ele se liga à tela <b>Campanhas</b> (menu <i>Novas Receitas › Comercial › Campanhas</i>). A prospecção usa a conta pessoal do Léo, em ritmo humano e conservador, e tudo o que acontece fica registrado na tela. Atualizado em 10/11/2026.</p>
+
+  <h3 class="sub">7.1 Como a tela Campanhas se encaixa no funil</h3>
+  <p>A tela Campanhas é a <b>“sala de espera”</b> do funil: nela ficam todos os contatos que ainda <b>não são lead</b> (lista TARGET, base CPMT, convites enviados e aceitos). O Kanban só recebe quem passa pelas regras abaixo, já como <b>LEAD</b>, com Origem/Fonte <b>LinkedIn</b>, a Campanha da lista, o consultor e o motivo da nota. Assim o Kanban continua limpo, só com lead qualificado.</p>
+  <div class="mermaid">
+flowchart LR
+  A[Lista TARGET · CPMT · convites] --> B[Tela Campanhas]
+  B --> C{Bloqueios}
+  C -- empresa em negociação ou cliente 2026 --> X[Fora da abordagem fria]
+  C -- liberado --> D[Nota 0 a 100]
+  D --> E{Nota 60 ou mais<br/>e respondeu?}
+  E -- não --> B
+  E -- sim --> F[Botão Promover ao Kanban]
+  F --> G[LEAD no CRM · Kanban]
+  </div>
+
+  <h3 class="sub">7.2 Estados e passos de cada contato</h3>
+  <table>
+    <tr><th>Estado</th><th>Significado</th></tr>
+    <tr><td><b>Na fila</b></td><td>Importado, ainda sem convite.</td></tr>
+    <tr><td><b>Convite enviado</b></td><td>Aguardando o aceite.</td></tr>
+    <tr><td><b>Conectado</b></td><td>Aceitou; agradecimento e cadência em andamento.</td></tr>
+    <tr><td><b>Em conversa</b></td><td>Respondeu em algum passo.</td></tr>
+    <tr><td><b>Qualificado</b></td><td>Foi promovido ao Kanban.</td></tr>
+    <tr><td><b>Sem fit</b></td><td>Atua fora do público ou sem decisão sobre o tema.</td></tr>
+    <tr><td><b>Não contatar</b></td><td>Pediu para parar, ou a empresa está bloqueada. Sem exceção.</td></tr>
+  </table>
+
+  <h3 class="sub">7.3 Lead scoring (nota de 0 a 100)</h3>
+  <p>A nota soma duas partes: <b>fit</b> (quanto o contato combina com o cliente ideal, até 60 pontos) e <b>engajamento</b> (quanto ele reagiu, até 40 pontos).</p>
+  <table>
+    <tr><th>Critério</th><th>Pontos</th></tr>
+    <tr><td>Fit: empresa TARGET (etiqueta da Empresa) ou ICP A</td><td>25</td></tr>
+    <tr><td>Fit: cargo (médico do trabalho, coordenação ou gerência de SST, EHS ou RH com decisão sobre o tema; analista ou técnico vale metade)</td><td>20 (ou 10)</td></tr>
+    <tr><td>Fit: setor e porte compatíveis com o ICP (marcado na ficha do contato)</td><td>15</td></tr>
+    <tr><td>Engajamento: aceitou a conexão</td><td>10</td></tr>
+    <tr><td>Engajamento: respondeu a uma mensagem</td><td>15</td></tr>
+    <tr><td>Engajamento: perguntou sobre serviço, pediu conversa ou material</td><td>15</td></tr>
+  </table>
+  <div class="auto"><b>Regra de promoção:</b> nota <b>60 ou mais</b> <u>e</u> pelo menos uma <b>resposta</b> registrada. Quem só tem fit alto, sem reação, continua na tela de Campanhas. A promoção é <b>por botão</b> (você vê a nota e confirma); a automação fica para depois, quando houver confiança nos pesos.</div>
+
+  <h3 class="sub">7.4 Bloqueios (valem antes da nota)</h3>
+  <ul>
+    <li><b>Empresa em Em negociação</b> ou <b>cliente com venda em 2026</b>: bloqueado para abordagem fria. O contato só acontece alinhado com o consultor responsável.</li>
+    <li><b>Empresa em Pausada, Perdida ou Reativar</b>: o contato entra com um aviso e o histórico à vista, para decisão do Léo.</li>
+    <li><b>Empresa sem cadastro no SIGE</b>: cadastre antes em <i>Cadastro › Empresa</i>; a promoção só liga o lead a uma empresa existente, sem criar duplicada.</li>
+    <li><b>Pediu para parar</b>: estado Não contatar, sem exceção.</li>
+  </ul>
+
+  <h3 class="sub">7.5 O que o botão “Promover ao Kanban” grava</h3>
+  <p>Cria um <b>LEAD</b> com Fonte <b>LinkedIn</b>, a Campanha da lista, ICP (A quando a empresa é ICP A), o consultor informado no topo da tela (padrão Léo), data de abertura igual à data da promoção (regra de datas dos indicadores), o motivo da nota e o resumo da última resposta nas observações, e o registro no histórico do lead. Se o contato ainda não existir em Contatos, ele é cadastrado e vinculado à empresa. Novas vendas (cliente novo) são do Léo; upsell e cross-sell seguem com Operações.</p>
+
+  <h3 class="sub">7.6 Playbook de prospecção no LinkedIn</h3>
+  <p><b>Objetivo:</b> abrir conversas qualificadas com médicos do trabalho e profissionais de SST, pela conta pessoal do Léo (plano gratuito), com ritmo humano. Posicionamento: executivo de saúde corporativa, tom técnico e didático, sem promessa exagerada.</p>
+  <p><b>Regras de proteção da conta</b> (valem acima de qualquer meta):</p>
+  <table>
+    <tr><th>Regra</th><th>Valor</th></tr>
+    <tr><td>Convites por dia</td><td>10 a 15, nunca mais que 15</td></tr>
+    <tr><td>Convite</td><td>Sem nota; a personalização vem no agradecimento após o aceite</td></tr>
+    <tr><td>Dias e horário</td><td>Somente dias úteis, em horário comercial, com pausas variadas entre as ações</td></tr>
+    <tr><td>Mensagens novas por dia</td><td>Apenas agradecimento e follow-up previstos aqui</td></tr>
+    <tr><td>Limite semanal da conta</td><td>Sem fonte oficial confirmada; referência não oficial de cerca de 100 por semana. Acompanhar os convites pendentes</td></tr>
+    <tr><td>Sinal de alerta</td><td>Aviso de limite, pedido de verificação ou queda brusca de aceite: parar na hora e avisar o Léo</td></tr>
+  </table>
+  <p>O que nunca se faz: convite ou mensagem para quem já recusou ou ignorou duas vezes, texto idêntico em sequência, promessa de resultado, menção a preço, e envio fora do que o playbook autoriza.</p>
+  <p><b>Rotina de cada sessão</b> (começa quando o Léo pede para rodar o playbook do dia):</p>
+  <ol>
+    <li>Conferir se o LinkedIn está logado e sem aviso de limite ou verificação.</li>
+    <li>Ler na tela Campanhas quem está na fila do dia e quem aceitou desde a última sessão.</li>
+    <li>Agradecer primeiro as conexões aceitas, antes de enviar convites novos.</li>
+    <li>Enviar de 10 a 15 convites sem nota, abrindo o perfil de cada pessoa antes e registrando cargo e empresa.</li>
+    <li>Aplicar o follow-up para quem está no prazo da cadência.</li>
+    <li>Registrar cada ação na tela Campanhas (estado, passo e datas).</li>
+    <li>Entregar um resumo curto: enviados, aceites, respostas e leads para o Léo assumir.</li>
+  </ol>
+  <p><b>Cadência:</b> o agradecimento vai em até 2 dias úteis após o aceite e é obrigatório para toda conexão nova; o follow-up, 7 dias úteis depois, sem resposta; o encerramento, 10 dias úteis depois, sem resposta. São no máximo três contatos depois do aceite. Quem responde em qualquer passo para a cadência e segue para qualificação. Convite pendente há mais de 30 dias é retirado.</p>
+  <p><b>Tom das mensagens:</b> técnico e didático, em primeira pessoa, curto (até 4 frases), com uma pergunta real no fim. Cada agradecimento cita algo real do perfil da pessoa. Sem “prezado”, sem texto de venda e sem promessa de resultado. Na primeira mensagem não há oferta, preço, material nem pedido de reunião.</p>
+  <p><b>Quem faz o quê:</b> o Claude opera o LinkedIn pelo navegador do Léo e registra tudo na tela Campanhas. Para cada sessão, o Léo autoriza ao pedir para rodar o playbook do dia; qualquer texto fora dos modelos aprovados, ou qualquer pessoa fora da lista do dia, volta para aprovação. Rodadas agendadas sem o Léo apenas preparam a lista e os rascunhos, sem enviar. Em lead qualificado, o Léo decide o próximo passo; o Claude não negocia, não fala de preço e não marca reunião sem o aval dele.</p>
+
+  <h3 class="sub">7.7 Importar uma lista (CSV)</h3>
+  <p>Na tela Campanhas, <b>Importar lista (CSV)</b>. A primeira linha traz os títulos: <code>nome, sobrenome, cargo, empresa, linkedin, email, telefone, campanha, lista, icp</code> (só <code>nome</code> é obrigatório; <code>icp</code> = SIM marca empresa ICP A). Contatos que já existem (mesmo perfil, ou mesmo nome e empresa) são ignorados. A empresa é ligada ao cadastro do SIGE pelo nome, quando encontrada.</p>
 </section>
 
 <div class="foot">ElevaLife · Ergonomos — ElevAI Cockpit · manual gerado automaticamente</div>

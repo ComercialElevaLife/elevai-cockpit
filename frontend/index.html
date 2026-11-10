@@ -407,6 +407,7 @@ td .up{color:var(--ok);font-weight:700}
             <button class="subitem" data-v="crm"><span class="ic">🗂️</span><span class="lbl">CRM · Kanban</span></button>
             <button class="subitem" data-v="renov"><span class="ic">🔄</span><span class="lbl">Renovações</span></button>
             <button class="subitem" data-v="qual"><span class="ic">🎯</span><span class="lbl">Qualificação</span></button>
+            <button class="subitem" data-v="campanhas"><span class="ic">📣</span><span class="lbl">Campanhas</span></button>
             <button class="subitem" data-v="tarefas"><span class="ic">✅</span><span class="lbl">Tarefas</span></button>
             <button class="subitem" data-v="propostas"><span class="ic">📄</span><span class="lbl">Propostas</span></button>
             <div class="navgroup" id="navgroup-cadastro">
@@ -954,6 +955,15 @@ td .up{color:var(--ok);font-weight:700}
          carregado sob demanda na 1a abertura. propostas.html segue existindo como página avulsa. -->
     <div class="wrap" style="max-width:none">
       <div id="prop-host"></div>
+    </div>
+  </section>
+
+  <section class="view" id="view-campanhas" hidden>
+    <!-- 10/11/2026 -- Léo: tela Campanhas (gestão de contatos/leads de prospecção, lead scoring e promoção ao Kanban por botão).
+         Módulo próprio (campanhas-module.js), carregado sob demanda na 1a abertura; dados na lista Campanhas_Comercial (/api/campanhas).
+         Regras no manual (seção 7). -->
+    <div class="wrap" style="max-width:none">
+      <div id="camp-host"></div>
     </div>
   </section>
 
@@ -2522,8 +2532,8 @@ async function testWh(){setTeamsWebhook(q('cfg-url').value.trim());if(!window.ge
 /* ---- navegacao + binds ---- */
 /* 08/09/2026 — Marketing e o resto de Operações saíram do Cockpit (fora do escopo de Novas
    Receitas — ver motor-novas-receitas.md). Só Implantação de Serviços ficou, como acesso rápido. */
-const NOVAS_VIEWS=['op-implant','propostas'];
-const NOVOS_TITULOS={'op-implant':'Implantação de Serviços','propostas':'Propostas'};
+const NOVAS_VIEWS=['op-implant','propostas','campanhas'];
+const NOVOS_TITULOS={'op-implant':'Implantação de Serviços','propostas':'Propostas','campanhas':'Campanhas'};
 function toggleTopGroup(id){
   ['receitas','ajuda'].forEach(g=>{
     const el=q('navgroup-'+g); if(!el) return;
@@ -2544,11 +2554,20 @@ function mountPropostas(){
   sc.onerror=function(){ h.dataset.m=''; h.textContent='Não foi possível carregar o módulo Propostas.'; };
   document.head.appendChild(sc);
 }
+function mountCampanhas(){
+  var h=q('camp-host'); if(!h) return;
+  function go(){ if(h.dataset.m){ window.CampanhasModule.refresh(); } else { h.dataset.m='1'; window.CampanhasModule.mount(h); } }
+  if(window.CampanhasModule) return go();
+  var sc=document.createElement('script'); sc.src='campanhas-module.js'; sc.onload=go;
+  sc.onerror=function(){ h.textContent='Não foi possível carregar o módulo Campanhas.'; };
+  document.head.appendChild(sc);
+}
 function bindNav(){
   document.querySelectorAll('.nav button[data-v]').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('.nav button[data-v]').forEach(x=>x.classList.remove('on'));b.classList.add('on');
     const v=b.dataset.v; ACTIVE=v;
     ['painel','crm','renov','qual','tarefas','cadastro',...NOVAS_VIEWS].forEach(x=>{const s=q('view-'+x);if(s)s.hidden=(x!==v);});
+    if(v==='campanhas'){ mountCampanhas(); }
     if(v==='propostas'){ mountPropostas(); setTimeout(function(){ if(window.PropostasModule) window.PropostasModule.refit(); },60); }
     q('vtitle').textContent={painel:'Painel KPI',crm:'CRM · Kanban',renov:'Renovações',qual:'Qualificação',tarefas:'Tarefas',cadastro:'Cadastro',...NOVOS_TITULOS}[v];
     q('fltbar').hidden=(v==='cadastro'||v==='renov'||NOVAS_VIEWS.includes(v));
