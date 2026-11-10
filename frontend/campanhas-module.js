@@ -146,7 +146,7 @@
       r = base ? { txt: 'Aguardar aceite (retirar o convite se passar de 30 dias)', data: addDias(base, 30) } : { txt: 'Aguardar aceite', data: '' };
     } else if (est === 'Conectado') {
       var msg = ult(['Agradecimento', 'Retomada']);
-      if (!msg) { var ac = ult(['Aceite']); var d0 = ac ? String(ac.ts).slice(0, 10) : (it.dataAceite || ''); r = { txt: 'Enviar agradecimento', data: d0 ? addDU(d0, 2) : h }; }
+      if (!msg) { var ac = ult(['Aceite']); var d0 = ac ? String(ac.ts).slice(0, 10) : (it.dataAceite || ''); if (!d0) r = { txt: 'Enviar agradecimento', data: h }; else { var ini = addDU(d0, 1), fim = addDU(d0, 2); r = h > fim ? { txt: 'Agradecimento atrasado (a janela de 24h a 48h terminou em ' + br(fim) + '): enviar hoje', data: fim } : { txt: 'Enviar agradecimento (janela de ' + br(ini) + ' a ' + br(fim) + ', 24h a 48h após o aceite)', data: ini }; } }
       else {
         var base0 = String(msg.ts).slice(0, 10), fu = ult(['Follow-up']), enc = ult(['Encerramento']), mat = ev.filter(function (e) { return e.tipo === 'Material enviado'; });
         if (mat.length) {
