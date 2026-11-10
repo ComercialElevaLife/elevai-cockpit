@@ -295,6 +295,41 @@ const LISTS = {
       { name: 'alteradoPor', type: 'text' },
     ],
   },
+  // --- Campanhas (10/11/2026, Léo): "sala de espera" da prospecção (LinkedIn etc.). Lista PRÓPRIA e separada de
+  // Contatos/Leads de propósito (Leads já é larga e o SharePoint tem histórico de coluna fantasma em lista cheia).
+  // O contato só vira lead (status LEAD no Kanban, Fonte LinkedIn) quando o usuário clica "Promover ao Kanban".
+  // Nomes de coluna SEM dígito no final (ver aviso em observacoesLead: SharePoint mutila nomes assim).
+  campanhas: {
+    displayName: 'Campanhas_Comercial',
+    titleFrom: 'nome',
+    columns: [
+      { name: 'nome', type: 'text' },
+      { name: 'sobrenome', type: 'text' },
+      { name: 'cargo', type: 'text' },
+      { name: 'empresaNome', type: 'text' }, // nome como veio da lista de origem
+      { name: 'empresaId', type: 'text' }, // vínculo com Empresas_Comercial (preenchido pela tela quando acha a empresa)
+      { name: 'linkedinUrl', type: 'text' },
+      { name: 'email', type: 'text' },
+      { name: 'telefone', type: 'text' },
+      { name: 'campanha', type: 'text' }, // ex.: LinkedIn Médicos do Trabalho
+      { name: 'listaOrigem', type: 'text' }, // TARGET MED | TARGET NÃO MED | CPMT | ...
+      { name: 'icpA', type: 'text' }, // SIM = empresa ICP A (pontua fit)
+      { name: 'setorPorte', type: 'text' }, // SIM = setor e porte compatíveis (pontua fit)
+      { name: 'estado', type: 'text' }, // Na fila | Convite enviado | Conectado | Em conversa | Qualificado | Sem fit | Não contatar
+      { name: 'passo', type: 'text' }, // Agradecimento | Follow-up | Encerramento
+      { name: 'dataConvite', type: 'text' }, // YYYY-MM-DD
+      { name: 'dataAceite', type: 'text' }, // YYYY-MM-DD
+      { name: 'respondeu', type: 'text' }, // SIM | ''
+      { name: 'interesse', type: 'text' }, // SIM | ''
+      { name: 'resumoResposta', type: 'text', long: true },
+      { name: 'notaTotal', type: 'number' }, // gravada na promoção (histórico)
+      { name: 'motivoPromocao', type: 'text', long: true },
+      { name: 'leadIdCriado', type: 'text' }, // id do lead criado no Kanban
+      { name: 'promovidoEm', type: 'text' }, // ISO
+      { name: 'alteradoEm', type: 'text' },
+      { name: 'alteradoPor', type: 'text' },
+    ],
+  },
   // --- Sino de notificações (10/09/2026): aprovação de leads detectados em e-mail/Teams por
   // palavra-chave (Léo pediu um jeito de aprovar/atualizar/ignorar o que o scan encontra, em vez
   // de criar direto) + changelog automático de deploys ("novidades do sistema"). Mesma lista serve
