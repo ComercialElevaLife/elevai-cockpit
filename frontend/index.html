@@ -1096,7 +1096,13 @@ td .up{color:var(--ok);font-weight:700}
         <label>Coordenador do contrato (cliente)<input id="ft-coord"></label>
         <label>E-mail do coordenador<input id="ft-coordmail"></label>
         <label>Aprovador da medição<input id="ft-aprov"></label>
-        <label>E-mail do aprovador<input id="ft-aprovmail"></label>
+        
+        <label>Canal de envio da NF<select id="ft-canalnf"><option value="">—</option><option value="E-mail">E-mail</option><option value="Portal">Portal</option></select></label>
+        <label>E-mail(s) que recebem a NF <span style="font-weight:400;color:#8A7A78">— separar com ;</span><input id="ft-emailnf"></label>
+        <label>Portal de envio da NF<input id="ft-portalnf" placeholder="endereço ou nome do portal"></label>
+        <label>Grupo empresarial <span style="font-weight:400;color:#8A7A78">— só se houver mais de uma unidade</span><input id="ft-grupo" placeholder="razão social do grupo"></label>
+        <label>Contrato retém ISS?<select id="ft-retemiss"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
+        <label>Colaborador alocado no cliente?<select id="ft-colab"><option value="">—</option><option value="Sim">Sim</option><option value="Não">Não</option></select></label>
       </div>
       <div style="margin-top:8px;border-top:1px dashed #e3d9d6;padding-top:6px"><b style="font-size:12px">📎 Aditamento ao contrato (PDF)</b> <span style="color:#8A7A78;font-size:11.5px">— lido só neste navegador; o texto do contrato não é enviado a ninguém. Por enquanto só mostra o que o documento diz (não grava).</span><div style="margin-top:4px"><input type="file" id="ad-file" accept="application/pdf,.pdf" onchange="adLer(this)"></div><div id="ad-res" style="font-size:12px;margin-top:6px"></div></div>
       <div id="ft-status" style="font-size:12px;margin-top:8px"></div>
@@ -3610,7 +3616,7 @@ function _cvFatSim(l){
   pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
   var iso=function(d){var q=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d||'').trim());return q?q[3]+'-'+q[2]+'-'+q[1]:'';};
   var servOk=!!serv&&!/^(AF|AE|GL|ACAD|GR)$/i.test(serv.trim())&&!/^servi.o a confirmar$/i.test(serv.trim());
-  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc,tipo:(_pont?'P':'R'),cliente:{leadId:String(l.id||l._sid||''),nome:String(l.cliente||'').trim(),razao:String(l.razaoSocial||'').trim(),cnpj:String(l.cnpj||'').trim(),unidade:String(l.unidade||'').trim(),area:({AF:'Atividades Físicas',ACAD:'Atividades Físicas',GL:'Atividades Físicas',AE:'Ergonomia',QM:'Terapias'})[String(l.serv||'').trim().toUpperCase()]||''}};
+  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc,retemISS:gv('ft-retemiss','retemiss'),colabAlocado:gv('ft-colab','colab'),tipo:(_pont?'P':'R'),cliente:{leadId:String(l.id||l._sid||''),nome:String(l.cliente||'').trim(),razao:String(l.razaoSocial||'').trim(),cnpj:String(l.cnpj||'').trim(),unidade:String(l.unidade||'').trim(),canalNF:gv('ft-canalnf','canalnf'),emailNF:gv('ft-emailnf','emailnf'),portalNF:gv('ft-portalnf','portalnf'),grupo:gv('ft-grupo','grupo'),area:({AF:'Atividades Físicas',ACAD:'Atividades Físicas',GL:'Atividades Físicas',AE:'Ergonomia',QM:'Terapias'})[String(l.serv||'').trim().toUpperCase()]||''}};
   return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl,dados:dados,servOk:servOk};
 }
 function _cvFatSimHtml(l){
@@ -3652,7 +3658,7 @@ function _saleDtOf(l){
   return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
 }
 /* 05/11/2026 — Léo: trava em 2 níveis. MÍNIMO bloqueia o "Efetivar venda"; PENDÊNCIA PERMITIDA deixa efetivar e viaja como "concluído com pendência" (registrada no card e no histórico). Ex.: contrato do recorrente que ainda não chegou; dados de kick-off (horários, requisitos, pontos focais). */
-var _FV_PEND_IDS=['cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
+var _FV_PEND_IDS=['ft-canalnf','ft-emailnf','ft-portalnf','ft-retemiss','ft-colab','cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
 function _fvFaltam(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])<0;});}
 function _fvPend(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])>=0;});}
 function _fvPendJson(){var p=_fvPend();return JSON.stringify({ids:p.map(function(r){return r[0];}),itens:p.map(function(r){return r[1];})});}
@@ -3667,6 +3673,11 @@ function _fvFaltamTudo(){
   if(!String(_lg.razaoSocial||'').trim())f.push(['cv-razao','Razão social do cliente: complete o cadastro do cliente no card do lead']);
   if(!_cvV('cv-cidade'))f.push(['cv-cidade','Cidade do serviço (define os feriados no Faturamento)']);
   if(!/^[A-Za-z]{2}$/.test(_cvV('cv-uf')))f.push(['cv-uf','UF da cidade do serviço (2 letras, ex.: SP)']);
+  var _cn=_cvV('ft-canalnf');
+  if(!_cn)f.push(['ft-canalnf','Canal de envio da NF (E-mail ou Portal)']);
+  else if(_cn==='E-mail'&&!_cvV('ft-emailnf'))f.push(['ft-emailnf','E-mail(s) que recebem a NF']);
+  else if(_cn==='Portal'&&!_cvV('ft-portalnf'))f.push(['ft-portalnf','Portal de envio da NF']);
+  if(_lt&&String(_lt.tipo||'')==='R'){if(!_cvV('ft-retemiss'))f.push(['ft-retemiss','Contrato retém ISS (Sim ou Não)']);if(!_cvV('ft-colab'))f.push(['ft-colab','Colaborador alocado no cliente (Sim ou Não)']);}
   if(_lt&&String(_lt.tipo||'')==='R'){
     [['ft-ctr','Nº do contrato'],['ft-ini','Início da vigência'],['ft-fim','Fim da vigência'],['ft-cod','Código do serviço (NF)'],['ft-prazo','Prazo de faturamento'],['ft-aprov','Aprovador da medição (focal do cliente)'],['ft-aprovmail','E-mail do aprovador']].forEach(function(r){if(!_cvV(r[0]))f.push(r);});
   }
@@ -4113,8 +4124,8 @@ window.enviarParaImplantacao=enviarParaImplantacao;
    cada envio fica registrado (ftEnviado) e, se algo mudar depois, aparece o alerta "alterado desde o último envio" para reenviar e revisar.
    Abre o Faturamento com cliente + contrato + serviço no trecho depois do # (não vai a servidor). Nada é salvo lá sem confirmação. Contrato v1 (+modo/anterior). */
 var _CV_AREA_FAT={ERGO:'Ergonomia',GL:'Atividades Físicas',FISIO:'Terapias',NA:'',ENF:'Terapias'};
-var _FT_CAMPOS=['ctr','oc','ini','fim','valor','vdoc','cod','prazo','dia','ind','mes','coord','coordmail','aprov','aprovmail'];
-var _FT_ROT={vdoc:'Valor do documento',ctr:'Nº do contrato',oc:'Pedido de compra',ini:'Início da vigência',fim:'Fim da vigência',valor:'Valor mensal',cod:'Código do serviço',prazo:'Prazo de faturamento',dia:'Dia limite da NF',ind:'Índice de reajuste',mes:'Mês de reajuste',coord:'Coordenador',coordmail:'E-mail do coordenador',aprov:'Aprovador',aprovmail:'E-mail do aprovador',cliente:'Cliente',razao:'Razão social',cnpj:'CNPJ',servico:'Serviço',area:'Área',valorLead:'Valor mensal do lead',numMeses:'Nº de meses'};
+var _FT_CAMPOS=['ctr','oc','ini','fim','valor','vdoc','cod','prazo','dia','ind','mes','coord','coordmail','aprov','aprovmail','canalnf','emailnf','portalnf','grupo','retemiss','colab'];
+var _FT_ROT={vdoc:'Valor do documento',ctr:'Nº do contrato',oc:'Pedido de compra',ini:'Início da vigência',fim:'Fim da vigência',valor:'Valor mensal',cod:'Código do serviço',prazo:'Prazo de faturamento',dia:'Dia limite da NF',ind:'Índice de reajuste',mes:'Mês de reajuste',coord:'Coordenador',coordmail:'E-mail do coordenador',aprov:'Aprovador',aprovmail:'E-mail do aprovador',canalnf:'Canal de envio da NF',emailnf:'E-mail(s) da NF',portalnf:'Portal da NF',grupo:'Grupo empresarial',retemiss:'Contrato retém ISS',colab:'Colaborador alocado',cliente:'Cliente',razao:'Razão social',cnpj:'CNPJ',servico:'Serviço',area:'Área',valorLead:'Valor mensal do lead',numMeses:'Nº de meses'};
 function _ftJ(t){try{var o=JSON.parse(t||'');return (o&&typeof o==='object')?o:null;}catch(e){return null;}}
 function _ftLer(){var o={};_FT_CAMPOS.forEach(function(k){o[k]=_cvV('ft-'+k);});return o;}
 function _ftDados(l){
@@ -4123,6 +4134,7 @@ function _ftDados(l){
   d.valor=(l.valorMensal!=null&&l.valorMensal!=='')?String(Number(l.valorMensal).toFixed(2)).replace('.',','):'';
   if(String(l.tipo||'').toUpperCase()==='P'&&Number(l.valor)>0)d.valor=String(Number(l.valor).toFixed(2)).replace('.',',');
   d.cod=l.codServico||'';d.coord=f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'';d.coordmail=f0?(f0.email||''):'';
+  ['canalnf','emailnf','portalnf','grupo'].forEach(function(k){(typeof LEADS!=='undefined'?LEADS:[]).some(function(x){if(x===l||!x.ftDados)return false;var same=l.cnpj?String(x.cnpj||'')===String(l.cnpj):(String(x.cliente||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase());if(!same)return false;var o=_ftJ(x.ftDados)||{};if(o[k]){d[k]=String(o[k]);return true;}return false;});});
   var g=_ftJ(l.ftDados)||{};Object.keys(g).forEach(function(k){if(g[k]!=null)d[k]=String(g[k]);});
   return d;
 }
