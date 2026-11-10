@@ -9,7 +9,7 @@
   var ESTADOS = ['Na fila', 'Convite enviado', 'Conectado', 'Em conversa', 'Qualificado', 'Sem fit', 'Não contatar'];
   var PASSOS = ['', 'Agradecimento', 'Follow-up', 'Encerramento'];
   /* tipos de interação registrados no histórico do contato (coluna historicoJson) */
-  var TIPOS = ['Convite enviado', 'Aceite', 'Agradecimento', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado', 'Resposta recebida', 'Observação'];
+  var TIPOS = ['Convite enviado', 'Aceite', 'Agradecimento', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado', 'Resposta recebida', 'Interação', 'Observação'];
   var SAIDAS = ['Convite enviado', 'Agradecimento', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado']; /* mensagens/ações enviadas por nós */
   /* ordem dos materiais ricos por público (decisão do Léo, 10/11/2026); intervalo mínimo de 15 dias corridos entre materiais */
   var MATERIAIS = { med: ['Radar de Saúde', 'E-book NR-1', 'Carrossel AEP/AET'], sst: ['Carrossel AEP/AET', 'E-book NR-1', 'Radar de Saúde'], rh: ['E-book NR-1', 'Carrossel AEP/AET', 'Radar de Saúde'] };
