@@ -326,6 +326,7 @@ const LISTS = {
       { name: 'motivoPromocao', type: 'text', long: true },
       { name: 'leadIdCriado', type: 'text' }, // id do lead criado no Kanban
       { name: 'promovidoEm', type: 'text' }, // ISO
+      { name: 'historicoJson', type: 'text', long: true }, // 10/11/2026: histórico de interações [{ts,tipo,texto,por}] (coluna NOVA, multi-linha, mesmo padrão do histEventosJson)
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
     ],
