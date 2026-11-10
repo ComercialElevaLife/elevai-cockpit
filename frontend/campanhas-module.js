@@ -14,6 +14,9 @@
   /* ordem dos materiais ricos por público (decisão do Léo, 10/11/2026); intervalo mínimo de 15 dias corridos entre materiais */
   var MATERIAIS = { med: ['Radar de Saúde', 'E-book NR-1', 'Carrossel AEP/AET'], sst: ['Carrossel AEP/AET', 'E-book NR-1', 'Radar de Saúde'], rh: ['E-book NR-1', 'Carrossel AEP/AET', 'Radar de Saúde'] };
   var NOTA_MIN = 60;
+  var LIMITE_DIA = 20; /* convites por dia útil (decisão do Léo, 10/11/2026; sem sáb, dom e feriados nacionais) */
+  /* feriados nacionais (AAAA-MM-DD) usados no cálculo de dias úteis */
+  var FERIADOS = ['2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01', '2027-03-26', '2027-04-21', '2027-05-01', '2027-09-07', '2027-10-12', '2027-11-02', '2027-11-15', '2027-11-20', '2027-12-25'];
   var S = { itens: [], empresas: [], contatos: [], leads: [], host: null, aba: 'op', f: { q: '', campanha: '', estado: '', acao: '' }, msg: '' };
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
@@ -23,7 +26,7 @@
   function hoje() { return ymd(new Date()); }
   function dt(s) { return new Date(String(s).slice(0, 10) + 'T12:00:00'); }
   function addDias(s, n) { var d = dt(s); d.setDate(d.getDate() + n); return ymd(d); }
-  function addDU(s, n) { var d = dt(s), k = 0; while (k < n) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6) k++; } return ymd(d); } /* dias úteis (sem feriados) */
+  function addDU(s, n) { var d = dt(s), k = 0; while (k < n) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6 && FERIADOS.indexOf(ymd(d)) < 0) k++; } return ymd(d); } /* dias úteis (sem sáb, dom e feriados nacionais) */
   function difDias(a, b) { return Math.round((dt(a) - dt(b)) / 86400000); } /* a - b em dias */
   function br(s) { return s ? String(s).slice(8, 10) + '/' + String(s).slice(5, 7) : ''; }
 
@@ -199,7 +202,7 @@
     var atr = linhas.filter(function (x) { return x.p.nivel === 'bad'; }).length, hj = linhas.filter(function (x) { return x.p.nivel === 'warn'; }).length;
     var parados = linhas.filter(function (x) { var u = ultima(x.it); return ['Conectado', 'Convite enviado'].indexOf(x.it.estado) > -1 && u && difDias(h, String(u.ts).slice(0, 10)) > 15; }).length;
     var cards = [
-      [convHoje + ' de 15', 'convites hoje (limite diário)'], [conv7, 'convites nos últimos 7 dias (referência ~100/semana)'], [pend, 'convites pendentes'],
+      [convHoje + ' de ' + LIMITE_DIA, 'convites hoje (limite por dia útil)'], [conv7, 'convites nos últimos 7 dias (referência ~100/semana)'], [pend, 'convites pendentes'],
       [conv.length ? pct(acei.length, conv.length) : '—', 'taxa de aceite (' + acei.length + ' de ' + conv.length + ' convites com data)'], [media, 'tempo médio até o aceite'],
       [atr, 'ações atrasadas'], [hj, 'ações para hoje'], [parados, 'sem interação há mais de 15 dias']
     ].map(function (c) { return '<div class="cmp-kpi"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>'; }).join('');
