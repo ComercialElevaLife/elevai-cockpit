@@ -62,6 +62,7 @@
      TARGET = empresas.target 'TARGET' no SIGE, ou empresaTag gravada a partir da lista TARGET_RP; ICP A = icpA SIM, empresaTag 'ICP A' ou lead com icp A na empresa. */
   function qualif(it) {
     var emp = empresaDe(it), tg = String(it.empresaTag || '').toUpperCase();
+    if (tg === 'TARGET' || tg === 'ICP A' || tg === 'FORA') return tg; /* classificação gravada (headcount, multisites e SESMT) vale mais que os campos antigos */
     if (emp && String(emp.target || '').toUpperCase() === 'TARGET') return 'TARGET';
     if (tg === 'TARGET') return 'TARGET';
     if (it.icpA === 'SIM' || tg === 'ICP A') return 'ICP A';
