@@ -3796,9 +3796,23 @@ function _fvTeams(l,usr,done){
     done({s:'ok',msg:'Comunicado enviado ao canal, com responsável e ciência marcados (aceito pelo fluxo).'});
   }).catch(function(){clearTimeout(to);done({s:'aviso',msg:'Resultado desconhecido: confira o canal antes de reenviar.'});});
 }
-function _fvImpl(l,done){
-  window._IMPL_URL='';enviarParaImplantacao();
-  done(window._IMPL_URL?{s:'aviso',msg:'Painel de Implantação aberto com os dados da venda (Day Zero da implantação: '+_fvBR(_fvAbertura(l))+', data da venda; a etapa 1 vence em 1 dia útil): confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui montar o link da Implantação.'});
+function _fvImpl(l,usr,done){
+  /* 10/11/2026 — Léo: a Implantação passa a ser criada direto pelo SIGE (modo gravar do /api/implantacao-sync, com aviso por fluxo). Se algo falhar ou faltar dado, cai no painel antigo (janela), sem perder o caminho manual. */
+  var antigo=function(aviso){
+    window._IMPL_URL='';enviarParaImplantacao();
+    done(window._IMPL_URL?{s:'aviso',msg:aviso+' Abri o Painel de Implantação para criar manualmente (Day Zero: '+_fvBR(_fvAbertura(l))+', data da venda; a etapa 1 vence em 1 dia útil): confirme a criação lá. (Se o navegador bloqueou a janela, use o link.)',url:window._IMPL_URL}:{s:'erro',msg:'Não consegui criar a implantação nem montar o link do painel.'});
+  };
+  var cod=String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase();
+  var area=_CV_AREA_PAINEL[cod]||'',uf=_cvV('cv-uf').toUpperCase(),cidade=_cvV('cv-cidade');
+  if(!area||!/^[A-Z]{2}$/.test(uf)||!cidade){antigo('Faltam dados para criar direto (área, cidade ou UF).');return;}
+  var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||'']||'';
+  var corpo={modo:'gravar',cliente:l.cliente||'',area:area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',unidades:[{nome:_cvUn(l),cidade:cidade,uf:uf,data:_fvAbertura(l)}]};
+  fetch('/api/implantacao-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}).then(function(r){return r.json();}).then(function(j){
+    if(!j||!j.ok){antigo('A criação direta falhou ('+String((j&&j.error)||'erro no servidor')+').');return;}
+    if(j.live===false){antigo('A criação direta está desligada no servidor.');return;}
+    if(j.gravou){done({s:'ok',msg:'Implantação criada direto na lista: '+j.etapasCriadas+' etapas (Day Zero '+_fvBR(_fvAbertura(l))+'; a etapa 1 vence em 1 dia útil). O responsável pela etapa 1 é avisado no Teams e por e-mail.'});return;}
+    done({s:'ok',msg:'Já existia implantação com esse nome. Nada novo foi gravado.'});
+  }).catch(function(){antigo('Falha de rede ao criar a implantação.');});
 }
 function fluxoVendaRodar(){
   var l=_cvLead();if(!l||_FV.busy)return;
@@ -3812,7 +3826,7 @@ function fluxoVendaRodar(){
     _fvPasso(l,'ficha',function(d){_fvFicha(l,d);})
       .then(function(){return _fvPasso(l,'fat',function(d){_fvFat(l,d);});})
       .then(function(){return _fvPasso(l,'teams',function(d){_fvTeams(l,usr,d);});})
-      .then(function(){return _fvPasso(l,'impl',function(d){_fvImpl(l,d);});})
+      .then(function(){return _fvPasso(l,'impl',function(d){_fvImpl(l,usr,d);});})
       .then(function(){_fvFim(l);});
   });
 }
