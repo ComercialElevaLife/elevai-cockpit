@@ -32,8 +32,10 @@ async function itens() {
   return out;
 }
 // ---- feriados (mesmas regras do painel) ----
-const FER_UF = { SP: ['07-09'], RJ: ['04-23'], RS: ['09-20'], PR: ['12-19'], BA: ['07-02'], DF: ['11-30'] };
-const FER_MUN = { 'SP|sao paulo': ['01-25'], 'RJ|rio de janeiro': ['01-20'], 'SP|mogi das cruzes': ['09-01', '12-08'] };
+// Padrao sugerido (a validar): fontes em docs do projeto. A data da unidade informada pelo cliente prevalece (campo feriados).
+const FER_UF = { AC: ['01-23', '03-08', '06-15', '09-05', '11-17'], AL: ['06-24', '06-29', '09-16'], AM: ['09-05', '12-08'], AP: ['03-19', '09-13'], BA: ['07-02'], CE: ['03-19', '03-25'], DF: ['11-30'], ES: ['11-30'], GO: ['07-26', '10-24'], MA: ['07-28'], MS: ['10-11'], PA: ['08-15'], PB: ['08-05'], PE: ['03-06', '06-24'], PI: ['10-19'], PR: ['12-19'], RJ: ['04-23'], RN: ['08-07', '10-03'], RO: ['01-04', '06-18'], RR: ['10-05'], RS: ['09-20'], SE: ['07-08'], SP: ['07-09'], TO: ['03-18', '09-08', '10-05'] };
+const FER_MUN = { 'AC|rio branco': ['01-25', '12-28'], 'AL|maceio': ['08-27', '12-18'], 'AM|manaus': ['10-24', '12-08'], 'AP|macapa': ['02-04', '12-18'], 'BA|salvador': ['06-24', '12-18'], 'CE|fortaleza': ['04-13', '08-15'], 'ES|vitoria': ['09-08'], 'GO|goiania': ['05-24', '10-24'], 'MA|sao luis': ['06-29', '09-08', '12-18'], 'MG|belo horizonte': ['08-15', '12-18'], 'MS|campo grande': ['06-13', '08-26'], 'MT|cuiaba': ['04-08', '12-18'], 'PA|belem': ['12-18'], 'PB|joao pessoa': ['06-24', '12-18'], 'PE|recife': ['07-16', '12-18'], 'PI|teresina': ['08-16', '12-18'], 'PR|curitiba': ['09-08'], 'RJ|rio de janeiro': ['01-20'], 'RN|natal': ['01-06', '11-21'], 'RO|porto velho': ['01-24', '05-24', '10-12'], 'RR|boa vista': ['01-20', '06-29', '07-19', '12-08'], 'RS|porto alegre': ['02-02'], 'SC|florianopolis': ['03-23'], 'SE|aracaju': ['03-17', '06-24', '12-18'], 'SP|mogi das cruzes': ['09-01', '12-08'], 'SP|sao paulo': ['01-25'], 'TO|palmas': ['03-19', '05-20', '11-30'] };
+let FER_EXTRA = [];
 function semAcento(t) { return s(t).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim(); }
 function pascoa(ano) {
   const a = ano % 19, b = Math.floor(ano / 100), c = ano % 100, d = Math.floor(b / 4), e = b % 4, f = Math.floor((b + 8) / 25);
@@ -48,6 +50,9 @@ function feriados(ano, uf, cid) {
   const L = ['01-01', '04-21', '05-01', '09-07', '10-12', '11-02', '11-15', '11-20', '12-25'];
   const sx = new Date(pascoa(ano).getTime() - 2 * 86400000);
   L.push(mmdd(sx));
+  // Pontos facultativos (decisao do Leo: nao contam como dia util): Carnaval (seg/ter) e Corpus Christi.
+  [-48, -47, 60].forEach(function (k) { L.push(mmdd(new Date(pascoa(ano).getTime() + k * 86400000))); });
+  if (s(uf).toUpperCase() === 'ES') L.push(mmdd(new Date(pascoa(ano).getTime() + 8 * 86400000)));
   (FER_UF[s(uf).toUpperCase()] || []).forEach(function (x) { L.push(x); });
   const mun = FER_MUN[s(uf).toUpperCase() + '|' + semAcento(cid)] || [];
   mun.forEach(function (x) { L.push(x); });
@@ -56,6 +61,7 @@ function feriados(ano, uf, cid) {
 function ehUtil(d, uf, cid) {
   const w = d.getUTCDay();
   if (w === 0 || w === 6) return false;
+  if (FER_EXTRA.indexOf(iso(d)) >= 0) return false;
   return feriados(d.getUTCFullYear(), uf, cid).indexOf(mmdd(d)) < 0;
 }
 function addBU(d, n, uf, cid) {
@@ -74,7 +80,8 @@ function parseData(t) {
   return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) : null;
 }
 // Regras do painel (numeração de 24 etapas): só calcula o que o painel calcula.
-function prazos(ab, uf, cid) {
+function prazos(ab, uf, cid, extra) {
+  FER_EXTRA = (Array.isArray(extra) ? extra : []).map(function (x) { return s(x).slice(0, 10); });
   const P = {};
   P[1] = addBU(ab, 1, uf, cid);
   P[2] = addBU(P[1], 1, uf, cid);
@@ -182,7 +189,7 @@ module.exports = async function (context, req) {
         if (existG[nomeFinal.toLowerCase()]) { puladas.push({ cliente: nomeFinal, motivo: 'já existe implantação com esse nome (não duplica)' }); continue; }
         let ab = parseData(u.data);
         if (!ab) { ab = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12)); avisosG.push(nomeFinal + ': data de abertura não informada; usada a data de hoje.'); }
-        const P = prazos(ab, u.uf, u.cidade);
+        const P = prazos(ab, u.uf, u.cidade, u.feriados);
         for (const m of modelo) {
           const n = parseInt(m.f.field_3, 10);
           const areaResp = s(m.f.field_5);
@@ -224,7 +231,7 @@ module.exports = async function (context, req) {
       const nomeFinal = u.nome ? cliente + ' - ' + s(u.nome).trim() : cliente;
       const dup = !!existentes[nomeFinal.toLowerCase()];
       const ab = parseData(u.data) || new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12));
-      const P = prazos(ab, u.uf, u.cidade);
+      const P = prazos(ab, u.uf, u.cidade, u.feriados);
       const etapas = modelo.map(function (m) {
         const n = parseInt(m.f.field_3, 10);
         const areaResp = s(m.f.field_5);
