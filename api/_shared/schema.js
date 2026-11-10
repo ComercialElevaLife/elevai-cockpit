@@ -326,6 +326,8 @@ const LISTS = {
       { name: 'motivoPromocao', type: 'text', long: true },
       { name: 'leadIdCriado', type: 'text' }, // id do lead criado no Kanban
       { name: 'promovidoEm', type: 'text' }, // ISO
+      { name: 'empresaTag', type: 'text' }, // 10/11/2026 Regra de Ouro: TARGET | ICP A | FORA (classificação da empresa do contato; vale quando a empresa não está no cadastro ou só consta na lista TARGET_RP)
+      { name: 'empresaTagFonte', type: 'text' }, // de onde veio a classificação (ex.: TARGET_RP.xlsx; SIGE target; perfil do LinkedIn)
       { name: 'historicoJson', type: 'text', long: true }, // 10/11/2026: histórico de interações [{ts,tipo,texto,por}] (coluna NOVA, multi-linha, mesmo padrão do histEventosJson)
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },

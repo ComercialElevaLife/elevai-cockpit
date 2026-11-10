@@ -17,7 +17,11 @@
   var LIMITE_DIA = 20; /* convites por dia útil (decisão do Léo, 10/11/2026; sem sáb, dom e feriados nacionais) */
   /* feriados nacionais (AAAA-MM-DD) usados no cálculo de dias úteis */
   var FERIADOS = ['2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01', '2027-03-26', '2027-04-21', '2027-05-01', '2027-09-07', '2027-10-12', '2027-11-02', '2027-11-15', '2027-11-20', '2027-12-25'];
-  var S = { itens: [], empresas: [], contatos: [], leads: [], host: null, aba: 'op', f: { q: '', campanha: '', estado: '', acao: '' }, msg: '' };
+  var S = { itens: [], empresas: [], contatos: [], leads: [], host: null, aba: 'op', f: { q: '', campanha: '', estado: '', acao: '', qual: '', ord: '' }, msg: '' };
+
+  var QUALS = [['TARGET', 'TARGET'], ['ICP A', 'ICP A'], ['FORA', 'Fora do critério'], ['SEM EMPRESA', 'Sem empresa']];
+  var QORD = ['TARGET', 'ICP A', 'FORA', 'SEM EMPRESA'];
+  var ORDS = [['prox', 'Próxima ação (mais urgente)'], ['qual', 'Qualificação da empresa'], ['empresa', 'Empresa (A–Z)'], ['nome', 'Nome (A–Z)'], ['estado', 'Estado do funil'], ['conv', 'Convite mais recente']];
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   function norm(s) { return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/\s+/g, ' ').trim(); }
@@ -54,6 +58,19 @@
       return (id && String(l.empresaId || '') === id) || (nomes.indexOf(norm(l.cliente)) > -1);
     });
   }
+  /* REGRA DE OURO (10/11/2026, Léo): só entra na campanha contato de empresa TARGET ou ICP A.
+     TARGET = empresas.target 'TARGET' no SIGE, ou empresaTag gravada a partir da lista TARGET_RP; ICP A = icpA SIM, empresaTag 'ICP A' ou lead com icp A na empresa. */
+  function qualif(it) {
+    var emp = empresaDe(it), tg = String(it.empresaTag || '').toUpperCase();
+    if (tg === 'TARGET' || tg === 'ICP A' || tg === 'FORA') return tg; /* classificação gravada (headcount, multisites e SESMT) vale mais que os campos antigos */
+    if (emp && String(emp.target || '').toUpperCase() === 'TARGET') return 'TARGET';
+    if (tg === 'TARGET') return 'TARGET';
+    if (it.icpA === 'SIM' || tg === 'ICP A') return 'ICP A';
+    if (!emp && !it.empresaNome) return 'SEM EMPRESA';
+    if (leadsDaEmpresa(it, emp).some(function (l) { return String(l.icp || '').toUpperCase() === 'A'; })) return 'ICP A';
+    return 'FORA';
+  }
+  function qualOk(q) { return q === 'TARGET' || q === 'ICP A'; }
   function pontosCargo(cargo) {
     var t = norm(cargo); if (!t) return 0;
     if (!/(medic|sst|seguranca|ehs|saude|\brh\b|recursos humanos|pessoas|gente|ergonom|fisioterap|enfermag|qualidade de vida|beneficio)/.test(t)) return 0;
@@ -61,7 +78,8 @@
   }
   function calc(it) {
     var emp = empresaDe(it);
-    var fitEmp = ((emp && String(emp.target || '').toUpperCase() === 'TARGET') || it.icpA === 'SIM') ? 25 : 0;
+    var qual = qualif(it);
+    var fitEmp = qualOk(qual) ? 25 : 0;
     var fitCargo = pontosCargo(it.cargo);
     var fitSetor = it.setorPorte === 'SIM' ? 15 : 0;
     var aceitou = !!(it.dataAceite || ['Conectado', 'Em conversa', 'Qualificado'].indexOf(it.estado) > -1) ? 10 : 0;
@@ -87,10 +105,11 @@
     var razao = '';
     if (it.estado === 'Qualificado') razao = 'Já promovido.';
     else if (bloqueio) razao = bloqueio;
+    else if (!qualOk(qual)) razao = 'Fora do critério (Regra de Ouro): só empresas TARGET ou ICP A entram na campanha.';
     else if (!emp) razao = 'Cadastre a empresa em Cadastro > Empresa antes de promover.';
     else if (it.respondeu !== 'SIM') razao = 'Falta resposta registrada.';
     else if (total < NOTA_MIN) razao = 'Nota abaixo de ' + NOTA_MIN + '.';
-    return { emp: emp, fit: fit, eng: eng, total: total, bloqueio: bloqueio, aviso: aviso, motivo: motivo, razao: razao, ok: !razao };
+    return { emp: emp, qual: qual, fit: fit, eng: eng, total: total, bloqueio: bloqueio, aviso: aviso, motivo: motivo, razao: razao, ok: !razao };
   }
 
   /* ---------- histórico de interações e próxima ação (regras do playbook) ---------- */
@@ -119,6 +138,7 @@
     var ult = function (ts) { for (var i = ev.length - 1; i >= 0; i--) if (ts.indexOf(ev[i].tipo) > -1) return ev[i]; return null; };
     if (est === 'Qualificado') return { txt: 'No Kanban', data: '', nivel: '' };
     if (est === 'Sem fit' || est === 'Não contatar') return { txt: 'Encerrado', data: '', nivel: '' };
+    if (['Na fila', 'Convite enviado', 'Conectado'].indexOf(est) > -1 && it.respondeu !== 'SIM' && !qualOk(qualif(it))) return { txt: 'Fora do critério (Regra de Ouro): sem abordagem' + (est === 'Convite enviado' ? '; avaliar retirar o convite' : ''), data: '', nivel: '' };
     if (est === 'Em conversa' || it.respondeu === 'SIM') r = { txt: 'Ler a resposta e avisar o Léo', data: h };
     else if (est === 'Na fila') r = { txt: 'Enviar convite sem nota', data: h };
     else if (est === 'Convite enviado') {
@@ -250,6 +270,18 @@
     return esc(p.txt) + (rot ? '<small><span class="cmp-tag ' + cls + '">' + rot + '</span></small>' : '');
   }
 
+  function ordena(a, b) {
+    var o = S.f.ord, nt = b.c.total - a.c.total, s = function (t) { return norm(t); };
+    if (o === 'prox') return String(a.p.data || '9').localeCompare(String(b.p.data || '9')) || nt;
+    if (o === 'nome') return s((a.it.nome || '') + ' ' + (a.it.sobrenome || '')).localeCompare(s((b.it.nome || '') + ' ' + (b.it.sobrenome || '')));
+    if (o === 'empresa') return s(a.it.empresaNome).localeCompare(s(b.it.empresaNome)) || nt;
+    if (o === 'qual') return QORD.indexOf(a.c.qual) - QORD.indexOf(b.c.qual) || nt;
+    if (o === 'estado') return ESTADOS.indexOf(a.it.estado || 'Na fila') - ESTADOS.indexOf(b.it.estado || 'Na fila') || nt;
+    if (o === 'conv') return String(b.it.dataConvite || '').localeCompare(String(a.it.dataConvite || '')) || nt;
+    if (S.f.acao) return String(a.p.data || '9').localeCompare(String(b.p.data || '9'));
+    return nt;
+  }
+
   function render() {
     var h = S.host; if (!h) return;
     if (!document.getElementById('cmp-css')) { var st = document.createElement('style'); st.id = 'cmp-css'; st.textContent = CSS; document.head.appendChild(st); }
@@ -262,13 +294,15 @@
       var it = x.it;
       if (S.f.campanha && (it.campanha || '') !== S.f.campanha) return false;
       if (S.f.estado && (it.estado || 'Na fila') !== S.f.estado) return false;
+      if (S.f.qual && x.c.qual !== S.f.qual) return false;
       if (S.f.acao === 'hoje' && !acaoPrazo(x.p)) return false;
       if (S.f.acao === 'sem' && !(x.p.data && x.p.data <= addDias(hoje(), 7))) return false;
       if (q && norm([it.nome, it.sobrenome, it.cargo, it.empresaNome, it.email].join(' ')).indexOf(q) < 0) return false;
       return true;
-    }).sort(function (a, b) { if (S.f.acao) return String(a.p.data || '9').localeCompare(String(b.p.data || '9')); return b.c.total - a.c.total; });
+    }).sort(ordena);
     var hojeN = linhas.filter(function (x) { return (x.it.estado || 'Na fila') !== 'Na fila' && acaoPrazo(x.p); }).length;
-    var filaN = cont['Na fila'] || 0;
+    var filaN = linhas.filter(function (x) { return (x.it.estado || 'Na fila') === 'Na fila' && qualOk(x.c.qual); }).length;
+    var foraN = linhas.filter(function (x) { return !qualOk(x.c.qual) && ['Na fila', 'Convite enviado', 'Conectado'].indexOf(x.it.estado || 'Na fila') > -1 && x.it.respondeu !== 'SIM'; }).length;
 
     var html = '<div class="cmp">' +
       '<div class="cmp-top"><h2>Campanhas</h2><span style="flex:1"></span>' +
@@ -281,17 +315,20 @@
       '<div class="cmp-kpi"><b>' + prontos + '</b><span>prontos para promover (nota ≥ ' + NOTA_MIN + ' + resposta)</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Qualificado'] || 0) + '</b><span>já promovidos ao Kanban</span></div>' +
       '<div class="cmp-kpi"><b>' + hojeN + '</b><span>ações vencidas ou para hoje (já abordados)</span></div>' +
-      '<div class="cmp-kpi"><b>' + Math.min(filaN, LIMITE_DIA) + ' de ' + filaN + '</b><span>na fila: envio de hoje (limite ' + LIMITE_DIA + ' por dia útil)</span></div></div>' +
+      '<div class="cmp-kpi"><b>' + Math.min(filaN, LIMITE_DIA) + ' de ' + filaN + '</b><span>na fila (só TARGET/ICP A): envio de hoje (limite ' + LIMITE_DIA + ' por dia útil)</span></div>' +
+      '<div class="cmp-kpi"><b>' + foraN + '</b><span>fora do critério (Regra de Ouro): sem abordagem</span></div></div>' +
       '<div class="cmp-bar"><input data-f="q" placeholder="Buscar nome, cargo, empresa..." value="' + esc(S.f.q) + '" style="min-width:230px">' +
       '<select data-f="campanha"><option value="">Todas as campanhas</option>' + camps.map(function (c) { return '<option' + (S.f.campanha === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('') + '</select>' +
       '<select data-f="estado"><option value="">Todos os estados</option>' + ESTADOS.map(function (e) { return '<option' + (S.f.estado === e ? ' selected' : '') + '>' + e + '</option>'; }).join('') + '</select>' +
+      '<select data-f="qual"><option value="">Todas as qualificações</option>' + QUALS.map(function (q) { return '<option value="' + q[0] + '"' + (S.f.qual === q[0] ? ' selected' : '') + '>' + q[1] + '</option>'; }).join('') + '</select>' +
+      '<select data-f="ord"><option value="">Ordenar: nota (maior primeiro)</option>' + ORDS.map(function (o) { return '<option value="' + o[0] + '"' + (S.f.ord === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-f="acao"><option value="">Todas as ações</option><option value="hoje"' + (S.f.acao === 'hoje' ? ' selected' : '') + '>Vencidas ou para hoje</option><option value="sem"' + (S.f.acao === 'sem' ? ' selected' : '') + '>Nos próximos 7 dias</option></select>' +
       '<label style="font-size:12px;color:#8A7A78">Consultor ao promover <input data-cons value="' + esc(S.cons || 'Léo') + '" style="width:90px"></label></div>' +
       '<div class="cmp-card"><table><tr><th>Contato</th><th>Empresa</th><th>Campanha</th><th>Estado</th><th>Última interação</th><th>Próxima ação</th><th>Nota</th><th></th></tr>' +
       (vis.length ? vis.map(function (x) {
         var it = x.it, c = x.c, id = esc(it.__id);
         return '<tr><td><b>' + esc((it.nome || '') + ' ' + (it.sobrenome || '')) + '</b><small>' + esc(it.cargo || '') + '</small>' + (it.linkedinUrl ? '<small><a href="' + esc(it.linkedinUrl) + '" target="_blank" rel="noopener">perfil no LinkedIn</a></small>' : '') + '</td>' +
-          '<td>' + esc(it.empresaNome || '') + (c.emp ? (String(c.emp.target || '').toUpperCase() === 'TARGET' ? ' <span class="cmp-tag t">TARGET</span>' : '') : ' <span class="cmp-tag warn">sem cadastro</span>') +
+          '<td>' + esc(it.empresaNome || '') + (c.qual === 'TARGET' ? ' <span class="cmp-tag t">TARGET</span>' : c.qual === 'ICP A' ? ' <span class="cmp-tag ok">ICP A</span>' : ' <span class="cmp-tag bad">' + (c.qual === 'FORA' ? 'FORA DO CRITÉRIO' : 'SEM EMPRESA') + '</span>') + (c.emp ? '' : ' <span class="cmp-tag warn">sem cadastro</span>') +
           (c.bloqueio ? '<span class="cmp-tag bad">bloqueado</span><small>' + esc(c.bloqueio) + '</small>' : '') + (c.aviso ? '<small>' + esc(c.aviso) + '</small>' : '') + '</td>' +
           '<td>' + esc(it.campanha || '') + '<small>' + esc(it.listaOrigem || '') + '</small></td>' +
           '<td><select data-est="' + id + '">' + ESTADOS.map(function (e) { return '<option' + ((it.estado || 'Na fila') === e ? ' selected' : '') + '>' + e + '</option>'; }).join('') + '</select>' +
@@ -351,7 +388,7 @@
       campo('Lista de origem (TARGET MED, CPMT...)', 'listaOrigem', v.listaOrigem) +
       sel('Estado', 'estado', v.estado || 'Na fila', ESTADOS) + sel('Passo da cadência', 'passo', v.passo || '', (v.passo && PASSOS.indexOf(v.passo) < 0) ? PASSOS.concat([v.passo]) : PASSOS) +
       campo('Data do convite (AAAA-MM-DD)', 'dataConvite', v.dataConvite) + campo('Data do aceite (AAAA-MM-DD)', 'dataAceite', v.dataAceite) +
-      sel('Empresa ICP A?', 'icpA', v.icpA || '', ['', 'SIM']) + sel('Setor e porte compatíveis?', 'setorPorte', v.setorPorte || '', ['', 'SIM']) +
+      sel('Empresa ICP A?', 'icpA', v.icpA || '', ['', 'SIM']) + sel('Qualificação da empresa (se fora do cadastro)', 'empresaTag', v.empresaTag || '', ['', 'TARGET', 'ICP A', 'FORA']) + sel('Setor e porte compatíveis?', 'setorPorte', v.setorPorte || '', ['', 'SIM']) +
       sel('Respondeu?', 'respondeu', v.respondeu || '', ['', 'SIM']) + sel('Pediu conversa/material ou perguntou sobre serviço?', 'interesse', v.interesse || '', ['', 'SIM']) +
       '<label class="w">Resumo da última resposta<textarea data-k="resumoResposta" rows="3">' + esc(v.resumoResposta || '') + '</textarea></label></div>' +
       '<div class="cmp-msg" id="cmp-em"></div>',
@@ -361,6 +398,7 @@
       var d = {}; ov.querySelectorAll('[data-k]').forEach(function (el) { d[el.dataset.k] = el.value.trim(); });
       if (!d.nome) { ov.querySelector('#cmp-em').textContent = 'Informe o nome.'; return; }
       var emp = empresaDe(Object.assign({}, d)); d.empresaId = emp ? String(emp.__id) : '';
+      if (!it && !qualOk(qualif(d))) { ov.querySelector('#cmp-em').textContent = 'Regra de Ouro: só entram na campanha contatos de empresa TARGET ou ICP A, e esta empresa não qualifica. Se ela for TARGET ou ICP A, ajuste a Qualificação da empresa.'; return; }
       try {
         if (it) { await jpost('/api/campanhas', 'PATCH', { id: it.__id, fields: d }); Object.assign(it, d); }
         else { var j = await jpost('/api/campanhas', 'POST', d); S.itens.push(j.item || Object.assign({ __id: j.id }, d)); }
@@ -412,10 +450,10 @@
     row.push(cur); if (row.some(function (c) { return c.trim(); })) rows.push(row);
     return rows;
   }
-  var MAPA = { nome: 'nome', sobrenome: 'sobrenome', cargo: 'cargo', empresa: 'empresaNome', linkedin: 'linkedinUrl', perfil: 'linkedinUrl', email: 'email', telefone: 'telefone', campanha: 'campanha', lista: 'listaOrigem', icp: 'icpA' };
+  var MAPA = { nome: 'nome', sobrenome: 'sobrenome', cargo: 'cargo', empresa: 'empresaNome', linkedin: 'linkedinUrl', perfil: 'linkedinUrl', email: 'email', telefone: 'telefone', campanha: 'campanha', lista: 'listaOrigem', icp: 'icpA', tag: 'empresaTag' };
   function importar() {
     var ov = modal('Importar lista (CSV)',
-      '<p style="font-size:12.5px;color:#8A7A78;margin-top:0">Primeira linha com os títulos das colunas: <b>nome, sobrenome, cargo, empresa, linkedin, email, telefone, campanha, lista, icp</b> (só nome é obrigatório; icp = SIM marca empresa ICP A). Separador vírgula ou ponto e vírgula. Contatos que já existem (mesmo perfil ou mesmo nome e empresa) são ignorados.</p>' +
+      '<p style="font-size:12.5px;color:#8A7A78;margin-top:0">Primeira linha com os títulos das colunas: <b>nome, sobrenome, cargo, empresa, linkedin, email, telefone, campanha, lista, icp</b> (só nome é obrigatório; icp = SIM marca empresa ICP A; tag = TARGET ou ICP A para empresa fora do cadastro). <b>Regra de Ouro:</b> contato de empresa que não seja TARGET nem ICP A não é importado. Separador vírgula ou ponto e vírgula. Contatos que já existem (mesmo perfil ou mesmo nome e empresa) são ignorados.</p>' +
       '<input type="file" accept=".csv,text/csv,.txt" data-file><textarea data-txt rows="8" style="width:100%;margin-top:8px" placeholder="ou cole aqui o conteúdo do CSV"></textarea><div class="cmp-msg" id="cmp-im"></div>',
       '<button class="cmp-btn" data-x>Fechar</button><button class="cmp-btn p" data-go>Importar</button>');
     ov.querySelector('[data-x]').onclick = function () { ov.remove(); };
@@ -425,19 +463,22 @@
       if (rows.length < 2) { msg.textContent = 'Nada para importar.'; return; }
       var cab = rows[0].map(function (c) { return MAPA[norm(c)] || ''; });
       if (cab.indexOf('nome') < 0) { msg.textContent = 'Não achei a coluna "nome" na primeira linha.'; return; }
-      btn.disabled = true; var ok = 0, dup = 0, err = 0;
+      btn.disabled = true; var ok = 0, dup = 0, err = 0, fora = 0;
       var chaves = {}; S.itens.forEach(function (i) { chaves[chave(i)] = 1; });
       for (var r = 1; r < rows.length; r++) {
         var d = { estado: 'Na fila' };
         cab.forEach(function (k, idx) { if (k) d[k] = (rows[r][idx] || '').trim(); });
+        if (d.empresaTag) { var tg0 = d.empresaTag.toUpperCase().replace(/\s+/g, ' '); d.empresaTag = tg0 === 'TARGET' ? 'TARGET' : (tg0 === 'ICP A' || tg0 === 'A' ? 'ICP A' : ''); }
+        if (!d.empresaTag && /target/i.test(d.listaOrigem || '')) d.empresaTag = 'TARGET';
         if (d.icpA) d.icpA = /^(sim|s|a|x|1)$/i.test(d.icpA) ? 'SIM' : '';
         if (!d.nome) continue;
         var ch = chave(d); if (chaves[ch]) { dup++; continue; } chaves[ch] = 1;
         var emp = empresaDe(d); d.empresaId = emp ? String(emp.__id) : '';
+        if (!qualOk(qualif(d))) { fora++; continue; }
         try { var j = await jpost('/api/campanhas', 'POST', d); S.itens.push(j.item || Object.assign({ __id: j.id }, d)); ok++; } catch (e) { err++; }
-        msg.textContent = 'Importando... ' + ok + ' criados, ' + dup + ' repetidos, ' + err + ' com erro.';
+        msg.textContent = 'Importando... ' + ok + ' criados, ' + dup + ' repetidos, ' + fora + ' fora do critério, ' + err + ' com erro.';
       }
-      msg.textContent = 'Concluído: ' + ok + ' criados, ' + dup + ' repetidos ignorados, ' + err + ' com erro.'; btn.disabled = false; render();
+      msg.textContent = 'Concluído: ' + ok + ' criados, ' + dup + ' repetidos ignorados, ' + fora + ' fora do critério (Regra de Ouro) ignorados, ' + err + ' com erro.'; btn.disabled = false; render();
     };
   }
   function chave(i) { return i.linkedinUrl ? 'u:' + norm(i.linkedinUrl).replace(/\/+$/, '') : 'n:' + norm((i.nome || '') + ' ' + (i.sobrenome || '') + ' ' + (i.empresaNome || '')); }
