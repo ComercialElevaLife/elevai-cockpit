@@ -106,7 +106,6 @@
     if (it.estado === 'Qualificado') razao = 'Já promovido.';
     else if (bloqueio) razao = bloqueio;
     else if (!qualOk(qual)) razao = 'Fora do critério (Regra de Ouro): só empresas TARGET ou ICP A entram na campanha.';
-    else if (!emp) razao = 'Cadastre a empresa em Cadastro > Empresa antes de promover.';
     else if (it.respondeu !== 'SIM') razao = 'Falta resposta registrada.';
     else if (total < NOTA_MIN) razao = 'Nota abaixo de ' + NOTA_MIN + '.';
     return { emp: emp, qual: qual, fit: fit, eng: eng, total: total, bloqueio: bloqueio, aviso: aviso, motivo: motivo, razao: razao, ok: !razao };
@@ -366,6 +365,7 @@
     try { await jpost('/api/campanhas', 'PATCH', { id: id, fields: campos }); var it = S.itens.find(function (x) { return String(x.__id) === String(id); }); if (it) Object.assign(it, campos); S.msg = ''; }
     catch (e) { S.msg = 'Não foi possível salvar: ' + e.message; }
     render();
+    auto(S.itens.find(function (x) { return String(x.__id) === String(id); }));
   }
 
   /* ---------- modal ---------- */
@@ -403,6 +403,7 @@
         if (it) { await jpost('/api/campanhas', 'PATCH', { id: it.__id, fields: d }); Object.assign(it, d); }
         else { var j = await jpost('/api/campanhas', 'POST', d); S.itens.push(j.item || Object.assign({ __id: j.id }, d)); }
         ov.remove(); S.msg = ''; render();
+        if (it) auto(it);
       } catch (e) { ov.querySelector('#cmp-em').textContent = 'Erro ao salvar: ' + e.message; }
     };
   }
@@ -430,7 +431,7 @@
       try {
         await jpost('/api/campanhas', 'PATCH', { id: it.__id, fields: campos }); Object.assign(it, campos);
         ov.querySelector('[data-tl]').innerHTML = tl(); ov.querySelector('[data-prox]').innerHTML = celProxima(proxima(it));
-        ov.querySelector('[data-k="texto"]').value = ''; m.textContent = 'Registrado.';
+        ov.querySelector('[data-k="texto"]').value = ''; m.textContent = 'Registrado.'; auto(it);
       } catch (e) { m.textContent = 'Erro ao salvar: ' + e.message; }
     };
   }
@@ -484,17 +485,36 @@
   function chave(i) { return i.linkedinUrl ? 'u:' + norm(i.linkedinUrl).replace(/\/+$/, '') : 'n:' + norm((i.nome || '') + ' ' + (i.sobrenome || '') + ' ' + (i.empresaNome || '')); }
 
   /* ---------- promoção ao Kanban ---------- */
-  async function promover(id) {
+  /* Regra (10/11/2026, Léo): atingiu a pontuação (nota >= NOTA_MIN + resposta, empresa TARGET/ICP A, sem bloqueio) -> abre o cadastro da Empresa
+     (se ainda não existir) com o contato do LinkedIn e envia ao Kanban na coluna LEAD NOVO com a tag de campanha 'LKD LS - [Nome da campanha]'. Sem confirmação. */
+  async function auto(it) {
+    if (!it || S._auto || it.leadIdCriado || it.estado === 'Qualificado') return;
+    if (!calc(it).ok) return;
+    S._auto = true;
+    try { await promover(it.__id, true); } finally { S._auto = false; }
+  }
+  async function promover(id, auto) {
     var it = S.itens.find(function (x) { return String(x.__id) === String(id); }); if (!it) return;
     var c = calc(it); if (!c.ok) { S.msg = c.razao; render(); return; }
     var cons = (S.cons || 'Léo').trim();
     var txt = 'Promover ' + (it.nome || '') + ' ' + (it.sobrenome || '') + ' (' + (it.empresaNome || '') + ') ao Kanban como LEAD?\n\nNota ' + c.total + ' (fit ' + c.fit + ' + engajamento ' + c.eng + '): ' + c.motivo + '.\nConsultor: ' + cons + '. Fonte: LinkedIn.' + (c.aviso ? '\n\nAtenção: ' + c.aviso : '');
-    if (!window.confirm(txt)) return;
+    if (!auto && !window.confirm(txt)) return;
     var emp = c.emp, d = hoje(), dd = new Date(d + 'T00:00:00'), por = (window.__heu || window.__meEmail || '');
+    var tagCamp = 'LKD LS - ' + (it.campanha || 'LinkedIn'), empNova = false;
+    if (!emp) {
+      try {
+        var rE = await jpost('/api/empresas', 'POST', { cliente: it.empresaNome, target: c.qual === 'TARGET' ? 'TARGET' : 'NÃO TARGET',
+          obs: 'Cadastro aberto automaticamente pela tela Campanhas (LinkedIn), campanha ' + tagCamp + '. Qualificação: ' + c.qual + (it.empresaTagFonte ? ' (' + it.empresaTagFonte + ')' : '') + '. Contato: ' + (it.nome || '') + ' ' + (it.sobrenome || '') + (it.cargo ? ', ' + it.cargo : '') + (it.linkedinUrl ? '. Perfil: ' + it.linkedinUrl : '') + '. Completar CNPJ, endereço e demais dados.' });
+        emp = (rE && rE.item) ? rE.item : { cliente: it.empresaNome };
+        if (!emp.__id) emp.__id = rE.id;
+        if (!emp.__id) throw new Error('cadastro sem identificador');
+        S.empresas.push(emp); empNova = true;
+      } catch (e) { S.msg = 'Não foi possível abrir o cadastro da empresa: ' + e.message; render(); return; }
+    }
     var rec = { dt: d, y: dd.getFullYear(), m: dd.getMonth() + 1, cliente: emp.cliente || emp.razaoSocial || it.empresaNome, empresaId: String(emp.__id), unidade: '', origem: 'NÃO SÓCIOS', cons: cons,
-      fonte: 'LinkedIn', campanha: it.campanha || 'LinkedIn', icp: it.icpA === 'SIM' ? 'A' : 'NA', prop: 'NÃO', status: 'LEAD', tipo: 'N/A', valor: 0, tc: 'NOVO', serv: 'NA',
+      fonte: 'LinkedIn', campanha: tagCamp, icp: (it.icpA === 'SIM' || c.qual === 'ICP A') ? 'A' : 'NA', prop: 'NÃO', status: 'LEAD', tipo: 'N/A', valor: 0, tc: 'NOVO', serv: 'NA',
       cnpj: emp.cnpj || '', razaoSocial: emp.razaoSocial || '', nome: it.nome || '', contatoSobrenome: it.sobrenome || '', telefone: it.telefone || '', email: it.email || '',
-      obs: 'Origem: tela Campanhas (LinkedIn). Nota ' + c.total + ' = ' + c.motivo + '.' + (it.linkedinUrl ? ' Perfil: ' + it.linkedinUrl + '.' : '') + (it.resumoResposta ? ' Última resposta: ' + it.resumoResposta : ''),
+      obs: 'Origem: tela Campanhas (LinkedIn), tag ' + tagCamp + '.' + (empNova ? ' Cadastro da empresa aberto automaticamente.' : '') + ' Nota ' + c.total + ' = ' + c.motivo + '.' + (it.linkedinUrl ? ' Perfil: ' + it.linkedinUrl + '.' : '') + (it.resumoResposta ? ' Última resposta: ' + it.resumoResposta : ''),
       histEventosJson: JSON.stringify([{ ts: new Date().toISOString(), texto: 'Lead criado pela tela Campanhas (LinkedIn) — nota ' + c.total + ': ' + c.motivo, por: por || '(você)' }]) };
     try {
       var j = await jpost('/api/leads', 'POST', rec);
@@ -504,9 +524,9 @@
         var ja = S.contatos.some(function (k) { return (it.email && norm(k.email) === norm(it.email)) || (String(k.empresaId || '') === String(emp.__id) && norm((k.nome || '') + ' ' + (k.sobrenome || '')) === nm); });
         if (!ja) await jpost('/api/contatos', 'POST', { nome: it.nome || '', sobrenome: it.sobrenome || '', telefone: it.telefone || '', email: it.email || '', empresaId: String(emp.__id), empresaNome: emp.cliente || emp.razaoSocial || '', tipo: '', cargo: it.cargo || '', obs: it.linkedinUrl ? 'LinkedIn: ' + it.linkedinUrl : '' });
       } catch (e) { /* contato é complemento: não desfaz o lead */ }
-      var campos = { estado: 'Qualificado', leadIdCriado: String(j.id || ''), promovidoEm: new Date().toISOString(), notaTotal: c.total, motivoPromocao: c.motivo };
+      var campos = { estado: 'Qualificado', empresaId: String(emp.__id), leadIdCriado: String(j.id || ''), promovidoEm: new Date().toISOString(), notaTotal: c.total, motivoPromocao: c.motivo };
       await jpost('/api/campanhas', 'PATCH', { id: id, fields: campos }); Object.assign(it, campos);
-      S.msg = 'Lead criado no Kanban (coluna LEAD): ' + (it.nome || '') + ' — ' + rec.cliente + '.';
+      S.msg = 'Lead criado no Kanban (coluna LEAD NOVO, tag ' + tagCamp + '): ' + (it.nome || '') + ' — ' + rec.cliente + (empNova ? ' (cadastro da empresa aberto)' : '') + '.';
       if (typeof window.reloadData === 'function') { try { await window.reloadData(); } catch (e) { } }
       try { var cs = await api('/api/contatos'); S.contatos = cs.items || S.contatos; var ls = await api('/api/leads'); S.leads = ls.items || S.leads; } catch (e) { }
     } catch (e) { S.msg = 'Não foi possível promover: ' + e.message; }
