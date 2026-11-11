@@ -17,7 +17,7 @@
   var LIMITE_DIA = 20; /* convites por dia útil (decisão do Léo, 10/11/2026; sem sáb, dom e feriados nacionais) */
   /* feriados nacionais (AAAA-MM-DD) usados no cálculo de dias úteis */
   var FERIADOS = ['2026-11-15', '2026-11-20', '2026-12-25', '2027-01-01', '2027-03-26', '2027-04-21', '2027-05-01', '2027-09-07', '2027-10-12', '2027-11-02', '2027-11-15', '2027-11-20', '2027-12-25'];
-  var S = { itens: [], empresas: [], contatos: [], leads: [], host: null, aba: 'op', f: { q: '', campanha: '', estado: '', acao: '', qual: '', ord: '' }, msg: '' };
+  var S = { itens: [], empresas: [], contatos: [], leads: [], host: null, aba: 'op', f: { q: '', campanha: '', estado: '', acao: '', qual: '', ord: '', cs: '', cd: 'asc', col: {} }, msg: '' };
 
   var QUALS = [['TARGET', 'TARGET'], ['ICP A', 'ICP A'], ['FORA', 'Fora do critério'], ['SEM EMPRESA', 'Sem empresa']];
   var QORD = ['TARGET', 'ICP A', 'FORA', 'SEM EMPRESA'];
@@ -240,7 +240,8 @@
   }
 
   /* ---------- tela ---------- */
-  var CSS = '.cmp{font-family:Montserrat,system-ui,sans-serif;color:#3A2A2E}.cmp *{box-sizing:border-box}' +
+  var CSS = '.cmp-sort{cursor:pointer;user-select:none}.cmp-seta{color:#C99AA0;font-size:11px}.cmp-seta.on{color:#8B3A42}.cmp-fil th{padding:4px 6px;background:#fff}.cmp-fil input,.cmp-fil select{width:100%;min-width:80px}' +
+    '.cmp{font-family:Montserrat,system-ui,sans-serif;color:#3A2A2E}.cmp *{box-sizing:border-box}' +
     '.cmp-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.cmp-top h2{margin:0;font-family:"Montserrat Alternates",Montserrat,sans-serif;font-size:20px;color:#5E2A30}' +
     '.cmp-kpis{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}.cmp-kpi{background:#fff;border:1px solid #EADDE0;border-radius:12px;padding:10px 14px;min-width:118px}' +
     '.cmp-kpi b{display:block;font-family:"Montserrat Alternates",Montserrat,sans-serif;font-size:22px;color:#8B3A42}.cmp-kpi span{font-size:11.5px;color:#8A7A78}' +
@@ -269,8 +270,38 @@
     return esc(p.txt) + (rot ? '<small><span class="cmp-tag ' + cls + '">' + rot + '</span></small>' : '');
   }
 
+  var COLS = [['contato', 'Contato'], ['empresa', 'Empresa'], ['campanha', 'Campanha'], ['estado', 'Estado'], ['ult', 'Última interação'], ['prox', 'Próxima ação'], ['nota', 'Nota']];
+  function chave(x, k) {
+    var it = x.it;
+    if (k === 'contato') return norm((it.nome || '') + ' ' + (it.sobrenome || ''));
+    if (k === 'empresa') return norm(it.empresaNome);
+    if (k === 'campanha') return norm(it.campanha);
+    if (k === 'estado') return ESTADOS.indexOf(it.estado || 'Na fila');
+    if (k === 'ult') { var u = ultima(it); return u ? String(u.ts) : ''; }
+    if (k === 'prox') return String(x.p.data || '9999');
+    return x.c.total;
+  }
+  function cab() {
+    var cf = S.f.col || {};
+    var r1 = '<tr>' + COLS.map(function (c) {
+      var on = S.f.cs === c[0];
+      return '<th class="cmp-sort" data-cs="' + c[0] + '" title="Clique para ordenar (crescente, decrescente, sem ordem)">' + c[1] + '<span class="cmp-seta' + (on ? ' on' : '') + '">' + (on ? (S.f.cd === 'desc' ? ' ▼' : ' ▲') : ' ⇅') + '</span></th>';
+    }).join('') + '<th></th></tr>';
+    var r2 = '<tr class="cmp-fil">' + COLS.map(function (c) {
+      var k = c[0], v = cf[k] || '';
+      if (k === 'estado') return '<th><select data-c="estado"><option value="">Todos</option>' + ESTADOS.map(function (e) { return '<option' + (v === e ? ' selected' : '') + '>' + e + '</option>'; }).join('') + '</select></th>';
+      if (k === 'nota') return '<th><input data-c="nota" inputmode="numeric" placeholder="mín." value="' + esc(v) + '" style="width:70px;min-width:0"></th>';
+      return '<th><input data-c="' + k + '" placeholder="filtrar" value="' + esc(v) + '"></th>';
+    }).join('') + '<th><button class="cmp-btn" data-limpar="1">Limpar filtros</button></th></tr>';
+    return r1 + r2;
+  }
   function ordena(a, b) {
     var o = S.f.ord, nt = b.c.total - a.c.total, s = function (t) { return norm(t); };
+    if (S.f.cs) {
+      var ka = chave(a, S.f.cs), kb = chave(b, S.f.cs), r = typeof ka === 'number' ? ka - kb : String(ka).localeCompare(String(kb));
+      if (r) return S.f.cd === 'desc' ? -r : r;
+      return nt;
+    }
     if (o === 'prox') return String(a.p.data || '9').localeCompare(String(b.p.data || '9')) || nt;
     if (o === 'nome') return s((a.it.nome || '') + ' ' + (a.it.sobrenome || '')).localeCompare(s((b.it.nome || '') + ' ' + (b.it.sobrenome || '')));
     if (o === 'empresa') return s(a.it.empresaNome).localeCompare(s(b.it.empresaNome)) || nt;
@@ -297,6 +328,14 @@
       if (S.f.acao === 'hoje' && !acaoPrazo(x.p)) return false;
       if (S.f.acao === 'sem' && !(x.p.data && x.p.data <= addDias(hoje(), 7))) return false;
       if (q && norm([it.nome, it.sobrenome, it.cargo, it.empresaNome, it.email].join(' ')).indexOf(q) < 0) return false;
+      var cf = S.f.col || {};
+      if (cf.contato && norm([it.nome, it.sobrenome, it.cargo].join(' ')).indexOf(norm(cf.contato)) < 0) return false;
+      if (cf.empresa && norm(it.empresaNome).indexOf(norm(cf.empresa)) < 0) return false;
+      if (cf.campanha && norm((it.campanha || '') + ' ' + (it.listaOrigem || '')).indexOf(norm(cf.campanha)) < 0) return false;
+      if (cf.estado && (it.estado || 'Na fila') !== cf.estado) return false;
+      if (cf.ult) { var uu = ultima(it); if (norm(uu ? uu.tipo + ' ' + (uu.texto || '') : 'sem registro').indexOf(norm(cf.ult)) < 0) return false; }
+      if (cf.prox && norm(x.p.txt).indexOf(norm(cf.prox)) < 0) return false;
+      if (cf.nota !== undefined && cf.nota !== '' && x.c.total < Number(cf.nota)) return false;
       return true;
     }).sort(ordena);
     var hojeN = linhas.filter(function (x) { return (x.it.estado || 'Na fila') !== 'Na fila' && acaoPrazo(x.p); }).length;
@@ -323,7 +362,7 @@
       '<select data-f="ord"><option value="">Ordenar: nota (maior primeiro)</option>' + ORDS.map(function (o) { return '<option value="' + o[0] + '"' + (S.f.ord === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-f="acao"><option value="">Todas as ações</option><option value="hoje"' + (S.f.acao === 'hoje' ? ' selected' : '') + '>Vencidas ou para hoje</option><option value="sem"' + (S.f.acao === 'sem' ? ' selected' : '') + '>Nos próximos 7 dias</option></select>' +
       '<label style="font-size:12px;color:#8A7A78">Consultor ao promover <input data-cons value="' + esc(S.cons || 'Léo') + '" style="width:90px"></label></div>' +
-      '<div class="cmp-card"><table><tr><th>Contato</th><th>Empresa</th><th>Campanha</th><th>Estado</th><th>Última interação</th><th>Próxima ação</th><th>Nota</th><th></th></tr>' +
+      '<div class="cmp-card"><table>' + cab() +
       (vis.length ? vis.map(function (x) {
         var it = x.it, c = x.c, id = esc(it.__id);
         return '<tr><td><b>' + esc((it.nome || '') + ' ' + (it.sobrenome || '')) + '</b><small>' + esc(it.cargo || '') + '</small>' + (it.linkedinUrl ? '<small><a href="' + esc(it.linkedinUrl) + '" target="_blank" rel="noopener">perfil no LinkedIn</a></small>' : '') + '</td>' +
@@ -345,6 +384,9 @@
   function bind() {
     var h = S.host;
     h.querySelectorAll('[data-f]').forEach(function (el) { el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () { S.f[el.dataset.f] = el.value; if (el.tagName === 'INPUT') { clearTimeout(S._t); S._t = setTimeout(function () { render(); var i = h.querySelector('[data-f="q"]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } else render(); }); });
+    h.querySelectorAll('[data-cs]').forEach(function (el) { el.addEventListener('click', function () { var k = el.dataset.cs; if (S.f.cs === k) { if (S.f.cd === 'asc') S.f.cd = 'desc'; else { S.f.cs = ''; S.f.cd = 'asc'; } } else { S.f.cs = k; S.f.cd = k === 'nota' ? 'desc' : 'asc'; } render(); }); });
+    h.querySelectorAll('[data-c]').forEach(function (el) { el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () { S.f.col = S.f.col || {}; S.f.col[el.dataset.c] = el.value; if (el.tagName === 'INPUT') { clearTimeout(S._t); S._t = setTimeout(function () { render(); var i = S.host.querySelector('[data-c="' + el.dataset.c + '"]'); if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch (e) { } } }, 250); } else render(); }); });
+    h.querySelectorAll('[data-limpar]').forEach(function (el) { el.addEventListener('click', function () { S.f = { q: '', campanha: '', estado: '', acao: '', qual: '', ord: '', cs: '', cd: 'asc', col: {} }; render(); }); });
     var cons = h.querySelector('[data-cons]'); if (cons) cons.addEventListener('input', function () { S.cons = cons.value; });
     h.querySelectorAll('[data-est]').forEach(function (el) { el.addEventListener('change', function () { salvar(el.dataset.est, { estado: el.value }); }); });
     h.querySelectorAll('[data-aba]').forEach(function (el) { el.addEventListener('click', function () { S.aba = el.dataset.aba; render(); }); });
