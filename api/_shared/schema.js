@@ -321,6 +321,7 @@ const LISTS = {
       { name: 'dataAceite', type: 'text' }, // YYYY-MM-DD
       { name: 'respondeu', type: 'text' }, // SIM | ''
       { name: 'interesse', type: 'text' }, // SIM | ''
+      { name: 'tipoResposta', type: 'text' }, // 10/11/2026: Dor/necessidade declarada | Pedido de orçamento | Pedido de material | Resposta subjetiva (sem dor). Só a 1ª pontua cheio e promove
       { name: 'resumoResposta', type: 'text', long: true },
       { name: 'notaTotal', type: 'number' }, // gravada na promoção (histórico)
       { name: 'motivoPromocao', type: 'text', long: true },

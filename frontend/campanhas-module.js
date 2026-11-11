@@ -13,6 +13,11 @@
   var SAIDAS = ['Convite enviado', 'Agradecimento', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado']; /* mensagens/ações enviadas por nós */
   /* ordem dos materiais ricos por público (decisão do Léo, 10/11/2026); intervalo mínimo de 15 dias corridos entre materiais */
   var MATERIAIS = { med: ['Radar de Saúde', 'E-book NR-1', 'Carrossel AEP/AET'], sst: ['Carrossel AEP/AET', 'E-book NR-1', 'Radar de Saúde'], rh: ['E-book NR-1', 'Carrossel AEP/AET', 'Radar de Saúde'] };
+  /* 10/11/2026 (Léo): o tipo da resposta decide o peso. Só "dor/necessidade declarada" pontua cheio e promove ao Kanban;
+     pedido de orçamento ou de material pesa pouco e resposta subjetiva/cortesia não pontua (nenhum dos três promove sozinho). */
+  var TR_DOR = 'Dor/necessidade declarada';
+  var TRESP = [TR_DOR, 'Pedido de orçamento', 'Pedido de material', 'Resposta subjetiva (sem dor)'];
+  var TRESP_PTS = {}; TRESP_PTS[TR_DOR] = 30; TRESP_PTS['Pedido de orçamento'] = 8; TRESP_PTS['Pedido de material'] = 5; TRESP_PTS['Resposta subjetiva (sem dor)'] = 0;
   var NOTA_MIN = 60;
   var LIMITE_DIA = 20; /* convites por dia útil (decisão do Léo, 10/11/2026; sem sáb, dom e feriados nacionais) */
   /* feriados nacionais (AAAA-MM-DD) usados no cálculo de dias úteis */
@@ -83,8 +88,9 @@
     var fitCargo = pontosCargo(it.cargo);
     var fitSetor = it.setorPorte === 'SIM' ? 15 : 0;
     var aceitou = !!(it.dataAceite || ['Conectado', 'Em conversa', 'Qualificado'].indexOf(it.estado) > -1) ? 10 : 0;
-    var resp = it.respondeu === 'SIM' ? 15 : 0;
-    var inter = it.interesse === 'SIM' ? 15 : 0;
+    var tr = it.tipoResposta || '';
+    var resp = it.respondeu === 'SIM' ? (TRESP_PTS[tr] || 0) : 0;
+    var inter = 0; /* "pediu conversa/material" deixou de pontuar à parte: entra pelo tipo da resposta */
     var fit = fitEmp + fitCargo + fitSetor, eng = aceitou + resp + inter;
     var bloqueio = '', aviso = '';
     var ls = leadsDaEmpresa(it, emp).filter(function (l) { return l.inativo !== 'SIM'; });
@@ -100,13 +106,15 @@
     var total = fit + eng, motivo = '';
     var partes = [];
     if (fitEmp) partes.push('empresa TARGET/ICP A'); if (fitCargo) partes.push('cargo ' + (fitCargo === 20 ? 'decisor' : 'técnico'));
-    if (fitSetor) partes.push('setor/porte'); if (aceitou) partes.push('aceitou'); if (resp) partes.push('respondeu'); if (inter) partes.push('demonstrou interesse');
+    if (fitSetor) partes.push('setor/porte'); if (aceitou) partes.push('aceitou'); if (resp) partes.push(tr.toLowerCase());
     motivo = partes.join(' + ');
     var razao = '';
     if (it.estado === 'Qualificado') razao = 'Já promovido.';
     else if (bloqueio) razao = bloqueio;
     else if (!qualOk(qual)) razao = 'Fora do critério (Regra de Ouro): só empresas TARGET ou ICP A entram na campanha.';
     else if (it.respondeu !== 'SIM') razao = 'Falta resposta registrada.';
+    else if (!tr) razao = 'Classifique o tipo da resposta (dor/necessidade, orçamento, material ou subjetiva).';
+    else if (tr !== TR_DOR) razao = 'Resposta sem dor/necessidade declarada (' + tr.toLowerCase() + '): peso menor e não promove; levantar a dor antes.';
     else if (total < NOTA_MIN) razao = 'Nota abaixo de ' + NOTA_MIN + '.';
     return { emp: emp, qual: qual, fit: fit, eng: eng, total: total, bloqueio: bloqueio, aviso: aviso, motivo: motivo, razao: razao, ok: !razao };
   }
@@ -138,7 +146,7 @@
     if (est === 'Qualificado') return { txt: 'No Kanban', data: '', nivel: '' };
     if (est === 'Sem fit' || est === 'Não contatar') return { txt: 'Encerrado', data: '', nivel: '' };
     if (['Na fila', 'Convite enviado', 'Conectado'].indexOf(est) > -1 && it.respondeu !== 'SIM' && !qualOk(qualif(it))) return { txt: 'Fora do critério (Regra de Ouro): sem abordagem' + (est === 'Convite enviado' ? '; avaliar retirar o convite' : ''), data: '', nivel: '' };
-    if (est === 'Em conversa' || it.respondeu === 'SIM') r = { txt: 'Ler a resposta e avisar o Léo', data: h };
+    if (est === 'Em conversa' || it.respondeu === 'SIM') r = { txt: it.respondeu === 'SIM' && !it.tipoResposta ? 'Ler a resposta, classificar o tipo (dor, orçamento, material ou subjetiva) e avisar o Léo' : (it.respondeu === 'SIM' && it.tipoResposta !== TR_DOR ? 'Resposta sem dor declarada: avisar o Léo e levantar a dor/necessidade' : 'Ler a resposta e avisar o Léo'), data: h };
     else if (est === 'Na fila') r = { txt: 'Enviar convite sem nota', data: h };
     else if (est === 'Convite enviado') {
       var c = ult(['Convite enviado']); var base = c ? String(c.ts).slice(0, 10) : (it.dataConvite || '');
@@ -350,7 +358,7 @@
       (S.aba === 'kpi' ? htmlKpi(linhas) + '</div>' : '<div class="cmp-kpis"><div class="cmp-kpi"><b>' + S.itens.length + '</b><span>contatos na tela</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Convite enviado'] || 0) + '</b><span>convites pendentes</span></div>' +
       '<div class="cmp-kpi"><b>' + ((cont['Conectado'] || 0) + (cont['Em conversa'] || 0)) + '</b><span>conectados / em conversa</span></div>' +
-      '<div class="cmp-kpi"><b>' + prontos + '</b><span>prontos para promover (nota ≥ ' + NOTA_MIN + ' + resposta)</span></div>' +
+      '<div class="cmp-kpi"><b>' + prontos + '</b><span>prontos para promover (nota ≥ ' + NOTA_MIN + ' + dor declarada na resposta)</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Qualificado'] || 0) + '</b><span>já promovidos ao Kanban</span></div>' +
       '<div class="cmp-kpi"><b>' + hojeN + '</b><span>ações vencidas ou para hoje (já abordados)</span></div>' +
       '<div class="cmp-kpi"><b>' + Math.min(filaN, LIMITE_DIA) + ' de ' + filaN + '</b><span>na fila (só TARGET/ICP A): envio de hoje (limite ' + LIMITE_DIA + ' por dia útil)</span></div>' +
@@ -431,7 +439,7 @@
       sel('Estado', 'estado', v.estado || 'Na fila', ESTADOS) + sel('Passo da cadência', 'passo', v.passo || '', (v.passo && PASSOS.indexOf(v.passo) < 0) ? PASSOS.concat([v.passo]) : PASSOS) +
       campo('Data do convite (AAAA-MM-DD)', 'dataConvite', v.dataConvite) + campo('Data do aceite (AAAA-MM-DD)', 'dataAceite', v.dataAceite) +
       sel('Empresa ICP A?', 'icpA', v.icpA || '', ['', 'SIM']) + sel('Qualificação da empresa (se fora do cadastro)', 'empresaTag', v.empresaTag || '', ['', 'TARGET', 'ICP A', 'FORA']) + sel('Setor e porte compatíveis?', 'setorPorte', v.setorPorte || '', ['', 'SIM']) +
-      sel('Respondeu?', 'respondeu', v.respondeu || '', ['', 'SIM']) + sel('Pediu conversa/material ou perguntou sobre serviço?', 'interesse', v.interesse || '', ['', 'SIM']) +
+      sel('Respondeu?', 'respondeu', v.respondeu || '', ['', 'SIM']) + sel('Pediu conversa/material ou perguntou sobre serviço?', 'interesse', v.interesse || '', ['', 'SIM']) + sel('Tipo da resposta (define o peso)', 'tipoResposta', v.tipoResposta || '', [''].concat(TRESP)) +
       '<label class="w">Resumo da última resposta<textarea data-k="resumoResposta" rows="3">' + esc(v.resumoResposta || '') + '</textarea></label></div>' +
       '<div class="cmp-msg" id="cmp-em"></div>',
       '<button class="cmp-btn" data-x>Cancelar</button><button class="cmp-btn p" data-s>Salvar</button>');
@@ -462,14 +470,15 @@
       '<div class="cmp-msg" style="margin-top:0">' + esc(it.empresaNome || '') + ' · ' + esc(it.estado || 'Na fila') + '</div>' +
       '<h4>Próxima ação</h4><div style="margin-bottom:12px" data-prox>' + celProxima(p) + '</div>' +
       '<h4>Linha do tempo</h4><ul class="cmp-tl" data-tl>' + tl() + '</ul>' +
-      '<h4>Registrar interação</h4><div class="cmp-g">' + sel('Tipo', 'tipo', 'Observação', TIPOS) + campo('Data (AAAA-MM-DD)', 'data', hoje()) +
+      '<h4>Registrar interação</h4><div class="cmp-g">' + sel('Tipo', 'tipo', 'Observação', TIPOS) + campo('Data (AAAA-MM-DD)', 'data', hoje()) + sel('Tipo da resposta (só para Resposta recebida)', 'tresp', '', [''].concat(TRESP)) +
       '<label class="w">Texto / material enviado / resumo da resposta<textarea data-k="texto" rows="2"></textarea></label></div><div class="cmp-msg" id="cmp-hm"></div>',
       '<button class="cmp-btn" data-x>Fechar</button><button class="cmp-btn p" data-s>Registrar</button>');
     ov.querySelector('[data-x]').onclick = function () { ov.remove(); render(); };
     ov.querySelector('[data-s]').onclick = async function () {
       var tipo = ov.querySelector('[data-k="tipo"]').value, data = ov.querySelector('[data-k="data"]').value.trim(), texto = ov.querySelector('[data-k="texto"]').value.trim(), m = ov.querySelector('#cmp-hm');
       if (!/^\d{4}-\d{2}-\d{2}$/.test(data)) { m.textContent = 'Use a data no formato AAAA-MM-DD.'; return; }
-      var campos = aplicaEvento(it, tipo, data, texto);
+      var campos = aplicaEvento(it, tipo, data, texto), tresp = ov.querySelector('[data-k="tresp"]').value;
+      if (tipo === 'Resposta recebida' && tresp) campos.tipoResposta = tresp;
       try {
         await jpost('/api/campanhas', 'PATCH', { id: it.__id, fields: campos }); Object.assign(it, campos);
         ov.querySelector('[data-tl]').innerHTML = tl(); ov.querySelector('[data-prox]').innerHTML = celProxima(proxima(it));
