@@ -273,6 +273,14 @@ const LISTS = {
       { name: 'grauRisco', type: 'text' },      // NR-4 (1-4)
       { name: 'target', type: 'text' },         // TARGET / NÃO TARGET
       { name: 'segmento', type: 'text' },
+      // 13/11/2026 — classificação de porte da empresa para as campanhas (Regra de Ouro): TARGET (2.000+), ICP A (1.000-1.999), ICP B/C (200-999), ICP D (<200), FORA (fora do critério)
+      { name: 'classe', type: 'text' },         // TARGET / ICP A / ICP B / ICP C / ICP D / FORA (vazio = não classificada)
+      { name: 'headcount', type: 'text' },      // faixa ou número de colaboradores (ex.: 2.001-5.000)
+      { name: 'multisites', type: 'text' },     // SIM / NÃO
+      { name: 'sesmt', type: 'text' },          // SIM / NÃO (SESMT próprio: ambulatório e EHS)
+      { name: 'classeFonte', type: 'text' },    // de onde veio a informação (site, LinkedIn, portal, planilha)
+      { name: 'classeData', type: 'text' },     // AAAA-MM-DD da conferência
+      { name: 'classeStatus', type: 'text' },   // CONFIRMADA / A CONFIRMAR
       { name: 'obs', type: 'text' },
       { name: 'alteradoEm', type: 'text' },
       { name: 'alteradoPor', type: 'text' },
