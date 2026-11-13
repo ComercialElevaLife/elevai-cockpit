@@ -493,6 +493,7 @@
       '<div class="cmp-bar"><input data-ef="q" placeholder="Buscar empresa TARGET..." value="' + esc(f.q) + '" style="min-width:230px">' +
       '<select data-ef="sit">' + op('', 'Todas as TARGET', f.sit) + op('com', 'Com contatos', f.sit) + op('sem', 'Sem nenhum contato', f.sit) + op('int', 'Com interações', f.sit) + '</select>' +
       '<select data-ef="ord">' + op('contatos', 'Mais contatos primeiro', f.ord) + op('inter', 'Mais interações primeiro', f.ord) + op('ult', 'Atividade mais recente', f.ord) + op('nome', 'Nome (A–Z)', f.ord) + '</select>' +
+      '<button class="cmp-btn p" data-vinc="1">Vincular contatos sem empresa (' + D.semEmp + ')</button>' +
       '<span class="cmp-msg" style="margin:0">' + vis.length + ' de ' + L.length + ' empresas</span></div>' +
       '<table><tr><th>Empresa TARGET</th><th>Contatos</th><th>Conectados</th><th>Responderam</th><th>Interações</th><th>Nota média</th><th>Leads no SIGE</th><th>Última atividade</th></tr>' +
       vis.map(function (o) {
@@ -528,6 +529,141 @@
     ov.querySelectorAll('[data-hi2]').forEach(function (el) { el.addEventListener('click', function () { ov.remove(); historico(el.dataset.hi2); }); });
   }
 
+  /* ---------- vínculo de contatos sem empresa (13/11/2026, Léo) ----------
+     Contatos da sincronização do LinkedIn chegam só com nome e perfil. Aqui o usuário escolhe a empresa do cadastro
+     (com sugestão automática pelo nome, quando houver, ou lida de um CSV com perfil + empresa). O vínculo é gravado
+     no contato e registrado no histórico com o usuário. Não promove lead automaticamente. */
+  function vcN(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\b(s a|sa|ltda|brasil|do|da|de|industria|comercio|e|cia|grupo)\b/g, ' ').replace(/\s+/g, ' ').trim(); }
+  function vcPerfil(u) { return String(u || '').toLowerCase().replace(/^https?:\/\/(www\.)?/, '').split('?')[0].split('#')[0].replace(/\/+$/, ''); }
+  function vcIndice() {
+    var idx = {}, lab = {}, rot = {}, lista = [];
+    S.empresas.forEach(function (e) {
+      var nome = e.cliente || e.razaoSocial || e.nomeFantasia;
+      if (!nome) return;
+      var l = nome;
+      if (lab[l]) l = nome + ' #' + e.__id;
+      lab[l] = e; rot[String(e.__id)] = l; lista.push({ l: l, e: e });
+      [e.cliente, e.razaoSocial, e.nomeFantasia].forEach(function (v) {
+        var k = vcN(v);
+        if (!k) return;
+        if (!idx[k] || (String(e.target || '').toUpperCase() === 'TARGET' && String(idx[k].target || '').toUpperCase() !== 'TARGET')) idx[k] = e;
+      });
+    });
+    return { idx: idx, lab: lab, rot: rot, lista: lista };
+  }
+  function vcAcha(nome, I) {
+    var k = vcN(nome);
+    if (!k) return null;
+    if (I.idx[k]) return I.idx[k];
+    var ks = Object.keys(I.idx).filter(function (x) { return x.length >= 4 && (k.indexOf(x) === 0 || x.indexOf(k) === 0); });
+    return ks.length === 1 ? I.idx[ks[0]] : null;
+  }
+  async function vcGravar(pares) {
+    var ok = 0, err = 0;
+    for (var i = 0; i < pares.length; i++) {
+      var cur = S.itens.find(function (x) { return String(x.__id) === String(pares[i].id); });
+      if (!cur) continue;
+      var e = pares[i].emp;
+      var nome = e.cliente || e.razaoSocial || e.nomeFantasia;
+      var campos = { empresaId: String(e.__id), empresaNome: nome };
+      if (String(e.target || '').toUpperCase() === 'TARGET') { campos.empresaTag = 'TARGET'; campos.empresaTagFonte = 'vínculo manual'; }
+      campos = Object.assign({}, aplicaEvento(cur, 'Observação', hoje(), 'Empresa vinculada: ' + nome), campos);
+      try { await jpost('/api/campanhas', 'PATCH', { id: cur.__id, fields: campos }); Object.assign(cur, campos); ok++; } catch (x) { err++; }
+    }
+    return { ok: ok, err: err };
+  }
+  function vincular() {
+    var I = vcIndice(), st = S.vc || (S.vc = { sug: {}, q: '', so: 'sug', conf: false });
+    var ov = modal('Vincular contatos sem empresa', '<div data-vcorpo></div>', '<button class="cmp-btn" data-x="1">Fechar</button>');
+    var md = ov.querySelector('.cmp-md');
+    md.style.width = 'min(1000px, 96vw)'; md.style.maxWidth = '96vw';
+    ov.querySelector('[data-x]').addEventListener('click', function () { ov.remove(); render(); });
+    function pend() { return S.itens.filter(function (it) { return !kbInat(it) && !empresaDe(it); }); }
+    function resolve(label) { return I.lab[String(label || '').trim()] || null; }
+    function desenha(aviso) {
+      var P = pend(), q = norm(st.q);
+      P.forEach(function (it) {
+        var id = String(it.__id);
+        if (!(id in st.sug)) { var e = vcAcha(it.empresaNome, I); st.sug[id] = e ? I.rot[String(e.__id)] : ''; }
+      });
+      var nSug = P.filter(function (it) { return st.sug[String(it.__id)]; }).length;
+      var vis = P.filter(function (it) {
+        if (st.so === 'sug' && !st.sug[String(it.__id)]) return false;
+        if (q && norm([it.nome, it.sobrenome, it.cargo, it.empresaNome].join(' ')).indexOf(q) < 0) return false;
+        return true;
+      });
+      var tr = vis.slice(0, 40).map(function (it) {
+        var id = esc(it.__id), u = String(it.linkedinUrl || '');
+        return '<tr><td><b>' + esc(((it.nome || '') + ' ' + (it.sobrenome || '')).trim()) + '</b><br><small>' + esc(it.cargo || '') + (it.empresaNome ? ' · veio como: ' + esc(it.empresaNome) : '') + '</small></td><td>' +
+          (/^https?:\/\//i.test(u) ? '<a href="' + esc(u) + '" target="_blank" rel="noopener">perfil</a>' : '') + '</td><td><input list="cmp-emps" data-vc="' + id + '" value="' + esc(st.sug[String(it.__id)] || '') + '" placeholder="Digite para buscar a empresa..." style="min-width:250px"></td><td><button class="cmp-btn" data-vc1="' + id + '">Vincular</button></td></tr>';
+      }).join('');
+      var nAll = vis.filter(function (it) { return resolve(st.sug[String(it.__id)]); }).length;
+      var corpo = ov.querySelector('[data-vcorpo]');
+      corpo.innerHTML = '<div class="cmp-msg" style="margin-top:0">' + P.length + ' contato(s) sem empresa · ' + nSug + ' com sugestão automática. Escolha a empresa do cadastro e clique em Vincular. Cada vínculo fica registrado no histórico do contato, com o seu usuário.</div>' +
+        '<div class="cmp-bar"><input data-vq placeholder="Buscar contato..." value="' + esc(st.q) + '" style="min-width:200px">' +
+        '<select data-vso><option value="">Todos</option><option value="sug"' + (st.so === 'sug' ? ' selected' : '') + '>Só com sugestão</option></select>' +
+        '<button class="cmp-btn" data-vcsv="1">Atualizar por CSV</button>' +
+        '<button class="cmp-btn p" data-vall="1"' + (nAll ? '' : ' disabled') + '>' + (st.conf ? 'Confirmar vínculo de ' + nAll + ' contato(s)' : 'Aceitar as ' + nAll + ' sugestões listadas') + '</button>' +
+        '<span class="cmp-msg" style="margin:0">' + vis.length + ' na lista (mostrando até 40)</span></div>' +
+        (aviso ? '<div class="cmp-msg">' + esc(aviso) + '</div>' : '') +
+        '<datalist id="cmp-emps">' + I.lista.map(function (x) { return '<option value="' + esc(x.l) + '" label="' + (String(x.e.target || '').toUpperCase() === 'TARGET' ? 'TARGET' : '') + '"></option>'; }).join('') + '</datalist>' +
+        (tr ? '<table><tr><th>Contato</th><th>LinkedIn</th><th>Empresa do cadastro</th><th></th></tr>' + tr + '</table>' : '<p class="cmp-msg">Nenhum contato nesta lista. Use "Todos" para ver os que não têm sugestão.</p>');
+      corpo.querySelector('[data-vq]').addEventListener('change', function (ev) { st.q = ev.target.value; st.conf = false; desenha(); });
+      corpo.querySelector('[data-vso]').addEventListener('change', function (ev) { st.so = ev.target.value; st.conf = false; desenha(); });
+      corpo.querySelectorAll('[data-vc]').forEach(function (el) { el.addEventListener('input', function () { st.sug[el.dataset.vc] = el.value; st.conf = false; }); });
+      corpo.querySelectorAll('[data-vc1]').forEach(function (el) {
+        el.addEventListener('click', async function () {
+          var id = el.dataset.vc1, e = resolve(st.sug[id]);
+          if (!e) { desenha('Escolha uma empresa da lista de sugestões antes de vincular.'); return; }
+          el.disabled = true;
+          var r = await vcGravar([{ id: id, emp: e }]);
+          delete st.sug[id];
+          desenha(r.ok ? 'Vinculado a ' + (e.cliente || e.razaoSocial) + '.' : 'Não foi possível gravar o vínculo.');
+        });
+      });
+      corpo.querySelector('[data-vall]').addEventListener('click', async function () {
+        if (!st.conf) { st.conf = true; desenha(); return; }
+        st.conf = false;
+        var pares = vis.map(function (it) { return { id: String(it.__id), emp: resolve(st.sug[String(it.__id)]) }; }).filter(function (p) { return p.emp; });
+        this.disabled = true;
+        var r = await vcGravar(pares);
+        pares.forEach(function (p) { delete st.sug[p.id]; });
+        desenha(r.ok + ' contato(s) vinculado(s)' + (r.err ? '; ' + r.err + ' com erro' : '') + '.');
+      });
+      corpo.querySelector('[data-vcsv]').addEventListener('click', function () {
+        var fi = document.createElement('input');
+        fi.type = 'file'; fi.accept = '.csv,text/csv,text/plain';
+        fi.onchange = async function () {
+          var f = fi.files[0];
+          if (!f) return;
+          var rows = parseCsv(await f.text());
+          if (rows.length < 2) { desenha('CSV vazio.'); return; }
+          var cab = rows[0].map(norm);
+          var ci = -1, ce = -1;
+          cab.forEach(function (c, i) {
+            if (ci < 0 && (c.indexOf('linkedin') > -1 || c === 'perfil' || c === 'url' || c === 'profile url')) ci = i;
+            if (ce < 0 && (c === 'empresa' || c === 'company' || c === 'company name' || c.indexOf('empresa') === 0)) ce = i;
+          });
+          if (ci < 0 || ce < 0) { desenha('Não achei as colunas de perfil do LinkedIn e de empresa na primeira linha.'); return; }
+          var mapa = {};
+          for (var r = 1; r < rows.length; r++) { var k = vcPerfil(rows[r][ci]); if (k && rows[r][ce]) mapa[k] = String(rows[r][ce]).trim(); }
+          var casou = 0, achou = 0, sem = 0;
+          pend().forEach(function (it) {
+            var nm = mapa[vcPerfil(it.linkedinUrl)];
+            if (!nm) return;
+            casou++;
+            var e = vcAcha(nm, I);
+            if (e) { st.sug[String(it.__id)] = I.rot[String(e.__id)]; achou++; } else sem++;
+          });
+          st.so = 'sug'; st.conf = false;
+          desenha('CSV lido: ' + casou + ' contato(s) casado(s) pelo perfil; ' + achou + ' com empresa encontrada no cadastro (sugestão preenchida, confira e confirme); ' + sem + ' com empresa que não existe no cadastro.');
+        };
+        fi.click();
+      });
+    }
+    desenha();
+  }
+
   function bind() {
     var h = S.host;
     h.querySelectorAll('[data-vis]').forEach(function (el) { el.addEventListener('click', function () { S.vis = el.dataset.vis; try { localStorage.setItem('cmpVis', S.vis); } catch (e) {} render(); }); });
@@ -549,6 +685,7 @@
     h.querySelectorAll('[data-est]').forEach(function (el) { el.addEventListener('change', function () { salvar(el.dataset.est, { estado: el.value }); }); });
     h.querySelectorAll('[data-aba]').forEach(function (el) { el.addEventListener('click', function () { S.aba = el.dataset.aba; render(); }); });
     h.querySelectorAll('[data-emp]').forEach(function (el) { el.addEventListener('click', function () { empDetalhe(el.dataset.emp); }); });
+    h.querySelectorAll('[data-vinc]').forEach(function (el) { el.addEventListener('click', function () { vincular(); }); });
     h.querySelectorAll('[data-ef]').forEach(function (el) {
       el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () {
         var k = el.dataset.ef, pos = el.selectionStart;
