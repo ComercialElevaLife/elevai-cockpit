@@ -491,6 +491,14 @@
     var cor = c.bloqueio ? 'bad' : c.ok ? 'ok' : c.total >= 40 ? 'warn' : 'bad';
     return '<div class="sc"><table><tr><th>Crit\u00e9rio</th><th class="sc-n">Base</th><th class="sc-n">Atingido</th></tr>' + linhas + '<tr class="sc-t"><td>Nota final<small>' + esc(fim) + '</small></td><td class="sc-n">100</td><td class="sc-n"><span class="sc-p ' + cor + '">' + c.total + '</span></td></tr></table>' + (it.resumoResposta ? '<div class="sc-r"><b>\u00daltima resposta:</b> ' + esc(it.resumoResposta) + '</div>' : '') + '</div>';
   }
+  function histBlock(it) {
+    var ev = eventos(it).slice().reverse();
+    var li = ev.length ? ev.map(function (e) { return '<li><b>' + esc(e.tipo) + '</b> \u00b7 ' + br(String(e.ts).slice(0, 10)) + '/' + String(e.ts).slice(0, 4) + (e.texto ? '<small>' + esc(e.texto) + '</small>' : '') + '</li>'; }).join('') : '<li><small>Nenhuma intera\u00e7\u00e3o registrada.</small></li>';
+    var aceitou = !!(it.dataAceite || ['Conectado', 'Em conversa', 'Qualificado'].indexOf(it.estado) > -1);
+    var cv = it.dataConvite ? kbDmy(String(it.dataConvite).slice(0, 10)) : 'sem registro (conex\u00e3o anterior ao sistema)';
+    var ac = it.dataAceite ? kbDmy(String(it.dataAceite).slice(0, 10)) : aceitou ? 'sem registro' : 'ainda n\u00e3o aceitou';
+    return '<h4>Hist\u00f3rico</h4><div class="cmp-msg" style="margin-top:0">Convite: ' + cv + ' \u00b7 Aceite: ' + ac + '</div><ul class="cmp-tl">' + li + '</ul><button class="cmp-btn" data-regint>Registrar intera\u00e7\u00e3o</button>';
+  }
   function editar(id) {
     var it = id ? S.itens.find(function (x) { return String(x.__id) === String(id); }) : null; var v = it || { estado: 'Na fila', campanha: '' };
     var camps = S.itens.map(function (i) { return i.campanha; }).filter(function (c, i, a) { return c && a.indexOf(c) === i; });
@@ -500,11 +508,10 @@
       '<label>Campanha<input data-k="campanha" list="cmp-dl-camp" value="' + esc(v.campanha || '') + '"><datalist id="cmp-dl-camp">' + camps.map(function (c) { return '<option value="' + esc(c) + '">'; }).join('') + '</datalist></label>' +
       campo('Lista de origem (TARGET MED, CPMT...)', 'listaOrigem', v.listaOrigem) +
       sel('Estado', 'estado', v.estado || 'Na fila', ESTADOS) + sel('Passo da cadência', 'passo', v.passo || '', (v.passo && PASSOS.indexOf(v.passo) < 0) ? PASSOS.concat([v.passo]) : PASSOS) +
-      campo('Data do convite (AAAA-MM-DD)', 'dataConvite', v.dataConvite) + campo('Data do aceite (AAAA-MM-DD)', 'dataAceite', v.dataAceite) +
-      sel('Qualificação da empresa', 'empresaTag', v.empresaTag || '', ['', 'TARGET', 'ICP A', 'FORA']) + '</div>' +
-      '<div class="cmp-msg" id="cmp-em"></div>',
+      sel('Qualificação da empresa', 'empresaTag', v.empresaTag || '', ['', 'TARGET', 'ICP A', 'FORA']) + '</div>' + (it ? histBlock(it) : '') + '<div class="cmp-msg" id="cmp-em"></div>',
       '<button class="cmp-btn" data-x>Cancelar</button><button class="cmp-btn p" data-s>Salvar</button>');
     ov.querySelector('[data-x]').onclick = function () { ov.remove(); };
+    var rb = ov.querySelector('[data-regint]'); if (rb) rb.onclick = function () { ov.remove(); historico(it.__id); };
     ov.querySelector('[data-s]').onclick = async function () {
       var d = {}; ov.querySelectorAll('[data-k]').forEach(function (el) { d[el.dataset.k] = el.value.trim(); });
       if (!d.nome) { ov.querySelector('#cmp-em').textContent = 'Informe o nome.'; return; }
