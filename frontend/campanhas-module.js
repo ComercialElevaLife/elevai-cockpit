@@ -392,9 +392,9 @@
     var html = '<div class="cmp">' +
       '<div class="cmp-top"><h2>Campanhas</h2><span style="flex:1"></span>' +
       '<button class="cmp-btn" data-a="imp">Importar lista (CSV)</button><button class="cmp-btn p" data-a="novo">+ Novo contato</button></div>' +
-      '<div class="cmp-tabs"><button class="cmp-tab' + (S.aba === 'op' ? ' on' : '') + '" data-aba="op">Operacional</button><button class="cmp-tab' + (S.aba === 'kpi' ? ' on' : '') + '" data-aba="kpi">Indicadores</button>' + (S.aba === 'op' ? '<span class="cmp-vis"><button class="cmp-btn' + (S.fil ? ' p' : '') + '" data-fil="1">Filtros' + (nFil ? ' (' + nFil + ')' : '') + '</button><button class="cmp-btn' + (S.sec === 'inativos' ? ' p' : '') + '" data-sec="inativos" title="Contatos inativados">Inativos (' + nIna + ')</button><button class="cmp-btn' + (S.sec === 'lixeira' ? ' p' : '') + '" data-sec="lixeira" title="Lixeira: mantida por 30 dias">Lixeira (' + nLix + ')</button><button class="cmp-btn' + (S.vis !== 'kanban' ? ' p' : '') + '" data-vis="lista">Lista</button><button class="cmp-btn' + (S.vis === 'kanban' ? ' p' : '') + '" data-vis="kanban">Kanban</button></span>' : '') + '</div>' +
+      '<div class="cmp-tabs"><button class="cmp-tab' + (S.aba === 'op' ? ' on' : '') + '" data-aba="op">Operacional</button><button class="cmp-tab' + (S.aba === 'kpi' ? ' on' : '') + '" data-aba="kpi">Indicadores</button><button class="cmp-tab' + (S.aba === 'emp' ? ' on' : '') + '" data-aba="emp">Empresas target</button>' + (S.aba === 'op' ? '<span class="cmp-vis"><button class="cmp-btn' + (S.fil ? ' p' : '') + '" data-fil="1">Filtros' + (nFil ? ' (' + nFil + ')' : '') + '</button><button class="cmp-btn' + (S.sec === 'inativos' ? ' p' : '') + '" data-sec="inativos" title="Contatos inativados">Inativos (' + nIna + ')</button><button class="cmp-btn' + (S.sec === 'lixeira' ? ' p' : '') + '" data-sec="lixeira" title="Lixeira: mantida por 30 dias">Lixeira (' + nLix + ')</button><button class="cmp-btn' + (S.vis !== 'kanban' ? ' p' : '') + '" data-vis="lista">Lista</button><button class="cmp-btn' + (S.vis === 'kanban' ? ' p' : '') + '" data-vis="kanban">Kanban</button></span>' : '') + '</div>' +
       (S.msg ? '<div class="cmp-msg">' + esc(S.msg) + '</div>' : '') +
-      (S.aba === 'kpi' ? htmlKpi(linhas) + '</div>' : '<div class="cmp-kpis"><div class="cmp-kpi"><b>' + S.itens.length + '</b><span>contatos na tela</span></div>' +
+      (S.aba === 'emp' ? empHtml() + '</div>' : S.aba === 'kpi' ? htmlKpi(linhas) + '</div>' : '<div class="cmp-kpis"><div class="cmp-kpi"><b>' + S.itens.length + '</b><span>contatos na tela</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Convite enviado'] || 0) + '</b><span>convites pendentes</span></div>' +
       '<div class="cmp-kpi"><b>' + ((cont['Conectado'] || 0) + (cont['Em conversa'] || 0)) + '</b><span>conectados / em conversa</span></div>' +
       '<div class="cmp-kpi"><b>' + prontos + '</b><span>prontos para promover (nota ≥ ' + NOTA_MIN + ' + dor declarada na resposta)</span></div>' +
@@ -426,6 +426,108 @@
     bind();
   }
 
+  /* ---------- aba "Empresas target" (13/11/2026, Léo) ----------
+     Visão por empresa TARGET (cadastro de empresas): contatos, conectados, respostas, interações e histórico.
+     Só LÊ o que a tela já carregou (empresas, campanhas, leads): nada novo é gravado. */
+  var EMP_INTER = ['Interação', 'Mensagem', 'Resposta recebida'];
+  function empLinhas() {
+    var por = {}, semEmp = 0, foraTarget = 0;
+    S.itens.forEach(function (it) {
+      if (kbInat(it)) return;
+      var e = empresaDe(it);
+      if (!e) { semEmp++; return; }
+      var k = String(e.__id);
+      var o = por[k] || (por[k] = { its: [], ace: 0, res: 0, inter: 0, ult: '', soma: 0 });
+      var c = calc(it);
+      o.its.push({ it: it, c: c });
+      o.soma += c.total;
+      if (it.dataAceite || ['Conectado', 'Em conversa', 'Qualificado'].indexOf(it.estado) > -1) o.ace++;
+      if (String(it.respondeu || '').toUpperCase() === 'SIM') o.res++;
+      eventos(it).forEach(function (ev) {
+        if (EMP_INTER.indexOf(ev.tipo) > -1) o.inter++;
+        if (String(ev.ts) > o.ult) o.ult = String(ev.ts);
+      });
+    });
+    var alvo = S.empresas.filter(function (e) { return String(e.target || '').toUpperCase() === 'TARGET'; });
+    var ids = {};
+    alvo.forEach(function (e) { ids[String(e.__id)] = 1; });
+    Object.keys(por).forEach(function (k) { if (!ids[k]) foraTarget += por[k].its.length; });
+    var linhas = alvo.map(function (e) {
+      var o = por[String(e.__id)] || { its: [], ace: 0, res: 0, inter: 0, ult: '', soma: 0 };
+      o.emp = e;
+      o.nome = e.cliente || e.razaoSocial || e.nomeFantasia || '(sem nome)';
+      o.leads = leadsDaEmpresa({ empresaId: e.__id, empresaNome: e.cliente }, e).length;
+      o.media = o.its.length ? Math.round(o.soma / o.its.length) : 0;
+      return o;
+    });
+    return { linhas: linhas, semEmp: semEmp, foraTarget: foraTarget };
+  }
+  function empHtml() {
+    var f = S.ef || (S.ef = { q: '', sit: '', ord: 'contatos' });
+    var D = empLinhas(), L = D.linhas;
+    var comC = L.filter(function (o) { return o.its.length; }).length;
+    var totC = 0, totA = 0, totI = 0;
+    L.forEach(function (o) { totC += o.its.length; totA += o.ace; totI += o.inter; });
+    var q = norm(f.q);
+    var vis = L.filter(function (o) {
+      if (q && norm(o.nome + ' ' + (o.emp.razaoSocial || '') + ' ' + (o.emp.nomeFantasia || '')).indexOf(q) < 0) return false;
+      if (f.sit === 'com' && !o.its.length) return false;
+      if (f.sit === 'sem' && o.its.length) return false;
+      if (f.sit === 'int' && !o.inter) return false;
+      return true;
+    }).sort(function (a, b) {
+      if (f.ord === 'nome') return a.nome.localeCompare(b.nome);
+      if (f.ord === 'inter') return (b.inter - a.inter) || (b.its.length - a.its.length);
+      if (f.ord === 'ult') return String(b.ult).localeCompare(String(a.ult));
+      return (b.its.length - a.its.length) || (b.inter - a.inter) || a.nome.localeCompare(b.nome);
+    });
+    function op(v, t, cur) { return '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>'; }
+    var h = '<div class="cmp-kpis">' +
+      '<div class="cmp-kpi"><b>' + L.length + '</b><span>empresas TARGET no cadastro</span></div>' +
+      '<div class="cmp-kpi"><b>' + comC + '</b><span>com algum contato nas campanhas</span></div>' +
+      '<div class="cmp-kpi"><b>' + (L.length - comC) + '</b><span>TARGET sem nenhum contato</span></div>' +
+      '<div class="cmp-kpi"><b>' + totC + '</b><span>contatos em empresas TARGET</span></div>' +
+      '<div class="cmp-kpi"><b>' + totA + '</b><span>conectados</span></div>' +
+      '<div class="cmp-kpi"><b>' + totI + '</b><span>interações registradas</span></div>' +
+      '<div class="cmp-kpi"><b>' + D.semEmp + '</b><span>contatos sem empresa vinculada (não entram nesta conta)</span></div></div>' +
+      '<div class="cmp-bar"><input data-ef="q" placeholder="Buscar empresa TARGET..." value="' + esc(f.q) + '" style="min-width:230px">' +
+      '<select data-ef="sit">' + op('', 'Todas as TARGET', f.sit) + op('com', 'Com contatos', f.sit) + op('sem', 'Sem nenhum contato', f.sit) + op('int', 'Com interações', f.sit) + '</select>' +
+      '<select data-ef="ord">' + op('contatos', 'Mais contatos primeiro', f.ord) + op('inter', 'Mais interações primeiro', f.ord) + op('ult', 'Atividade mais recente', f.ord) + op('nome', 'Nome (A–Z)', f.ord) + '</select>' +
+      '<span class="cmp-msg" style="margin:0">' + vis.length + ' de ' + L.length + ' empresas</span></div>' +
+      '<table><tr><th>Empresa TARGET</th><th>Contatos</th><th>Conectados</th><th>Responderam</th><th>Interações</th><th>Nota média</th><th>Leads no SIGE</th><th>Última atividade</th></tr>' +
+      vis.map(function (o) {
+        return '<tr data-emp="' + esc(o.emp.__id) + '" style="cursor:pointer" title="Ver contatos e histórico"><td><b>' + esc(o.nome) + '</b>' +
+          (o.emp.segmento ? '<br><small>' + esc(o.emp.segmento) + '</small>' : '') + '</td><td>' +
+          (o.its.length ? o.its.length : '<small>sem contato</small>') + '</td><td>' + o.ace + '</td><td>' + o.res + '</td><td>' + o.inter + '</td><td>' +
+          (o.its.length ? o.media : '') + '</td><td>' + o.leads + '</td><td>' + (o.ult ? br(o.ult.slice(0, 10)) + '/' + o.ult.slice(0, 4) : '') + '</td></tr>';
+      }).join('') + '</table>' +
+      '<p class="cmp-msg">Clique na empresa para ver os contatos e o histórico. Interações = interação, mensagem e resposta recebida registradas no histórico dos contatos.</p>';
+    return h;
+  }
+  function empDetalhe(id) {
+    var o = empLinhas().linhas.find(function (x) { return String(x.emp.__id) === String(id); });
+    if (!o) return;
+    var evs = [];
+    o.its.forEach(function (p) {
+      var nm = ((p.it.nome || '') + ' ' + (p.it.sobrenome || '')).trim();
+      eventos(p.it).forEach(function (e) { evs.push({ ts: String(e.ts), tipo: e.tipo, texto: e.texto || '', nm: nm }); });
+    });
+    evs.sort(function (a, b) { return b.ts.localeCompare(a.ts); });
+    var cont = o.its.slice().sort(function (a, b) { return b.c.total - a.c.total; }).map(function (p) {
+      var it = p.it;
+      return '<tr><td><b>' + esc(((it.nome || '') + ' ' + (it.sobrenome || '')).trim()) + '</b><br><small>' + esc(it.cargo || '') + '</small></td><td>' + esc(it.estado || 'Na fila') + '</td><td>' + p.c.total + '</td><td><button class="cmp-btn" data-hi2="' + esc(it.__id) + '">Histórico</button></td></tr>';
+    }).join('');
+    var ov = modal(o.nome + ' — empresa TARGET',
+      '<div class="cmp-msg" style="margin-top:0">' + o.its.length + ' contato(s) · ' + o.ace + ' conectado(s) · ' + o.res + ' respondeu(ram) · ' + o.inter + ' interação(ões) · ' + o.leads + ' lead(s) no SIGE</div>' +
+      '<h4>Contatos</h4>' + (cont ? '<table><tr><th>Contato</th><th>Situação</th><th>Nota</th><th></th></tr>' + cont + '</table>' : '<p class="cmp-msg">Nenhum contato desta empresa nas campanhas ainda.</p>') +
+      '<h4>Histórico da empresa</h4><ul class="cmp-tl">' + (evs.length ? evs.slice(0, 80).map(function (e) {
+        return '<li><b>' + esc(e.tipo) + '</b> · ' + esc(e.nm) + ' · ' + br(e.ts.slice(0, 10)) + '/' + e.ts.slice(0, 4) + (e.texto ? '<small>' + esc(e.texto) + '</small>' : '') + '</li>';
+      }).join('') + (evs.length > 80 ? '<li><small>Mostrando os 80 mais recentes de ' + evs.length + '.</small></li>' : '') : '<li><small>Nenhuma interação registrada.</small></li>') + '</ul>',
+      '<button class="cmp-btn" data-x="1">Fechar</button>');
+    ov.querySelector('[data-x]').addEventListener('click', function () { ov.remove(); });
+    ov.querySelectorAll('[data-hi2]').forEach(function (el) { el.addEventListener('click', function () { ov.remove(); historico(el.dataset.hi2); }); });
+  }
+
   function bind() {
     var h = S.host;
     h.querySelectorAll('[data-vis]').forEach(function (el) { el.addEventListener('click', function () { S.vis = el.dataset.vis; try { localStorage.setItem('cmpVis', S.vis); } catch (e) {} render(); }); });
@@ -446,6 +548,15 @@
     var cons = h.querySelector('[data-cons]'); if (cons) cons.addEventListener('input', function () { S.cons = cons.value; });
     h.querySelectorAll('[data-est]').forEach(function (el) { el.addEventListener('change', function () { salvar(el.dataset.est, { estado: el.value }); }); });
     h.querySelectorAll('[data-aba]').forEach(function (el) { el.addEventListener('click', function () { S.aba = el.dataset.aba; render(); }); });
+    h.querySelectorAll('[data-emp]').forEach(function (el) { el.addEventListener('click', function () { empDetalhe(el.dataset.emp); }); });
+    h.querySelectorAll('[data-ef]').forEach(function (el) {
+      el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () {
+        var k = el.dataset.ef, pos = el.selectionStart;
+        S.ef[k] = el.value; render();
+        var n = h.querySelector('[data-ef="' + k + '"]');
+        if (n && el.tagName === 'INPUT') { n.focus(); try { n.setSelectionRange(pos, pos); } catch (x) { } }
+      });
+    });
     h.querySelectorAll('[data-hi]').forEach(function (el) { el.addEventListener('click', function () { historico(el.dataset.hi); }); });
     h.querySelectorAll('[data-ed]').forEach(function (el) { el.addEventListener('click', function () { editar(el.dataset.ed); }); });
     h.querySelectorAll('[data-pr]').forEach(function (el) { el.addEventListener('click', function () { promover(el.dataset.pr); }); });
