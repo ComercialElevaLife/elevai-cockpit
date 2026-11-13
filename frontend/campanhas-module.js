@@ -66,7 +66,7 @@
   /* REGRA DE OURO (10/11/2026, Léo): só entra na campanha contato de empresa TARGET ou ICP A.
      TARGET = empresas.target 'TARGET' no SIGE, ou empresaTag gravada a partir da lista TARGET_RP; ICP A = icpA SIM, empresaTag 'ICP A' ou lead com icp A na empresa. */
   function qualif(it) {
-    var emp = empresaDe(it), tg = String(it.empresaTag || '').toUpperCase();
+    var emp = empresaDe(it), tg = String(it.empresaTag || '').toUpperCase(); /* classe da empresa (coluna 'classe' do cadastro) manda; o contato nao guarda copia */ var cl = emp ? String(emp.classe || '').toUpperCase().replace(/\s+/g, ' ').trim() : ''; if (cl === 'TARGET' || cl === 'ICP A') return cl; if (cl === 'FORA' || /^ICP [BCD]$/.test(cl)) return 'FORA';
     if (tg === 'TARGET' || tg === 'ICP A' || tg === 'FORA') return tg; /* classificação gravada (headcount, multisites e SESMT) vale mais que os campos antigos */
     if (emp && String(emp.target || '').toUpperCase() === 'TARGET') return 'TARGET';
     if (tg === 'TARGET') return 'TARGET';
@@ -566,7 +566,6 @@
       var e = pares[i].emp;
       var nome = e.cliente || e.razaoSocial || e.nomeFantasia;
       var campos = { empresaId: String(e.__id), empresaNome: nome };
-      if (String(e.target || '').toUpperCase() === 'TARGET') { campos.empresaTag = 'TARGET'; campos.empresaTagFonte = 'vínculo manual'; }
       campos = Object.assign({}, aplicaEvento(cur, 'Observação', hoje(), 'Empresa vinculada: ' + nome), campos);
       try { await jpost('/api/campanhas', 'PATCH', { id: cur.__id, fields: campos }); Object.assign(cur, campos); ok++; } catch (x) { err++; }
     }
