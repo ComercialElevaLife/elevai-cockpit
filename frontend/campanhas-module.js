@@ -253,7 +253,7 @@
   }
 
   /* ---------- tela ---------- */
-  var CSS = '.cmp-sort{cursor:pointer;user-select:none}.cmp-seta{color:#C99AA0;font-size:11px}.cmp-seta.on{color:#8B3A42}.cmp-fil th{padding:4px 6px;background:#fff}.cmp-fil input,.cmp-fil select{width:100%;min-width:80px}' +
+  var CSS = '.cmp-tabs{display:flex;align-items:flex-end}.cmp-vis{margin-left:auto;display:flex;gap:6px;align-items:center;padding-bottom:6px}.kb{display:flex;gap:10px;align-items:flex-start;overflow-x:auto;padding-bottom:10px}.kb-col{flex:0 0 250px;background:#F5EFEA;border:1px solid #EADDE0;border-radius:10px;display:flex;flex-direction:column;max-height:70vh}.kb-col.over{outline:2px dashed #8B3A42;background:#EBD9DB}.kb-h{display:flex;justify-content:space-between;align-items:center;padding:8px 10px;background:#8B3A42;color:#fff;border-radius:9px 9px 0 0;font-size:12px}.kb-h span{background:#fff;color:#8B3A42;border-radius:10px;padding:1px 8px;font-weight:700}.kb-b{overflow-y:auto;padding:8px;display:flex;flex-direction:column;gap:8px;min-height:60px}.kb-card{background:#fff;border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;cursor:grab;font-size:12px;display:flex;flex-direction:column;gap:3px}.kb-card.drag{opacity:.45}.kb-card small{color:#8A7A78;display:block}.kb-f{display:flex;justify-content:space-between;align-items:center;margin-top:4px;color:#5E2A30;font-weight:600}.kb-v{color:#8A7A78;font-size:12px;text-align:center;padding:10px}' + '.cmp-sort{cursor:pointer;user-select:none}.cmp-seta{color:#C99AA0;font-size:11px}.cmp-seta.on{color:#8B3A42}.cmp-fil th{padding:4px 6px;background:#fff}.cmp-fil input,.cmp-fil select{width:100%;min-width:80px}' +
     '.cmp{font-family:Montserrat,system-ui,sans-serif;color:#3A2A2E}.cmp *{box-sizing:border-box}' +
     '.cmp-top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}.cmp-top h2{margin:0;font-family:"Montserrat Alternates",Montserrat,sans-serif;font-size:20px;color:#5E2A30}' +
     '.cmp-kpis{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:14px}.cmp-kpi{background:#fff;border:1px solid #EADDE0;border-radius:12px;padding:10px 14px;min-width:118px}' +
@@ -284,7 +284,7 @@
   }
 
   var COLS = [['contato', 'Contato'], ['empresa', 'Empresa'], ['campanha', 'Campanha'], ['estado', 'Estado'], ['ult', 'Última interação'], ['prox', 'Próxima ação'], ['nota', 'Nota']];
-  function chave(x, k) {
+  function chaveOrd(x, k) {
     var it = x.it;
     if (k === 'contato') return norm((it.nome || '') + ' ' + (it.sobrenome || ''));
     if (k === 'empresa') return norm(it.empresaNome);
@@ -308,10 +308,11 @@
     }).join('') + '<th><button class="cmp-btn" data-limpar="1">Limpar filtros</button></th></tr>';
     return r1 + r2;
   }
+  function kanbanHtml(vis) { var cols = ESTADOS.map(function (est) { var l = vis.filter(function (x) { return (x.it.estado || 'Na fila') === est; }); return '<div class="kb-col" data-estado="' + esc(est) + '"><div class="kb-h"><b>' + esc(est) + '</b><span>' + l.length + '</span></div><div class="kb-b">' + (l.length ? l.map(function (x) { var it = x.it, c = x.c, id = esc(it.__id); return '<div class="kb-card" draggable="true" data-id="' + id + '"><b>' + esc((it.nome || '') + ' ' + (it.sobrenome || '')) + '</b><small>' + esc(it.cargo || '') + '</small><small>' + esc(it.empresaNome || '') + (c.qual === 'TARGET' ? ' <span class="cmp-tag t">TARGET</span>' : c.qual === 'ICP A' ? ' <span class="cmp-tag ok">ICP A</span>' : '') + '</small><div class="kb-f"><span>Nota ' + c.total + '</span><button class="cmp-btn" data-ed="' + id + '">Editar</button></div></div>'; }).join('') : '<div class="kb-v">Vazio</div>') + '</div></div>'; }).join(''); return '<div class="kb">' + cols + '</div>'; }
   function ordena(a, b) {
     var o = S.f.ord, nt = b.c.total - a.c.total, s = function (t) { return norm(t); };
     if (S.f.cs) {
-      var ka = chave(a, S.f.cs), kb = chave(b, S.f.cs), r = typeof ka === 'number' ? ka - kb : String(ka).localeCompare(String(kb));
+      var ka = chaveOrd(a, S.f.cs), kb = chaveOrd(b, S.f.cs), r = typeof ka === 'number' ? ka - kb : String(ka).localeCompare(String(kb));
       if (r) return S.f.cd === 'desc' ? -r : r;
       return nt;
     }
@@ -326,7 +327,7 @@
   }
 
   function render() {
-    var h = S.host; if (!h) return;
+    var h = S.host; if (!h) return; if (!S.vis) { try { S.vis = localStorage.getItem('cmpVis'); } catch (e) {} S.vis = S.vis === 'kanban' ? 'kanban' : 'lista'; }
     if (!document.getElementById('cmp-css')) { var st = document.createElement('style'); st.id = 'cmp-css'; st.textContent = CSS; document.head.appendChild(st); }
     var camps = S.itens.map(function (i) { return i.campanha || ''; }).filter(function (v, i, a) { return v && a.indexOf(v) === i; }).sort();
     var linhas = S.itens.map(function (it) { return { it: it, c: calc(it), p: proxima(it) }; });
@@ -358,7 +359,7 @@
     var html = '<div class="cmp">' +
       '<div class="cmp-top"><h2>Campanhas</h2><span style="flex:1"></span>' +
       '<button class="cmp-btn" data-a="imp">Importar lista (CSV)</button><button class="cmp-btn p" data-a="novo">+ Novo contato</button></div>' +
-      '<div class="cmp-tabs"><button class="cmp-tab' + (S.aba === 'op' ? ' on' : '') + '" data-aba="op">Operacional</button><button class="cmp-tab' + (S.aba === 'kpi' ? ' on' : '') + '" data-aba="kpi">Indicadores</button></div>' +
+      '<div class="cmp-tabs"><button class="cmp-tab' + (S.aba === 'op' ? ' on' : '') + '" data-aba="op">Operacional</button><button class="cmp-tab' + (S.aba === 'kpi' ? ' on' : '') + '" data-aba="kpi">Indicadores</button>' + (S.aba === 'op' ? '<span class="cmp-vis"><button class="cmp-btn' + (S.vis !== 'kanban' ? ' p' : '') + '" data-vis="lista">Lista</button><button class="cmp-btn' + (S.vis === 'kanban' ? ' p' : '') + '" data-vis="kanban">Kanban</button></span>' : '') + '</div>' +
       (S.msg ? '<div class="cmp-msg">' + esc(S.msg) + '</div>' : '') +
       (S.aba === 'kpi' ? htmlKpi(linhas) + '</div>' : '<div class="cmp-kpis"><div class="cmp-kpi"><b>' + S.itens.length + '</b><span>contatos na tela</span></div>' +
       '<div class="cmp-kpi"><b>' + (cont['Convite enviado'] || 0) + '</b><span>convites pendentes</span></div>' +
@@ -375,8 +376,7 @@
       '<select data-f="ord"><option value="">Ordenar: nota (maior primeiro)</option>' + ORDS.map(function (o) { return '<option value="' + o[0] + '"' + (S.f.ord === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>' +
       '<select data-f="acao"><option value="">Todas as ações</option><option value="hoje"' + (S.f.acao === 'hoje' ? ' selected' : '') + '>Vencidas ou para hoje</option><option value="sem"' + (S.f.acao === 'sem' ? ' selected' : '') + '>Nos próximos 7 dias</option></select>' +
       '<label style="font-size:12px;color:#8A7A78">Consultor ao promover <input data-cons value="' + esc(S.cons || 'Léo') + '" style="width:90px"></label></div>' +
-      '<div class="cmp-card"><table>' + cab() +
-      (vis.length ? vis.map(function (x) {
+      (S.vis === 'kanban' ? kanbanHtml(vis) : '<div class="cmp-card"><table>' + cab() + (vis.length ? vis.map(function (x) {
         var it = x.it, c = x.c, id = esc(it.__id);
         return '<tr><td><b>' + esc((it.nome || '') + ' ' + (it.sobrenome || '')) + '</b><small>' + esc(it.cargo || '') + '</small>' + (it.linkedinUrl ? '<small><a href="' + esc(it.linkedinUrl) + '" target="_blank" rel="noopener">perfil no LinkedIn</a></small>' : '') + '</td>' +
           '<td>' + esc(it.empresaNome || '') + (c.qual === 'TARGET' ? ' <span class="cmp-tag t">TARGET</span>' : c.qual === 'ICP A' ? ' <span class="cmp-tag ok">ICP A</span>' : ' <span class="cmp-tag bad">' + (c.qual === 'FORA' ? 'FORA DO CRITÉRIO' : 'SEM EMPRESA') + '</span>') + (c.emp ? '' : ' <span class="cmp-tag warn">sem cadastro</span>') +
@@ -389,13 +389,16 @@
           '<td><div class="cmp-act"><button class="cmp-btn" data-hi="' + id + '">Histórico</button><button class="cmp-btn" data-ed="' + id + '">Editar</button><button class="cmp-btn p" data-pr="' + id + '"' + (c.ok ? '' : ' disabled title="' + esc(c.razao) + '"') + '>Promover ao Kanban</button></div>' +
           (!c.ok && c.razao && it.estado !== 'Qualificado' ? '<small>' + esc(c.razao) + '</small>' : '') + '</td></tr>';
       }).join('') : '<tr><td colspan="8" style="padding:22px;text-align:center;color:#8A7A78">Nenhum contato. Use "Importar lista (CSV)" ou "+ Novo contato".</td></tr>') +
-      '</table></div>') + '</div>';
+      '</table></div>')) + '</div>';
     h.innerHTML = html;
     bind();
   }
 
   function bind() {
     var h = S.host;
+    h.querySelectorAll('[data-vis]').forEach(function (el) { el.addEventListener('click', function () { S.vis = el.dataset.vis; try { localStorage.setItem('cmpVis', S.vis); } catch (e) {} render(); }); });
+    h.querySelectorAll('.kb-card').forEach(function (c) { c.addEventListener('dragstart', function (ev) { ev.dataTransfer.setData('text/plain', c.dataset.id); ev.dataTransfer.effectAllowed = 'move'; c.classList.add('drag'); }); c.addEventListener('dragend', function () { c.classList.remove('drag'); }); });
+    h.querySelectorAll('.kb-col').forEach(function (col) { col.addEventListener('dragover', function (ev) { ev.preventDefault(); col.classList.add('over'); }); col.addEventListener('dragleave', function () { col.classList.remove('over'); }); col.addEventListener('drop', function (ev) { ev.preventDefault(); col.classList.remove('over'); var id = ev.dataTransfer.getData('text/plain'); var novo = col.dataset.estado; var it = S.itens.find(function (x) { return String(x.__id) === String(id); }); if (!it || (it.estado || 'Na fila') === novo) return; if (!confirm('Mover ' + (it.nome || '') + ' ' + (it.sobrenome || '') + ' de "' + (it.estado || 'Na fila') + '" para "' + novo + '"?')) return; salvar(id, { estado: novo }); }); });
     h.querySelectorAll('[data-f]').forEach(function (el) { el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () { S.f[el.dataset.f] = el.value; if (el.tagName === 'INPUT') { clearTimeout(S._t); S._t = setTimeout(function () { render(); var i = h.querySelector('[data-f="q"]'); if (i) { i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }, 250); } else render(); }); });
     h.querySelectorAll('[data-cs]').forEach(function (el) { el.addEventListener('click', function () { var k = el.dataset.cs; if (S.f.cs === k) { if (S.f.cd === 'asc') S.f.cd = 'desc'; else { S.f.cs = ''; S.f.cd = 'asc'; } } else { S.f.cs = k; S.f.cd = k === 'nota' ? 'desc' : 'asc'; } render(); }); });
     h.querySelectorAll('[data-c]').forEach(function (el) { el.addEventListener(el.tagName === 'INPUT' ? 'input' : 'change', function () { S.f.col = S.f.col || {}; S.f.col[el.dataset.c] = el.value; if (el.tagName === 'INPUT') { clearTimeout(S._t); S._t = setTimeout(function () { render(); var i = S.host.querySelector('[data-c="' + el.dataset.c + '"]'); if (i) { i.focus(); try { i.setSelectionRange(i.value.length, i.value.length); } catch (e) { } } }, 250); } else render(); }); });
