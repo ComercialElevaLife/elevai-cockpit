@@ -228,14 +228,19 @@
     var pend = linhas.filter(function (x) { return x.it.estado === 'Convite enviado'; }).length;
     var atr = linhas.filter(function (x) { return x.p.nivel === 'bad'; }).length, hj = linhas.filter(function (x) { return x.p.nivel === 'warn'; }).length;
     var parados = linhas.filter(function (x) { var u = ultima(x.it); return ['Conectado', 'Convite enviado'].indexOf(x.it.estado) > -1 && u && difDias(h, String(u.ts).slice(0, 10)) > 15; }).length;
+    var interHoje = evs.filter(function (e) { return e.t === 'Interação' && e.d === h; }).length;
+    var inter7 = evs.filter(function (e) { return e.t === 'Interação' && difDias(h, e.d) >= 0 && difDias(h, e.d) < 7; }).length;
+    var ab = { A: 0, B: 0 };
+    linhas.forEach(function (x) { eventos(x.it).forEach(function (e) { if (e.tipo === 'Agradecimento') { if (/vers[aã]o B/i.test(e.texto || '')) ab.B++; else if (/vers[aã]o A/i.test(e.texto || '')) ab.A++; } }); });
     var cards = [
-      [convHoje + ' de ' + LIMITE_DIA, 'convites hoje (limite por dia útil)'], [conv7, 'convites nos últimos 7 dias (referência ~100/semana)'], [pend, 'convites pendentes'],
+      [convHoje + ' de ' + LIMITE_DIA, 'convites hoje (limite por dia útil)'],
+      [interHoje, 'interações hoje (curtidas e comentários)'], [inter7, 'interações nos últimos 7 dias'], [ab.A + ' A / ' + ab.B + ' B', 'agradecimentos por versão do teste A/B'], [conv7, 'convites nos últimos 7 dias (referência ~100/semana)'], [pend, 'convites pendentes'],
       [conv.length ? pct(acei.length, conv.length) : '—', 'taxa de aceite (' + acei.length + ' de ' + conv.length + ' convites com data)'], [media, 'tempo médio até o aceite'],
       [atr, 'ações atrasadas'], [hj, 'ações para hoje'], [parados, 'sem interação há mais de 15 dias']
     ].map(function (c) { return '<div class="cmp-kpi"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>'; }).join('');
     /* atividade por semana (janelas de 7 dias terminando hoje) */
     var janelas = [[0, 6, 'Últimos 7 dias'], [7, 13, '8 a 14 dias'], [14, 20, '15 a 21 dias'], [21, 27, '22 a 28 dias']];
-    var tipos = ['Convite enviado', 'Aceite', 'Agradecimento', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado', 'Resposta recebida'];
+    var tipos = ['Convite enviado', 'Aceite', 'Agradecimento', 'Interação', 'Retomada', 'Follow-up', 'Encerramento', 'Material enviado', 'Resposta recebida'];
     var ativ = tipos.map(function (t) {
       return '<tr><td><b>' + t + '</b></td>' + janelas.map(function (j) { return '<td>' + evs.filter(function (e) { var d = difDias(h, e.d); return e.t === t && d >= j[0] && d <= j[1]; }).length + '</td>'; }).join('') + '</tr>';
     }).join('');
