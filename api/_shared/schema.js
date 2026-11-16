@@ -431,11 +431,17 @@ const LISTS = {
   },
 };
 
+// 16/11/2026 -- Regra do Léo: nome de empresa (coluna `cliente`) sempre em CAIXA ALTA, em qualquer entrada
+// (formulário, importação, outro chat). Ponto único: toda gravação passa por toFields.
+function _upCli(nome, v) {
+  return (nome === 'cliente' && typeof v === 'string') ? v.trim().replace(/\s+/g, ' ').toLocaleUpperCase('pt-BR') : v;
+}
+
 function toFields(kind, rec) {
   const def = LISTS[kind];
   const fields = {};
   const titleVal = rec[def.titleFrom];
-  fields.Title = (titleVal == null || titleVal === '') ? '(sem titulo)' : String(titleVal);
+  fields.Title = (titleVal == null || titleVal === '') ? '(sem titulo)' : String(_upCli(def.titleFrom, titleVal));
   for (const col of def.columns) {
     let name = col.name;
     // 21/09/2026 -- ver comentário na coluna obs3 (leads, acima): `obs` é campo lógico só no
@@ -444,7 +450,7 @@ function toFields(kind, rec) {
     if (kind === 'leads' && name === 'obs') continue;
     let v = (kind === 'leads' && name === 'observacoesLead') ? rec.obs : rec[name];
     if (v === null || v === undefined) continue; // omite nulos (Graph rejeita null em Number)
-    fields[name] = v;
+    fields[name] = _upCli(name, v);
   }
   return fields;
 }
