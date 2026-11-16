@@ -44,7 +44,7 @@
 <div class="top"><div class="in">
   <div class="b15"><b>15</b> ANOS ELEVANDO PESSOAS E RESULTADOS</div>
   <h1>S.I.G.E. · Novas Receitas — Manual &amp; Fluxos</h1>
-  <p>Como o sistema funciona e como usar cada parte. Documento vivo — acompanha as atualizações do sistema. <b>(05/10/2026)</b> O antigo Cockpit passou a se chamar <b>Novas Receitas</b> e agora é um módulo do <b>S.I.G.E. — Sistema Integrado Gestão ElevaLife</b>, ao lado do módulo Ergonomia. Novo endereço: sige-novasreceitas.elevalife.com.br (o endereço antigo continua funcionando). No topo do menu lateral há o seletor de módulo (Novas Receitas | Ergonomia).</p>
+  <p>Como o sistema funciona e como usar cada parte. Documento vivo — acompanha as atualizações do sistema. <b>(05/10/2026)</b> O antigo Cockpit passou a se chamar <b>Novas Receitas</b> e agora é um módulo do <b>S.I.G.E. — Sistema Integrado Gestão ElevaLife</b>, ao lado do módulo Ergonomia. Novo endereço: sige-novasreceitas.elevalife.com.br (o endereço antigo continua funcionando). O seletor de módulo (Novas Receitas | Ergonomia) foi removido do menu em 16/11/2026.</p>
   <a class="back" href="index.html">← Voltar ao Novas Receitas</a>
 </div></div>
 <div class="wrap">
@@ -158,6 +158,28 @@ flowchart LR
   AV --> CL[E-mail para Clara<br/>clara@elevalife.com.br]
   AV --> LEO[Cópia para Léo]
   </div>
+
+  <h3 class="sub">2.6 Quando uma venda entra nos números do Painel</h3>
+  <div class="mermaid">
+flowchart TD
+  V[Card vai para VENDIDA] --> D{Tem data da venda<br/>campo Data da venda ou evento no histórico}
+  D -->|Não| F[Fica FORA dos indicadores<br/>até alguém informar a data]
+  D -->|Sim| Q[Entra no mês e no trimestre da data da venda]
+  Q --> N{Qual o funil}
+  N -->|Cliente novo ou reativação| NV[Legenda: Novos + reativações]
+  N -->|Upsell ou cross-sell| UP[Legenda: Upsell/cross]
+  NV --> K[Cartões Vendas e Q1 a Q4]
+  UP --> K
+  K --> P[Clique no Q: pop-up com resumo e lista das vendas]
+  </div>
+
+  <h3 class="sub">2.7 Padrão do nome da empresa</h3>
+  <div class="mermaid">
+flowchart LR
+  A[Nome digitado em qualquer tela ou importação] --> B[Servidor grava em CAIXA ALTA<br/>e tira espaços duplicados]
+  B --> C[Uma empresa = um nome<br/>sem divisão por maiúsculas]
+  C --> D[Vínculos entre empresa, negociação,<br/>venda e contrato continuam corretos]
+  </div>
 </section>
 
 <section id="abas">
@@ -178,12 +200,25 @@ flowchart LR
   <p><b>Barra de filtros retrátil</b> (18/08/2026): o botão <b>▾ Filtros</b>, ao lado dos demais filtros, recolhe ou expande a barra inteira — quando recolhida, ela vira só esse botão (mostrando entre parênteses quantos filtros estão ativos), liberando espaço em tela. O estado (aberto/fechado) fica salvo no navegador e é lembrado na próxima vez que você abrir o Cockpit.</p>
   <p><b>Botões de ação agrupados</b> (18/08/2026): <b>⬇ PDF</b>, <b>⬇ Excel</b>, <b>↻ Atualizar</b> e <b>⚙ Automação</b> ficam agora lado a lado, no topo, ao lado da barra de filtros — antes o PDF ficava sozinho lá embaixo, no banner do Painel. O <b>⬇ Excel</b> é novo: baixa um CSV (abre direto no Excel) com os Leads/Propostas e as Vendas do período e filtros que estiverem aplicados na hora.</p>
 
+  <p><b>Novas Receitas (16/11/2026).</b> A faixa de metas agora se chama <i>Propostas × Vendas (novas receitas)</i> e mostra o total geral. Sob os cartões <b>Propostas enviadas</b> e <b>Vendas (fechamento)</b> há uma legenda que divide o valor em <b>Novos + reativações</b> (clientes novos e reativações) e <b>Upsell/cross</b> (vendas a clientes ativos); as duas parcelas somam o total do cartão. É a mesma regra do filtro Funil do Kanban.</p>
+  <p><b>Trimestres clicáveis (16/11/2026).</b> Cada cartão <b>Q1 a Q4</b> abre um pop-up com o resumo do trimestre — vendido x meta e % da meta, novos x upsell/cross, vendas por mês, por consultor e por serviço — e a lista das vendas que compõem o número (dá para ordenar e filtrar pelas colunas, inclusive Funil). O total do pop-up é o mesmo do cartão.</p>
+  <p><b>Regras dos indicadores.</b> Uma venda só entra nos números quando tem <b>data da venda</b>; sem data, fica fora até alguém informar (ver fluxo 2.6). Propostas contam pela <b>data de envio</b> e vendas pela <b>data da venda</b>, não pela data de criação da oportunidade. A meta anual de vendas é R$ 4,0 mi (R$ 333 mil por mês) e a de propostas é R$ 1,75 mi por mês, proporcionais ao período filtrado. Os campos de filtro escondidos do Painel são alimentados pelo painel lateral <b>Filtros</b> — não é defeito.</p>
+
   <h3 class="sub">🗂️ CRM · Kanban</h3>
-  <p>Quadro por status (5 colunas). Use o botão <b>＋ Nova Oportunidade</b> (no topo) para abrir um negócio a partir de uma <b>empresa já cadastrada</b> — ao escolher a empresa, os contatos dela são carregados automaticamente; a oportunidade entra em <span class="tag st-n">NÃO ENVIADA</span>. <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
+  <p>Quadro por status. Colunas: <b>REATIVAR</b>, <b>LEAD NOVO</b>, <b>OPORTUNIDADE</b> e <b>EM NEGOCIAÇÃO</b>, mais as colunas laterais <b>PAUSADA</b>, <b>VENDIDA</b> e <b>PERDIDA</b> (recolhidas; clique no + para abrir). Use o botão <b>＋ Nova Oportunidade</b> (no topo) para abrir um negócio a partir de uma <b>empresa já cadastrada</b> — ao escolher a empresa, os contatos dela são carregados automaticamente; a oportunidade entra em <span class="tag st-n">NÃO ENVIADA</span>. <b>Arraste</b> um cartão para mudar o status; <b>clique</b> para abrir a ficha. Na ficha você edita todos os dados (inclusive telefone, e-mail e observação), lança <b>tarefas</b> e tem os botões:</p>
   <ul>
     <li><b>💾 Salvar dados</b> — grava as edições na base.</li>
     <li><b>⏸ Pausar (esfriou)</b> — marca como <span class="tag st-pause">PAUSADA</span> e avisa a Clara (nutrição), com cópia para você.</li>
-    <li><b>🗑 Excluir</b> — remove o lead da base (pede confirmação).</li>
+    <li><b>🗑 Excluir</b> — envia o lead para a <b>Lixeira</b> (pede confirmação). Fica registrado quem excluiu e quando, e dá para restaurar pelo botão 🗑 da barra do Kanban.</li>
+  </ul>
+  <p><b>Barra do topo (limpa em 16/11/2026):</b></p>
+  <ul>
+    <li><b>Busca</b> — por empresa, contato, telefone ou e-mail.</li>
+    <li><b>＋</b> — nova oportunidade.</li>
+    <li><b>Funil</b> — lista suspensa: <i>todos</i> (padrão), <i>novas vendas</i> (clientes novos + reativações) ou <i>upsell e cross-sell</i>. Só muda a visão do quadro, não altera nenhum cadastro; vazio mostra tudo.</li>
+    <li><b>⛶ / ▤ Compacto</b> — alterna entre cartões completos e compactos.</li>
+    <li><b>🗑 Lixeira</b> — negociações excluídas, com opção de restaurar.</li>
+    <li><b>🔔 Sino</b> — avisos, no canto direito. O botão <b>Testar Teams</b> saiu da barra e ficou entre os botões do painel <b>Filtros</b> (menu lateral).</li>
   </ul>
 
   <h3 class="sub">🔄 Renovações</h3>
@@ -199,20 +234,22 @@ flowchart LR
 
   <h3 class="sub">📣 Campanhas</h3>
   <p>Tela de gestão dos contatos de prospecção (LinkedIn e outras campanhas). Cada contato tem estado (Na fila, Convite enviado, Conectado, Em conversa, Qualificado, Sem fit, Não contatar), passo da cadência e uma <b>nota de 0 a 100</b> (lead scoring). Só quem atinge o critério é <b>promovido ao Kanban</b>, pelo botão <b>Promover ao Kanban</b>, como <b>LEAD</b> com Fonte LinkedIn. Aceita importação de lista em CSV. Regras completas e o playbook de prospecção estão na <a href="#campanhas">seção 7</a>.</p>
+  <p><b>Empresas target (13 a 16/11/2026).</b> Na visão de empresas da tela Campanhas, cada empresa tem uma <b>classe</b> (TARGET, ICP A a D ou FORA) e um status <i>confirmada / a confirmar</i>; por padrão a lista mostra as TARGET. Na ficha da empresa dá para ajustar a classe (<b>Salvar classe</b>), ver as negociações abertas e as vendas de 2026 da empresa e vincular contatos soltos (<b>Vincular contato a esta empresa</b>). A classe acompanha a etiqueta Target / Não Target do Cadastro: ao mudar uma, a outra é ajustada e o histórico registra quem alterou.</p>
 
   <h3 class="sub">✅ Tarefas</h3>
   <p>Todas as tarefas de todos os leads em uma lista só (respeita os filtros mestres), com KPIs (pendentes, concluídas, atrasadas). Dá para concluir, excluir e “abrir no CRM”. Criar/editar em detalhe é feito na ficha do lead (CRM).</p>
 
   <h3 class="sub">➕ Cadastro</h3>
+  <p><b>Padrão de nomes (16/11/2026):</b> o nome da empresa é sempre gravado em <b>CAIXA ALTA</b>, mesmo que seja digitado em minúsculas, em qualquer tela ou importação — assim a mesma empresa não se divide em duas por causa de maiúsculas. Vale para empresas, negociações, vendas e contratos; o nome das pessoas (contatos) não é alterado.</p>
   <p>Organizado em três submenus, que aparecem aninhados na barra lateral ao clicar em <b>Cadastro</b>:</p>
   <ul>
-    <li><b>🏢 Empresa</b> — a identidade oficial da conta: nome/carteira, CNPJ (preenche razão social, endereço com código IBGE e CNAE automaticamente), inscrição estadual/municipal, regime tributário, grau de risco (NR-4) e a etiqueta <b>Target / Não Target</b>. São os dados que abastecem o financeiro (nota fiscal / OMIE). <b>Não</b> leva termos de negociação (valor, prazo/condição de pagamento) — esses pertencem ao momento da venda.</li>
+    <li><b>🏢 Empresa</b> — a identidade oficial da conta: nome/carteira, CNPJ (preenche razão social, endereço com código IBGE e CNAE automaticamente), inscrição estadual/municipal, regime tributário, grau de risco (NR-4) e a etiqueta <b>Target / Não Target</b> (a classe da empresa em Campanhas acompanha essa etiqueta: ao marcar Target, a classe vira TARGET). São os dados que abastecem o financeiro (nota fiscal / OMIE). <b>Não</b> leva termos de negociação (valor, prazo/condição de pagamento) — esses pertencem ao momento da venda.</li>
     <li><b>👤 Contato</b> — a pessoa (nome, sobrenome, WhatsApp, e-mail corporativo, tipo) vinculada a uma empresa já cadastrada, escolhida numa lista com busca.</li>
     <li><b>➕ Lead / Oportunidade</b> — cadastro direto de um lead na base (aparece no Painel e no CRM). No topo fica o bloco da <b>Landing Page de eventos</b> com o link público, <b>Copiar link</b> e <b>QR Code</b>.</li>
   </ul>
 
-  <h3 class="sub">🚀 Implantação de Serviços (acesso rápido)</h3>
-  <p>Item de acesso rápido no menu (fora de qualquer submenu) que abre, embutida via iframe, a tela do <b>Painel de Implantação de Serviços</b> — sistema à parte, feito pelo Cristiano, com um botão "Abrir em nova aba" para quem preferir acessá-lo direto. Fica aqui porque <b>toda venda nova precisa virar uma implantação nova</b>: a ponte agora é semiautomática: no <b>comunicado de venda</b> o botão <b>🚀 Enviar para Implantação</b> abre esse painel já com os dados da venda no formulário “Nova implantação”, para você revisar e confirmar (ver <b>🏁 Fechamento da venda</b>). O atalho do menu continua útil para consultar o painel.</p>
+  <h3 class="sub">🚀 Implantação de Serviços (atalho removido)</h3>
+  <p><b>Atalho removido do menu em 16/11/2026</b>: a Implantação agora é acionada só a partir do comunicado de venda. Antes, havia um item de acesso rápido que abria, embutida via iframe, a tela do <b>Painel de Implantação de Serviços</b> — sistema à parte, feito pelo Cristiano, com um botão "Abrir em nova aba" para quem preferir acessá-lo direto. Fica aqui porque <b>toda venda nova precisa virar uma implantação nova</b>: a ponte agora é semiautomática: no <b>comunicado de venda</b> o botão <b>🚀 Enviar para Implantação</b> abre esse painel já com os dados da venda no formulário “Nova implantação”, para você revisar e confirmar (ver <b>🏁 Fechamento da venda</b>). O atalho do menu continua útil para consultar o painel.</p>
 
   <h3 class="sub">🏁 Fechamento da venda (evidência, comunicado, Implantação e Faturamento)</h3>
   <p>Fluxo ao marcar uma oportunidade como <span class="tag st-v">VENDIDA</span> (atualizado em 03/11/2026):</p>
