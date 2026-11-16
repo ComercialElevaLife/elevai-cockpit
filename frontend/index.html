@@ -2254,7 +2254,7 @@ async function elevaiCon(ev){
   const rec={nome:g('con-nome'),sobrenome:g('con-sobrenome'),telefone:g('con-telefone'),email:g('con-email'),
     empresaId:(hit&&hit.__id)?String(hit.__id):'',empresaNome:empNome,tipo:g('con-tipo'),cargo:g('con-cargo'),obs:g('con-obs')};
   if(!rec.nome)return false;
-  if(rec.email){const dm=(rec.email.split('@')[1]||'').toLowerCase();const FREE=['gmail.com','googlemail.com','yahoo.com','yahoo.com.br','hotmail.com','hotmail.com.br','outlook.com','outlook.com.br','live.com','msn.com','icloud.com','bol.com.br','uol.com.br','terra.com.br','ig.com.br','globo.com','globomail.com','r7.com','proton.me','protonmail.com'];if(FREE.includes(dm)&&!window.confirm('Este e-mail é de provedor gratuito ('+dm+'). Tem certeza que deseja manter?\n\nOK = Manter · Cancelar = Corrigir')){const em=q('con-email');if(em)em.focus();return false;}}
+  if(rec.email){const dm=(rec.email.split('@')[1]||'').toLowerCase();const FREE=['gmail.com','googlemail.com','yahoo.com','yahoo.com.br','hotmail.com','hotmail.com.br','outlook.com','outlook.com.br','live.com','msn.com','icloud.com','bol.com.br','uol.com.br','terra.com.br','ig.com.br','globo.com','globomail.com','r7.com','proton.me','protonmail.com'];if(FREE.includes(dm)&&!window.confirm('Este e-mail é de provedor gratuito ('+dm+'). Tem certeza que deseja manter?\n\nOK = Manter · Cancelar = Corrigir')){const em=q('con-email');if(em)em.focus();return false;}if(FREE.includes(dm)&&!/provedor gratuito/.test(rec.obs||'')){rec.obs=(rec.obs?rec.obs+' ':'')+'[E-mail de provedor gratuito ('+dm+') mantido em '+new Date().toLocaleDateString('pt-BR')+']';}}
   const editId=window._conEditId||null;
   if(editId) rec.__id=editId;
   const btn=q('con-btn'), msg=q('con-msg');
