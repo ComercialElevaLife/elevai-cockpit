@@ -2477,7 +2477,7 @@ function editLead(id){
      bloco recolhido pra não esconder informação que já existe. */
   var _f2=q('cad-fase2');
   if(_f2 && (it.status&&it.status!=='LEAD' || it.cons || it.serv || (+it.valor||0)>0)) _f2.open=true;
-  var _f3=q('cad-fase3'); if(_f3 && (it.cnpj||it.razao||it.razaoSocial||it.endereco||it.cnae||it.grau||it.sobrenome||it.contatoTipo)) _f3.open=true;
+  var _f3=q('cad-fase3'); if(_f3 && (it.cnpj||it.razao||it.razaoSocial||it.endereco||it.cnae||it.grau||it.sobrenome||it.contatoTipo||(/VEND/i.test(String(it.status||''))&&String(it.cnpj||'').replace(/\D/g,'').length!==14))) _f3.open=true; /* 17/11/2026 — venda sem CNPJ válido: abre a Etapa 3 sozinha para completar o cadastro exigido na efetivação */
   window._cadEditId=String(id);
   const btn=q('cad-btn'); if(btn)btn.textContent='Salvar alterações';
   const cancel=q('cad-cancel-edit'); if(cancel)cancel.hidden=false;
