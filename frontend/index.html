@@ -2053,6 +2053,8 @@ async function elevaiEmp(ev){
   if(!rec.cliente)return false;
   const editId=window._empEditId||null;
   if(editId) rec.__id=editId;
+  /* 16/11/2026 — Léo: uma verdade só para TARGET. Se a Etiqueta mudou, a classe da empresa acompanha (registrado com o usuário e a data). Editar outros campos não mexe na classe. */
+  { const _ex = editId ? (STORE.empresas || []).find(x => String(x.__id) === String(editId)) : null; const _novo = String(rec.target || '').toUpperCase(); const _antigo = _ex ? String(_ex.target || 'NÃO TARGET').toUpperCase() : null; const _cl = String((_ex && _ex.classe) || '').toUpperCase().trim(); if (_antigo !== _novo) { let _sy = false; if (_novo === 'TARGET' && _cl !== 'TARGET') { rec.classe = 'TARGET'; _sy = true; } else if (_novo !== 'TARGET' && _cl === 'TARGET') { rec.classe = ''; _sy = true; } if (_sy) { rec.classeStatus = 'CONFIRMADA'; rec.classeFonte = 'cadastro — ' + (window.__heu || window.__meEmail || 'usuário'); rec.classeData = new Date().toISOString().slice(0, 10); } } }
   const btn=q('emp-btn'), msg=q('emp-msg');
   btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Salvando...';
   try{
