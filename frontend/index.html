@@ -2830,8 +2830,8 @@ class App {
   /* 16/11/2026 — Léo: legenda nos cartões separando NOVAS (novos clientes + reativações) de UPSELL/CROSS, sem precisar do filtro Funil. */
   { const _fn=(a,f)=>{let n=0,u=0;(a||[]).forEach(l=>{let k='';try{k=window._funilDe?window._funilDe(l):''}catch(e){} const x=f(l); if(k==='NOVAS')n+=x; else u+=x;});return [n,u];};
     const [vn,vu]=_fn(vend,vv), [pn,pu]=_fn(props,l=>+l.valor||0);
-    const sv=el('m-vend-sub'); if(sv)sv.innerHTML='Novos + reativações <b>'+fmtBRLc(vn)+'</b> · Upsell/cross <b>'+fmtBRLc(vu)+'</b>';
-    const sp=el('m-prop-sub'); if(sp)sp.innerHTML='Novos + reativações <b>'+fmtBRLc(pn)+'</b> · Upsell/cross <b>'+fmtBRLc(pu)+'</b>'; }
+    const sv=el('m-vend-sub'); if(sv)sv.innerHTML=window._funilBar(vn,vu);
+    const sp=el('m-prop-sub'); if(sp)sp.innerHTML=window._funilBar(pn,pu); }
     /* 24/09/2026 -- Léo: reestruturação Reativar/Pausada -- "quando for feito uma venda, precisa
        sinalizar se veio de um lead novo ou de uma reativação". origemFunil só existe pra leads
        criados/reativados a partir de hoje (campo novo) -- vendas antigas ficam sem essa marca
@@ -2883,7 +2883,7 @@ class App {
         const val=fV.filter(v=>Math.floor((v.m-1)/3)===q).reduce((s,v)=>s+v.valor,0);
         const _qn=fV.filter(v=>Math.floor((v.m-1)/3)===q&&v.funil==='NOVAS').reduce((s,v)=>s+v.valor,0), _qu=val-_qn;
       const meta=M.anual/4,p=Math.min(val/meta,1);
-        qr.innerHTML+=`<div class="q" style="cursor:pointer" title="Clique para ver o detalhe do trimestre" onclick="app.showQ(${q})"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div><div class="pct" style="font-size:11px;color:var(--mut)">Novos + reativações ${fmtBRLc(_qn)} · Upsell/cross ${fmtBRLc(_qu)}</div></div>`;
+        qr.innerHTML+=`<div class="q" style="cursor:pointer" title="Clique para ver o detalhe do trimestre" onclick="app.showQ(${q})"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div>${window._funilBar(_qn,_qu)}</div>`;
       }
     }
     // gráfico mensal
@@ -4557,6 +4557,7 @@ function _natInfo(l){
   const m=_natIdx(), k=_natCache.nm(l.cliente)+'|'+l.serv, ant=m[k], d=String(l.dataVenda||l.dt||'');
   return Object.assign({auto:true},(ant&&d&&ant<d)?_NAT.UPSELL:_NAT.CROSS);
 }
+window._funilBar=function(n,u){const t=(n+u)||0;const pn=t?Math.round(n/t*100):0;const f=x=>fmtBRLc(x);return '<div style="display:flex;height:5px;border-radius:3px;overflow:hidden;background:#EFE6E4;margin:8px 0 5px"><div style="width:'+pn+'%;background:#8B3A42"></div><div style="width:'+(t?100-pn:0)+'%;background:#D9A9AE"></div></div><div style="display:flex;justify-content:space-between;gap:6px;font-size:10.5px;font-weight:400;color:var(--mut);line-height:1.3"><span>Novos+reativ. '+f(n)+'</span><span>Upsell/cross '+f(u)+'</span></div>';};
 window._natInfo=_natInfo;
   try{ window._funilDe=_funilDe; }catch(e){}
 /* 16/11/2026 — Léo (pedido do Rafael): visão por funil, só como filtro (não recadastra nada). NOVAS = nova venda (cliente novo) + reativações (origemFunil REATIVADO); UPCROSS = upsell e cross-sell. */
