@@ -2883,7 +2883,7 @@ class App {
         const val=fV.filter(v=>Math.floor((v.m-1)/3)===q).reduce((s,v)=>s+v.valor,0);
         const _qn=fV.filter(v=>Math.floor((v.m-1)/3)===q&&v.funil==='NOVAS').reduce((s,v)=>s+v.valor,0), _qu=val-_qn;
       const meta=M.anual/4,p=Math.min(val/meta,1);
-        qr.innerHTML+=`<div class="q"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div><div class="pct" style="font-size:11px;color:var(--mut)">Novos + reativações ${fmtBRLc(_qn)} · Upsell/cross ${fmtBRLc(_qu)}</div></div>`;
+        qr.innerHTML+=`<div class="q" style="cursor:pointer" title="Clique para ver o detalhe do trimestre" onclick="app.showQ(${q})"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div><div class="pct" style="font-size:11px;color:var(--mut)">Novos + reativações ${fmtBRLc(_qn)} · Upsell/cross ${fmtBRLc(_qu)}</div></div>`;
       }
     }
     // gráfico mensal
@@ -3007,6 +3007,18 @@ class App {
     let h2='<table class="dt"><thead><tr><th>Envio</th><th>Empresa</th><th>Serviço</th><th>Consultor</th><th>Tipo</th><th class="r">Valor</th></tr></thead><tbody>';
     top.forEach(l=>{h2+=`<tr><td>${dBR(l.envio)}</td><td>${l.cliente}</td><td>${l.serv}</td><td>${l.cons}</td><td><span class="tag ${l.tipo==='P e R'?'PR':l.tipo}">${l.tipo}</span></td><td class="r">${fmtBRL(l.valor)}</td></tr>`;});
     el('tb-top').innerHTML=h2+'</tbody></table>';
+  }
+  /* 16/11/2026 — Léo: clicar num cartão Q1..Q4 abre o resumo do trimestre (vendido x meta, novos x upsell/cross, por mês, por consultor, por serviço) e a lista das vendas que compõem o número. Usa this.fV, a mesma base do cartão, então não diverge. */
+  showQ(q){
+    const ano=this.de.slice(0,4), M=RAW.metas||{}, meta=M.anual?M.anual/4:0;
+    const esc=x=>String(x).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+    const rows=(this.fV||[]).filter(v=>Math.floor((v.m-1)/3)===q).map(v=>Object.assign({},v,{funil:v.funil==='NOVAS'?'Novo / reativação':'Upsell / cross'}));
+    const soma=a=>a.reduce((s,v)=>s+(+v.valor||0),0), tot=soma(rows), nov=soma(rows.filter(v=>v.funil==='Novo / reativação')), up=tot-nov;
+    const MES=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+    const meses=[0,1,2].map(i=>{const m=q*3+i+1;return MES[m-1]+' <b>'+fmtBRLc(soma(rows.filter(v=>v.m===m)))+'</b>';}).join(' · ');
+    const grp=k=>{const o={};rows.forEach(v=>{const c=(v[k]||'—');o[c]=(o[c]||0)+(+v.valor||0);});return Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([c,x])=>esc(c)+' <b>'+fmtBRLc(x)+'</b>').join(' · ');};
+    this.showModal('Q'+(q+1)+'/'+ano+' — '+fmtBRLc(tot)+(meta?' ('+fmtPct(tot/meta)+' da meta de '+fmtBRLc(meta)+')':''), rows.length+' venda(s)', rows, VENDA_COLS.concat([['funil','Funil']]));
+    const sub=el('m-sub'); if(sub)sub.innerHTML='<div style="line-height:1.7"><div><b>Novos + reativações</b> '+fmtBRLc(nov)+' · <b>Upsell/cross</b> '+fmtBRLc(up)+'</div><div><b>Por mês:</b> '+meses+'</div><div><b>Por consultor:</b> '+grp('cons')+'</div><div><b>Por serviço:</b> '+grp('serv')+'</div></div>';
   }
   showMulti(i){const a=this.multi[i];this.showModal('Propostas múltiplas — '+a[0].cliente,dBR(a[0].envio||a[0].dt)+' · contato '+(a[0].nome||'—'),a,LEAD_COLS);}
   // ---------- eventos ----------
