@@ -535,10 +535,10 @@ td .up{color:var(--ok);font-weight:700}
        → detalhe por registro → canal específico) e "Metas do mês"+"Visão executiva" mescladas numa
        seção só — tinham cards redundantes (Vendas no período/Origem sócios duplicavam exatamente
        Vendas-fechamento/Vendas-sócios-e-não-sócios, só que contra um modelo de meta antigo). -->
-  <div class="section-title">Metas &amp; Realizado — Propostas × Vendas (novas vendas)</div>
+  <div class="section-title">Metas &amp; Realizado — Propostas × Vendas (novas receitas)</div>
   <div class="kpis">
-    <div class="kpi"><div class="lbl">Propostas enviadas</div><div class="val" id="m-prop">—</div><div class="chg" id="m-prop-c"></div></div>
-    <div class="kpi"><div class="lbl">Vendas (fechamento)</div><div class="val" id="m-vend">—</div><div class="chg" id="m-vend-c"></div></div>
+    <div class="kpi"><div class="lbl">Propostas enviadas</div><div class="val" id="m-prop">—</div><div class="chg" id="m-prop-c"></div><div class="chg" id="m-prop-sub" style="font-size:11px;color:var(--mut)"></div></div>
+    <div class="kpi"><div class="lbl">Vendas (fechamento)</div><div class="val" id="m-vend">—</div><div class="chg" id="m-vend-c"></div><div class="chg" id="m-vend-sub" style="font-size:11px;color:var(--mut)"></div></div>
     <div class="kpi coral"><div class="lbl">Vendas — não-sócios</div><div class="val" id="m-nsoc">—</div><div class="chg" id="m-nsoc-c"></div></div>
     <div class="kpi coral"><div class="lbl">Vendas — sócios</div><div class="val" id="m-soc">—</div><div class="chg" id="m-soc-c"></div></div>
     <div class="kpi"><div class="lbl">Recorrentes</div><div class="val" id="k-rec">—</div><div class="chg" id="k-rec-c"></div></div>
@@ -2709,7 +2709,7 @@ class App {
       /* 20/08/2026 — prioriza dataVenda (editável, corrige histórico lançado com data errada). */
       const saleDt=_saleDtOf(l);
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
-      return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id};
+      return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id,funil:(window._funilDe?window._funilDe(l):'')};
     });
     /* 08/09/2026 — Léo: "ENVIO PROPOSTA" precisa ter Envio como base, não Entrada — mesmo
        racional do fV acima (Fechamento com base em dataVenda/alteradoEm). RAW.propostas já vem
@@ -2827,6 +2827,11 @@ class App {
     const desc=cb.length?cb.reduce((s,l)=>s+((+l.valor-(+l.valorFechamento||0))/(+l.valor)),0)/cb.length:0;
     const set=(id,val,meta)=>{const e=el(id);if(e)e.textContent=fmtBRLc(val);const c=el(id+'-c');if(c){c.textContent=fmtPct(meta?val/meta:0)+' da meta '+fmtBRLc(meta);c.className='chg '+((meta&&val>=meta*frac*0.95)?'pos':'neg');}};
     set('m-prop',propVal,mProp); set('m-vend',vendVal,mVend); set('m-nsoc',nsoc,mNSoc); set('m-soc',soc,mSoc);
+  /* 16/11/2026 — Léo: legenda nos cartões separando NOVAS (novos clientes + reativações) de UPSELL/CROSS, sem precisar do filtro Funil. */
+  { const _fn=(a,f)=>{let n=0,u=0;(a||[]).forEach(l=>{let k='';try{k=window._funilDe?window._funilDe(l):''}catch(e){} const x=f(l); if(k==='NOVAS')n+=x; else u+=x;});return [n,u];};
+    const [vn,vu]=_fn(vend,vv), [pn,pu]=_fn(props,l=>+l.valor||0);
+    const sv=el('m-vend-sub'); if(sv)sv.innerHTML='Novos + reativações <b>'+fmtBRLc(vn)+'</b> · Upsell/cross <b>'+fmtBRLc(vu)+'</b>';
+    const sp=el('m-prop-sub'); if(sp)sp.innerHTML='Novos + reativações <b>'+fmtBRLc(pn)+'</b> · Upsell/cross <b>'+fmtBRLc(pu)+'</b>'; }
     /* 24/09/2026 -- Léo: reestruturação Reativar/Pausada -- "quando for feito uma venda, precisa
        sinalizar se veio de um lead novo ou de uma reativação". origemFunil só existe pra leads
        criados/reativados a partir de hoje (campo novo) -- vendas antigas ficam sem essa marca
@@ -2876,8 +2881,9 @@ class App {
       const ano=this.de.slice(0,4);
       for(let q=0;q<4;q++){
         const val=fV.filter(v=>Math.floor((v.m-1)/3)===q).reduce((s,v)=>s+v.valor,0);
-        const meta=M.anual/4,p=Math.min(val/meta,1);
-        qr.innerHTML+=`<div class="q"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div></div>`;
+        const _qn=fV.filter(v=>Math.floor((v.m-1)/3)===q&&v.funil==='NOVAS').reduce((s,v)=>s+v.valor,0), _qu=val-_qn;
+      const meta=M.anual/4,p=Math.min(val/meta,1);
+        qr.innerHTML+=`<div class="q"><div class="t">Q${q+1}/${ano} — meta ${fmtBRLc(meta)}</div><div class="v">${fmtBRLc(val)}</div><div class="bar"><div style="width:${(p*100).toFixed(0)}%;background:${val/meta>=1?AZ:val/meta>=.7?AZ7:CO}"></div></div><div class="pct">${fmtPct(val/meta)} da meta</div><div class="pct" style="font-size:11px;color:var(--mut)">Novos + reativações ${fmtBRLc(_qn)} · Upsell/cross ${fmtBRLc(_qu)}</div></div>`;
       }
     }
     // gráfico mensal
@@ -4540,6 +4546,7 @@ function _natInfo(l){
   return Object.assign({auto:true},(ant&&d&&ant<d)?_NAT.UPSELL:_NAT.CROSS);
 }
 window._natInfo=_natInfo;
+  try{ window._funilDe=_funilDe; }catch(e){}
 /* 16/11/2026 — Léo (pedido do Rafael): visão por funil, só como filtro (não recadastra nada). NOVAS = nova venda (cliente novo) + reativações (origemFunil REATIVADO); UPCROSS = upsell e cross-sell. */
 function _funilDe(l){ if(String(l.origemFunil||'').toUpperCase()==='REATIVADO')return 'NOVAS'; return _natInfo(l).k==='NOVA'?'NOVAS':'UPCROSS'; }
 function _natBar(data){
