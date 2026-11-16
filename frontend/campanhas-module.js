@@ -430,6 +430,76 @@
      Visão por empresa TARGET (cadastro de empresas): contatos, conectados, respostas, interações e histórico.
      Só LÊ o que a tela já carregou (empresas, campanhas, leads): nada novo é gravado. */
   var EMP_INTER = ['Interação', 'Mensagem', 'Resposta recebida'];
+  /* ---------- classe da empresa (16/11/2026, Léo) ----------
+     Classe efetiva = coluna 'classe' do cadastro; se vazia, empresas marcadas TARGET no cadastro antigo contam como TARGET (a confirmar). */
+  var CLASSES = ['TARGET', 'ICP A', 'ICP B', 'ICP C', 'ICP D', 'FORA'];
+  var NEG_ABERTA = ['em negociacao', 'na mesa', 'oportunidade', 'lead', 'nao enviada'];
+  function classeEf(e) {
+    var c = String(e.classe || '').toUpperCase().replace(/\s+/g, ' ').trim();
+    if (CLASSES.indexOf(c) > -1) return c;
+    return String(e.target || '').toUpperCase() === 'TARGET' ? 'TARGET' : '';
+  }
+  function classeConf(e) {
+    var c = String(e.classe || '').trim();
+    return c && String(e.classeStatus || '').toUpperCase() === 'CONFIRMADA' ? 'confirmada' : 'a confirmar';
+  }
+  function negDaEmpresa(e) {
+    var ls = leadsDaEmpresa({ empresaId: e.__id, empresaNome: e.cliente }, e), ab = [], v26 = [];
+    ls.forEach(function (l) {
+      var st = norm(l.status);
+      if (NEG_ABERTA.indexOf(st) > -1) ab.push(l);
+      if (st === 'vendida') {
+        var ano = l.dataVenda ? String(l.dataVenda).slice(0, 4) : String(l.y || '');
+        if (ano === '2026') v26.push(l);
+      }
+    });
+    return { todos: ls, ab: ab, v26: v26 };
+  }
+  function clBadge(o) {
+    var cor = o.conf === 'confirmada' ? '#2E7D5B' : '#C9822B';
+    return '<b>' + esc(o.cl) + '</b><br><small style="color:' + cor + '">' + o.conf + '</small>';
+  }
+  function negTxt(o) {
+    var p = [];
+    if (o.neg.ab.length) p.push('<b style="color:#B23A48">' + o.neg.ab.length + ' em negociação</b>');
+    if (o.neg.v26.length) p.push('<span style="color:#B23A48">' + o.neg.v26.length + ' venda(s) em 2026</span>');
+    return p.length ? p.join('<br>') : '<small>—</small>';
+  }
+  async function salvarClasse(e, c) {
+    var por = window.__heu || window.__meEmail || 'usuário';
+    var campos = { classe: c, classeStatus: 'CONFIRMADA', classeFonte: 'manual — ' + por, classeData: hoje(), target: c === 'TARGET' ? 'TARGET' : 'NÃO TARGET' };
+    await jpost('/api/empresas', 'PATCH', { id: e.__id, fields: campos });
+    Object.assign(e, campos);
+  }
+  function vincularUm(emp) {
+    var nome = emp.cliente || emp.razaoSocial || emp.nomeFantasia || '(sem nome)', nn = vcN(nome), st = { q: '' };
+    var ov = modal('Vincular contato a ' + nome,
+      '<div class="cmp-bar"><input data-vq placeholder="Buscar contato sem empresa (nome, cargo ou empresa informada)..." style="min-width:260px"></div><div data-vl></div>',
+      '<button class="cmp-btn" data-x="1">Fechar</button>');
+    ov.querySelector('[data-x]').addEventListener('click', function () { ov.remove(); render(); });
+    function lista() {
+      var q = norm(st.q);
+      var L = S.itens.filter(function (it) { return !kbInat(it) && !empresaDe(it); }).filter(function (it) {
+        return !q || norm((it.nome || '') + ' ' + (it.sobrenome || '') + ' ' + (it.cargo || '') + ' ' + (it.empresaNome || '')).indexOf(q) > -1;
+      });
+      L.sort(function (a, b) { return (vcN(a.empresaNome) === nn ? 0 : 1) - (vcN(b.empresaNome) === nn ? 0 : 1); });
+      var box = ov.querySelector('[data-vl]');
+      box.innerHTML = '<p class="cmp-msg">' + L.length + ' contato(s) sem empresa' + (L.length > 40 ? ' — mostrando 40' : '') + '. Nada é enviado a ninguém: só grava o vínculo e registra no histórico.</p><table>' +
+        L.slice(0, 40).map(function (it) {
+          var sug = nn && vcN(it.empresaNome) === nn ? ' <small style="color:#2E7D5B">(empresa informada bate)</small>' : '';
+          return '<tr><td><b>' + esc(((it.nome || '') + ' ' + (it.sobrenome || '')).trim()) + '</b>' + sug + '<br><small>' + esc(it.cargo || '') + (it.empresaNome ? ' · ' + esc(it.empresaNome) : '') + '</small></td><td><button class="cmp-btn p" data-v1="' + esc(it.__id) + '">Vincular</button></td></tr>';
+        }).join('') + '</table>';
+      box.querySelectorAll('[data-v1]').forEach(function (b) {
+        b.addEventListener('click', async function () {
+          b.disabled = true; b.textContent = 'Gravando...';
+          var r = await vcGravar([{ id: b.dataset.v1, emp: emp }]);
+          if (r.ok) lista(); else { b.disabled = false; b.textContent = 'Falhou — tentar de novo'; }
+        });
+      });
+    }
+    ov.querySelector('[data-vq]').addEventListener('input', function (ev) { st.q = ev.target.value; lista(); });
+    lista();
+  }
   function empLinhas() {
     var por = {}, semEmp = 0, foraTarget = 0;
     S.itens.forEach(function (it) {
@@ -448,7 +518,7 @@
         if (String(ev.ts) > o.ult) o.ult = String(ev.ts);
       });
     });
-    var alvo = S.empresas.filter(function (e) { return String(e.target || '').toUpperCase() === 'TARGET'; });
+    var alvo = S.empresas.filter(function (e) { return classeEf(e) !== ''; });
     var ids = {};
     alvo.forEach(function (e) { ids[String(e.__id)] = 1; });
     Object.keys(por).forEach(function (k) { if (!ids[k]) foraTarget += por[k].its.length; });
@@ -456,15 +526,17 @@
       var o = por[String(e.__id)] || { its: [], ace: 0, res: 0, inter: 0, ult: '', soma: 0 };
       o.emp = e;
       o.nome = e.cliente || e.razaoSocial || e.nomeFantasia || '(sem nome)';
-      o.leads = leadsDaEmpresa({ empresaId: e.__id, empresaNome: e.cliente }, e).length;
+      o.cl = classeEf(e); o.conf = classeConf(e); o.neg = negDaEmpresa(e); o.leads = o.neg.todos.length;
       o.media = o.its.length ? Math.round(o.soma / o.its.length) : 0;
       return o;
     });
     return { linhas: linhas, semEmp: semEmp, foraTarget: foraTarget };
   }
   function empHtml() {
-    var f = S.ef || (S.ef = { q: '', sit: '', ord: 'contatos' });
-    var D = empLinhas(), L = D.linhas;
+    var f = S.ef || (S.ef = { q: '', sit: '', ord: 'contatos', cl: 'TARGET' });
+    if (f.cl === undefined) f.cl = 'TARGET';
+    var D = empLinhas();
+    var L = D.linhas.filter(function (o) { return !f.cl || (f.cl === 'conf' ? o.conf !== 'confirmada' : o.cl === f.cl); });
     var comC = L.filter(function (o) { return o.its.length; }).length;
     var totC = 0, totA = 0, totI = 0;
     L.forEach(function (o) { totC += o.its.length; totA += o.ace; totI += o.inter; });
@@ -483,24 +555,26 @@
     });
     function op(v, t, cur) { return '<option value="' + v + '"' + (cur === v ? ' selected' : '') + '>' + t + '</option>'; }
     var h = '<div class="cmp-kpis">' +
-      '<div class="cmp-kpi"><b>' + L.length + '</b><span>empresas TARGET no cadastro</span></div>' +
+      '<div class="cmp-kpi"><b>' + L.length + '</b><span>empresas ' + (f.cl && f.cl !== 'conf' ? f.cl : 'classificadas') + ' no cadastro</span></div>' +
       '<div class="cmp-kpi"><b>' + comC + '</b><span>com algum contato nas campanhas</span></div>' +
-      '<div class="cmp-kpi"><b>' + (L.length - comC) + '</b><span>TARGET sem nenhum contato</span></div>' +
-      '<div class="cmp-kpi"><b>' + totC + '</b><span>contatos em empresas TARGET</span></div>' +
+      '<div class="cmp-kpi"><b>' + (L.length - comC) + '</b><span>sem nenhum contato</span></div>' +
+      '<div class="cmp-kpi"><b>' + totC + '</b><span>contatos nessas empresas</span></div>' +
+      '<div class="cmp-kpi"><b>' + L.filter(function (o) { return o.neg.ab.length || o.neg.v26.length; }).length + '</b><span>com negociação aberta ou venda em 2026 (não abordar a frio)</span></div>' +
       '<div class="cmp-kpi"><b>' + totA + '</b><span>conectados</span></div>' +
       '<div class="cmp-kpi"><b>' + totI + '</b><span>interações registradas</span></div>' +
       '<div class="cmp-kpi"><b>' + D.semEmp + '</b><span>contatos sem empresa vinculada (não entram nesta conta)</span></div></div>' +
-      '<div class="cmp-bar"><input data-ef="q" placeholder="Buscar empresa TARGET..." value="' + esc(f.q) + '" style="min-width:230px">' +
+      '<div class="cmp-bar"><input data-ef="q" placeholder="Buscar empresa..." value="' + esc(f.q) + '" style="min-width:230px">' +
+      '<select data-ef="cl">' + op('TARGET', 'Classe: TARGET', f.cl) + op('ICP A', 'Classe: ICP A', f.cl) + op('ICP B', 'Classe: ICP B', f.cl) + op('ICP C', 'Classe: ICP C', f.cl) + op('ICP D', 'Classe: ICP D', f.cl) + op('FORA', 'Classe: FORA', f.cl) + op('conf', 'Classe a confirmar', f.cl) + op('', 'Todas as classificadas', f.cl) + '</select>' +
       '<select data-ef="sit">' + op('', 'Todas as TARGET', f.sit) + op('com', 'Com contatos', f.sit) + op('sem', 'Sem nenhum contato', f.sit) + op('int', 'Com interações', f.sit) + '</select>' +
       '<select data-ef="ord">' + op('contatos', 'Mais contatos primeiro', f.ord) + op('inter', 'Mais interações primeiro', f.ord) + op('ult', 'Atividade mais recente', f.ord) + op('nome', 'Nome (A–Z)', f.ord) + '</select>' +
       '<button class="cmp-btn p" data-vinc="1">Vincular contatos sem empresa (' + D.semEmp + ')</button>' +
       '<span class="cmp-msg" style="margin:0">' + vis.length + ' de ' + L.length + ' empresas</span></div>' +
-      '<table><tr><th>Empresa TARGET</th><th>Contatos</th><th>Conectados</th><th>Responderam</th><th>Interações</th><th>Nota média</th><th>Leads no SIGE</th><th>Última atividade</th></tr>' +
+      '<table><tr><th>Empresa</th><th>Classe</th><th>Contatos</th><th>Conectados</th><th>Responderam</th><th>Interações</th><th>Nota média</th><th>Leads no SIGE</th><th>Negociação</th><th>Última atividade</th></tr>' +
       vis.map(function (o) {
         return '<tr data-emp="' + esc(o.emp.__id) + '" style="cursor:pointer" title="Ver contatos e histórico"><td><b>' + esc(o.nome) + '</b>' +
-          (o.emp.segmento ? '<br><small>' + esc(o.emp.segmento) + '</small>' : '') + '</td><td>' +
+          (o.emp.segmento ? '<br><small>' + esc(o.emp.segmento) + '</small>' : '') + '</td><td>' + clBadge(o) + '</td><td>' +
           (o.its.length ? o.its.length : '<small>sem contato</small>') + '</td><td>' + o.ace + '</td><td>' + o.res + '</td><td>' + o.inter + '</td><td>' +
-          (o.its.length ? o.media : '') + '</td><td>' + o.leads + '</td><td>' + (o.ult ? br(o.ult.slice(0, 10)) + '/' + o.ult.slice(0, 4) : '') + '</td></tr>';
+          (o.its.length ? o.media : '') + '</td><td>' + o.leads + '</td><td>' + negTxt(o) + '</td><td>' + (o.ult ? br(o.ult.slice(0, 10)) + '/' + o.ult.slice(0, 4) : '') + '</td></tr>';
       }).join('') + '</table>' +
       '<p class="cmp-msg">Clique na empresa para ver os contatos e o histórico. Interações = interação, mensagem e resposta recebida registradas no histórico dos contatos.</p>';
     return h;
@@ -518,14 +592,23 @@
       var it = p.it;
       return '<tr><td><b>' + esc(((it.nome || '') + ' ' + (it.sobrenome || '')).trim()) + '</b><br><small>' + esc(it.cargo || '') + '</small></td><td>' + esc(it.estado || 'Na fila') + '</td><td>' + p.c.total + '</td><td><button class="cmp-btn" data-hi2="' + esc(it.__id) + '">Histórico</button></td></tr>';
     }).join('');
-    var ov = modal(o.nome + ' — empresa TARGET',
+    var ov = modal(o.nome + ' — ' + o.cl,
       '<div class="cmp-msg" style="margin-top:0">' + o.its.length + ' contato(s) · ' + o.ace + ' conectado(s) · ' + o.res + ' respondeu(ram) · ' + o.inter + ' interação(ões) · ' + o.leads + ' lead(s) no SIGE</div>' +
+      '<h4>Classe</h4><div class="cmp-bar" style="margin:0 0 8px"><select data-cl>' + CLASSES.map(function (c) { return '<option' + (c === o.cl ? ' selected' : '') + '>' + c + '</option>'; }).join('') + '</select><button class="cmp-btn p" data-clsave="1">Salvar classe</button><small>Situação atual: ' + o.conf + '. Ao salvar, fica confirmada com seu nome e a data de hoje.</small></div>' +
+      '<h4>Negociações no SIGE</h4>' + (o.neg.todos.length ? ((o.neg.ab.length || o.neg.v26.length) ? '<p class="cmp-msg" style="color:#B23A48">Atenção: negociação aberta ou venda em 2026. Não abordar a frio — alinhar antes com o consultor responsável.</p>' : '') + '<table><tr><th>Situação</th><th>Serviço</th><th>Consultor</th><th>Período</th></tr>' + o.neg.todos.slice().sort(function (a, b) { return String(b.y || '').localeCompare(String(a.y || '')) || (Number(b.m || 0) - Number(a.m || 0)); }).slice(0, 30).map(function (l) { return '<tr><td>' + esc(l.status || '') + '</td><td>' + esc(l.serv || '') + '</td><td>' + esc(l.cons || '') + '</td><td>' + (l.m && l.y ? pad(Number(l.m)) + '/' + esc(l.y) : '') + '</td></tr>'; }).join('') + '</table>' : '<p class="cmp-msg">Nenhum lead/negociação desta empresa no SIGE.</p>') +
+      
       '<h4>Contatos</h4>' + (cont ? '<table><tr><th>Contato</th><th>Situação</th><th>Nota</th><th></th></tr>' + cont + '</table>' : '<p class="cmp-msg">Nenhum contato desta empresa nas campanhas ainda.</p>') +
       '<h4>Histórico da empresa</h4><ul class="cmp-tl">' + (evs.length ? evs.slice(0, 80).map(function (e) {
         return '<li><b>' + esc(e.tipo) + '</b> · ' + esc(e.nm) + ' · ' + br(e.ts.slice(0, 10)) + '/' + e.ts.slice(0, 4) + (e.texto ? '<small>' + esc(e.texto) + '</small>' : '') + '</li>';
       }).join('') + (evs.length > 80 ? '<li><small>Mostrando os 80 mais recentes de ' + evs.length + '.</small></li>' : '') : '<li><small>Nenhuma interação registrada.</small></li>') + '</ul>',
-      '<button class="cmp-btn" data-x="1">Fechar</button>');
+      '<button class="cmp-btn" data-vc1="1">Vincular contato a esta empresa</button><button class="cmp-btn" data-x="1">Fechar</button>');
     ov.querySelector('[data-x]').addEventListener('click', function () { ov.remove(); });
+    ov.querySelector('[data-clsave]').addEventListener('click', async function (ev) {
+      var b = ev.target, c = ov.querySelector('[data-cl]').value;
+      b.disabled = true; b.textContent = 'Gravando...';
+      try { await salvarClasse(o.emp, c); ov.remove(); render(); empDetalhe(id); } catch (x) { b.disabled = false; b.textContent = 'Falhou — tentar de novo'; }
+    });
+    ov.querySelector('[data-vc1]').addEventListener('click', function () { ov.remove(); vincularUm(o.emp); });
     ov.querySelectorAll('[data-hi2]').forEach(function (el) { el.addEventListener('click', function () { ov.remove(); historico(el.dataset.hi2); }); });
   }
 
