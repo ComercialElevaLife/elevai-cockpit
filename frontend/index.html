@@ -650,6 +650,7 @@ td .up{color:var(--ok);font-weight:700}
 <div class="bar">
   <div><label>Consultor</label><select id="fc" onchange="render()"><option value="">Todos</option></select></div>
   <div><label>Serviço</label><select id="fs" onchange="render()"><option value="">Todos</option></select></div>
+  <div><label>Funil</label><select id="ff" onchange="render()" title="Só muda a visão do Kanban (não altera nenhum dado). Novas vendas = clientes novos + reativações. Upsell e cross-sell = clientes ativos."><option value="">Todos</option><option value="NOVAS">Novas vendas</option><option value="UPCROSS">Upsell e cross-sell</option></select></div>
   <div><label>Natureza</label><select id="fn" onchange="render()"><option value="">Todas</option><option value="NOVA">Nova venda</option><option value="UPSELL">Upsell</option><option value="CROSS">Cross-sell</option></select></div>
   <div><label>Buscar</label><input id="fq" placeholder="empresa..." oninput="render()"></div>
   <span class="natbar" id="natbar" title="Nova venda = Comercial · Upsell e Cross-sell = Operações. Clique para filtrar."></span>
@@ -4568,6 +4569,8 @@ function _natInfo(l){
   return Object.assign({auto:true},(ant&&d&&ant<d)?_NAT.UPSELL:_NAT.CROSS);
 }
 window._natInfo=_natInfo;
+/* 16/11/2026 — Léo (pedido do Rafael): visão por funil, só como filtro (não recadastra nada). NOVAS = nova venda (cliente novo) + reativações (origemFunil REATIVADO); UPCROSS = upsell e cross-sell. */
+function _funilDe(l){ if(String(l.origemFunil||'').toUpperCase()==='REATIVADO')return 'NOVAS'; return _natInfo(l).k==='NOVA'?'NOVAS':'UPCROSS'; }
 function _natBar(data){
   const b=el('natbar'); if(!b)return;
   const cur=(el('fn')||{}).value||'', t={NOVA:[0,0,0],UPSELL:[0,0,0],CROSS:[0,0,0]};
@@ -4576,11 +4579,12 @@ function _natBar(data){
 }
 function filtered(){
   const c=el('fc').value,s=el('fs').value,q=el('fq').value.trim().toLowerCase(),nf=(el('fn')&&el('fn').value)||'';
+  const fu=(el('ff')&&el('ff').value)||'';
   const bq=(el('crm-q')&&el('crm-q').value||'').trim();
   const toks=bq?bq.split(/\s+/).filter(Boolean):[];
   const ix=toks.length?_bqIndex():null;
   return LEADS.filter(l=>{
-    if(!((!c||l.cons===c)&&(!s||l.serv===s)&&(!nf||_natInfo(l).k===nf)&&(!q||(l.cliente+' '+l.unidade).toLowerCase().includes(q))))return false;
+    if(!((!c||l.cons===c)&&(!s||l.serv===s)&&(!nf||_natInfo(l).k===nf)&&(!fu||_funilDe(l)===fu)&&(!q||(l.cliente+' '+l.unidade).toLowerCase().includes(q))))return false;
     if(!toks.length)return true;
     const h=_bqTexto(l,ix);
     return toks.every(t=>{ const tn=_bqN(t),td=_bqD(t); return h.t.includes(tn)||(td.length>=3&&h.d.includes(td)); });
