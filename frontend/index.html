@@ -479,6 +479,7 @@ td .up{color:var(--ok);font-weight:700}
       <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
       <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
       <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
+        <div class="flt-g"><span class="flt-lbl">Funil (Kanban)</span><select id="ff" onchange="render()" title="Só muda a visão do Kanban, não altera nenhum dado. Novas vendas = clientes novos + reativações. Upsell e cross-sell = clientes ativos."><option value="">Todos</option><option value="NOVAS">Novas vendas</option><option value="UPCROSS">Upsell e cross-sell</option></select></div>
       <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
       <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
       <button class="clr" id="mm-clr">Limpar</button>
@@ -650,7 +651,6 @@ td .up{color:var(--ok);font-weight:700}
 <div class="bar">
   <div><label>Consultor</label><select id="fc" onchange="render()"><option value="">Todos</option></select></div>
   <div><label>Serviço</label><select id="fs" onchange="render()"><option value="">Todos</option></select></div>
-  <div><label>Funil</label><select id="ff" onchange="render()" title="Só muda a visão do Kanban (não altera nenhum dado). Novas vendas = clientes novos + reativações. Upsell e cross-sell = clientes ativos."><option value="">Todos</option><option value="NOVAS">Novas vendas</option><option value="UPCROSS">Upsell e cross-sell</option></select></div>
   <div><label>Natureza</label><select id="fn" onchange="render()"><option value="">Todas</option><option value="NOVA">Nova venda</option><option value="UPSELL">Upsell</option><option value="CROSS">Cross-sell</option></select></div>
   <div><label>Buscar</label><input id="fq" placeholder="empresa..." oninput="render()"></div>
   <span class="natbar" id="natbar" title="Nova venda = Comercial · Upsell e Cross-sell = Operações. Clique para filtrar."></span>
