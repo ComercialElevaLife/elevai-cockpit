@@ -794,6 +794,9 @@ td .up{color:var(--ok);font-weight:700}
           <label style="display:flex;flex-direction:column;gap:4px">Nome / carteira <span style="color:#B23A48">*</span><input id="emp-cliente" type="text" placeholder="Como aparece no funil (ex.: Gerdau Pinda)" required style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Etiqueta<select id="emp-target" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option>NÃO TARGET</option><option>TARGET</option></select></label>
           <label style="display:flex;flex-direction:column;gap:4px">CNPJ<input id="emp-cnpj" type="text" placeholder="Digite e saia do campo p/ puxar" onblur="window.cnpjLookupEmp&&window.cnpjLookupEmp(this.value)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><span id="emp-cnpj-msg" style="font-size:11px;color:#8A7A78"></span></label>
+          <label style="display:flex;flex-direction:column;gap:4px">Segmento<input id="emp-segmento" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+          <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="emp-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        <details id="emp-fiscal" style="grid-column:1/-1;border:1px dashed #EADDE0;border-radius:10px;padding:10px 12px"><summary style="cursor:pointer;font-weight:700;color:#7A2F42">Dados fiscais e endereço <span style="font-weight:400;color:#8A7A78">(preenchidos pela consulta do CNPJ; exigidos na efetivação da venda)</span></summary><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;font-size:13px;margin-top:12px">
           <label style="display:flex;flex-direction:column;gap:4px">Razão social<input id="emp-razao" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Nome fantasia<input id="emp-fantasia" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">CNAE<input id="emp-cnae" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
@@ -809,8 +812,7 @@ td .up{color:var(--ok);font-weight:700}
           <label style="display:flex;flex-direction:column;gap:4px">Cód. IBGE município<input id="emp-ibge" type="text" placeholder="(automático pelo CNPJ)" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
           <label style="display:flex;flex-direction:column;gap:4px">Regime tributário<select id="emp-regime" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>Simples Nacional</option><option>Lucro Presumido</option><option>Lucro Real</option><option>MEI</option></select></label>
           <label style="display:flex;flex-direction:column;gap:4px">Grau de risco (NR-4)<select id="emp-grau" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"><option value="">—</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label>
-          <label style="display:flex;flex-direction:column;gap:4px">Segmento<input id="emp-segmento" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
-          <label style="display:flex;flex-direction:column;gap:4px;grid-column:1/3">Observações<input id="emp-obs" type="text" style="padding:8px;border:1px solid #EADDE0;border-radius:8px"></label>
+        </div></details>
           <div style="grid-column:1/3;display:flex;align-items:center;gap:14px;margin-top:6px">
             <button type="submit" id="emp-btn" style="background:#B23A48;color:#fff;border:0;border-radius:9px;padding:11px 22px;font-weight:600;cursor:pointer">Salvar empresa</button>
             <span id="emp-msg" style="font-size:13px"></span>
@@ -2034,6 +2036,7 @@ async function cnpjLookupEmp(cnpj){
     setF('emp-cep',j.cep||'');
     setF('emp-ibge',String(j.codigo_municipio_ibge||j.codigo_municipio||''));
     setF('emp-cnae',(j.cnae_fiscal?String(j.cnae_fiscal):'')+(j.cnae_fiscal_descricao?' — '+j.cnae_fiscal_descricao:''));
+    {const _fd=document.getElementById('emp-fiscal'); if(_fd)_fd.open=true;}
     const cli=gg('emp-cliente'); if(cli&&!cli.value)cli.value=j.nome_fantasia||j.razao_social||'';
     if(msg){msg.style.color='#2E7D5B';msg.textContent='✓ '+(j.razao_social||'encontrado');}
   }catch(e){ if(msg){msg.style.color='#B23A48';msg.textContent='falha ao consultar CNPJ';} }
@@ -2213,7 +2216,8 @@ function editEmpresa(id){
   set('emp-ie',it.ie); set('emp-im',it.im); set('emp-logradouro',it.logradouro); set('emp-numero',it.numero);
   set('emp-complemento',it.complemento); set('emp-bairro',it.bairro); set('emp-municipio',it.municipio);
   set('emp-uf',it.uf); set('emp-cep',it.cep); set('emp-ibge',it.codigoIbge); set('emp-regime',it.regimeTributario||'');
-  set('emp-grau',it.grauRisco||''); set('emp-segmento',it.segmento); set('emp-obs',it.obs);
+  set('emp-grau',it.grauRisco||'');
+  {const _fd=q('emp-fiscal'); if(_fd)_fd.open=!!(it.razaoSocial||it.ie||it.im||it.logradouro||it.municipio||it.uf||it.cep||it.cnae||it.regimeTributario||it.grauRisco);} set('emp-segmento',it.segmento); set('emp-obs',it.obs);
   window._empEditId=String(id);
   const btn=q('emp-btn'); if(btn)btn.textContent='Salvar alterações';
   const cancel=q('emp-cancel-edit'); if(cancel)cancel.hidden=false;
