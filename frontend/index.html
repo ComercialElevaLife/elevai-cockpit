@@ -479,7 +479,6 @@ td .up{color:var(--ok);font-weight:700}
       <div class="flt-g msel"><span class="flt-lbl">Serviço</span><button type="button" class="msel-btn" onclick="mselToggle('serv')">Todos <span class="msel-count" id="msel-serv-count"></span></button><div class="msel-menu" id="msel-serv-menu"></div></div>
       <div class="flt-g"><span class="flt-lbl">ICP</span><select id="mm-icp"><option value="">Todos</option><option>A</option><option>B</option><option>C</option><option>D</option></select></div>
       <div class="flt-g"><span class="flt-lbl">Categoria</span><select id="mm-tc"><option value="">Todos</option><option>NOVO</option><option>ATUAL</option></select></div>
-        <div class="flt-g"><span class="flt-lbl">Funil (Kanban)</span><select id="ff" onchange="render()" title="Só muda a visão do Kanban, não altera nenhum dado. Novas vendas = clientes novos + reativações. Upsell e cross-sell = clientes ativos."><option value="">Todos</option><option value="NOVAS">Novas vendas</option><option value="UPCROSS">Upsell e cross-sell</option></select></div>
       <div class="flt-g"><span class="flt-lbl">Proposta?</span><select id="mm-prop"><option value="">Todas</option><option>SIM</option><option>NÃO</option></select></div>
       <div class="flt-g msel"><span class="flt-lbl">Consultor</span><button type="button" class="msel-btn" onclick="mselToggle('cons')">Todos <span class="msel-count" id="msel-cons-count"></span></button><div class="msel-menu" id="msel-cons-menu"></div></div>
       <button class="clr" id="mm-clr">Limpar</button>
@@ -489,7 +488,7 @@ td .up{color:var(--ok);font-weight:700}
       <button id="btn-excel" title="Exportar os dados filtrados para Excel (CSV)" onclick="app.exportCsv()">⬇ Excel</button>
       <button id="btn-reload" title="Rebuscar a base viva e re-renderizar">↻ Atualizar</button>
       <button id="cfg-btn" title="Configurar automação">⚙ Automação</button>
-    </div>
+    <button id="btn-testteams" title="Testar o aviso no Teams (não usado por enquanto)" onclick="testTeams()">🔔 Testar Teams</button> </div>
   </div>
 </div>
 <!-- 10/09/2026 -- sino de notificações (aprovações do scan de e-mail/Teams + novidades do sistema).
@@ -639,13 +638,13 @@ td .up{color:var(--ok);font-weight:700}
     <!-- 15/10/2026 -- Léo: busca rápida no canto superior direito do Kanban (empresa, contato, telefone ou e-mail).
          Soma com os filtros já existentes (consultor/serviço); só esconde cards, não altera nenhum dado. -->
     <input id="crm-q" type="search" autocomplete="off" placeholder="🔍 Buscar empresa, contato, telefone ou e-mail" oninput="crmBuscaRapida()" onkeydown="if(event.key==='Escape'){this.value='';crmBuscaRapida();}" style="width:320px;max-width:60vw;padding:8px 12px;border:1px solid #C99AA0;border-radius:8px;font:500 12.5px 'Montserrat',sans-serif;color:#3A2A2E;background:#fff;outline:none" onfocus="this.style.borderColor='#8B3A42'" onblur="this.style.borderColor='#C99AA0'">
-    <button class="btn" onclick="opNovaOportunidade()">➕ Nova Oportunidade</button>
+    <button class="btn" onclick="opNovaOportunidade()" title="Nova oportunidade" aria-label="Nova oportunidade" style="padding:8px 14px;font-size:16px;font-weight:700;line-height:1">➕</button>
+    <select id="ff" onchange="render()" title="Funil: só muda a visão do Kanban, não altera nenhum dado. Novas vendas = clientes novos + reativações. Upsell e cross-sell = clientes ativos." aria-label="Funil" style="padding:8px 10px;border:1px solid #C99AA0;border-radius:8px;font:500 12.5px Montserrat,sans-serif;color:#3A2A2E;background:#fff"><option value="">Funil: todos</option><option value="NOVAS">Funil: novas vendas</option><option value="UPCROSS">Funil: upsell e cross-sell</option></select>
     <!-- 25/08/2026: botoes abaixo ficam aqui, nao em .bar, pois view-crm bar tem display none -->
-    <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)">⛶ Compacto</button>
+    <button class="btn ghost" id="crm-compact-btn" onclick="toggleCompact()" title="Alterna entre card completo e compacto (menos poluição visual)" aria-label="Compacto">⛶</button>
     <!-- 24/09/2026 (v2): botão "🗄 Reativação" (coluna virtual/opt-in) removido -- Reativar agora é
          coluna real de COLS, sempre visível igual às demais, sem precisar de toggle. -->
-    <button class="btn ghost" onclick="testTeams()">🔔 Testar Teams</button>
-    <button class="btn ghost" onclick="abrirLixeira()" title="Oportunidades excluídas: ficam 30 dias e podem ser restauradas">🗑 Lixeira</button>
+    <button class="btn ghost" onclick="abrirLixeira()" title="Lixeira: oportunidades excluídas ficam 30 dias e podem ser restauradas" aria-label="Lixeira">🗑</button>
   </div>
 </header>
 <div class="bar">
@@ -4595,7 +4594,7 @@ function render(){
   const data=filtered();
   try{ const _fnv=el('fn'); const _sv=_fnv?_fnv.value:''; if(_fnv)_fnv.value=''; const _all=filtered(); if(_fnv)_fnv.value=_sv; _natBar(_all); }catch(e){}
   try{
-    var cBtn=el('crm-compact-btn'); if(cBtn){ cBtn.textContent=compact?'▤ Completo':'⛶ Compacto'; cBtn.classList.toggle('on',compact); }
+    var cBtn=el('crm-compact-btn'); if(cBtn){ cBtn.textContent=compact?'▤':'⛶'; cBtn.title=compact?'Voltar ao card completo':'Card compacto (menos poluição visual)'; cBtn.classList.toggle('on',compact); }
     var brd=el('board'); if(brd)brd.classList.toggle('compact',compact);
     var nt=el('crm-note'); if(nt)nt.textContent='Protótipo com os dados da base atual. Arraste um cartão para mudar o status (vira override manual). Clique no cartão para ver detalhes e lançar tarefas. Persistência multiusuário: conectar a SharePoint List + Power Automate (ver 06_Modulo2_CRM).';
   }catch(e){}
