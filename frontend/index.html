@@ -248,6 +248,7 @@ td .up{color:var(--ok);font-weight:700}
 #view-crm .d-grid{display:grid;grid-template-columns:280px 1fr;gap:0 22px}
 #view-crm .d-side{border-right:1px solid #F0E4E5;padding-right:18px}
 #view-crm .d-main{min-width:0}
+.dtabs{display:flex;gap:6px;margin:0 0 10px;border-bottom:1px solid #EADDE0}.dtabs button{border:0;background:none;padding:7px 12px;font:700 12px Montserrat,sans-serif;color:#8A7A78;cursor:pointer;border-bottom:2px solid transparent}.dtabs button.on{color:#8B3A42;border-bottom-color:#8B3A42}
 @media(max-width:860px){#view-crm .d-grid{grid-template-columns:1fr}#view-crm .d-side{border-right:none;border-bottom:1px solid #F0E4E5;padding-right:0;padding-bottom:10px;margin-bottom:6px}}
 /* Abas de sub-etapa (dentro de EM NEGOCIAÇÃO) — mesmo espírito do print do RD Station (Léo):
    faixa de abas no topo do card detalhado, a atual destacada. */
@@ -5522,6 +5523,7 @@ function _historicoHtmlBase(l){
     return '<div class="task"><div class="t1">'+esc(e.texto||'')+'</div><div class="t2">'+qd+(e.por?' · '+esc(e.por):'')+'</div></div>';
   }).join('');
 }
+window._dTab=function(btn,p){var d=btn.closest('.d-main');d.querySelectorAll('.dtabs button').forEach(function(x){x.classList.toggle('on',x===btn)});d.querySelectorAll('.dpane').forEach(function(x){x.style.display=(x.id==='dp-'+p)?'':'none'});};
 function openDrawer(id){curId=id;
   /* 25/08/2026 — _allLeads() cobre tanto LEADS (ativas) quanto as inativadas — necessário porque
      esse drawer também abre a partir da visão "🗄 Inativas". */
@@ -5553,9 +5555,9 @@ function openDrawer(id){curId=id;
         oportunidade já saiu de LEAD/OPORTUNIDADE. Ver o gatilho automático em drop()/setStatus() quando
         o status vira EM NEGOCIAÇÃO (abre o drawer com este bloco já expandido). -->
    <details id="le-fase2"${(l.status!=='LEAD'||l.cons||l.serv||(l.valor||0)>0)?' open':''} style="margin-top:6px;border:1px dashed #EADDE0;border-radius:10px;padding:8px 10px">
-   <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Dados comerciais, faturamento e operacionais</summary>
+   <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Proposta e serviços</summary>
    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:10px 0 8px">
-     <label>Consultor<input id="le-cons" value="${esc(l.cons)}"></label>
+<label>Consultor<input id="le-cons" value="${esc(l.cons)}"></label>
      <label>Serviço<input id="le-serv" value="${esc(l.serv)}"></label>
      <label>Fonte<input id="le-fonte" value="${esc(l.fonte)}"></label>
      <label>Campanha<input id="le-campanha" value="${esc(l.campanha)}"></label>
@@ -5565,7 +5567,17 @@ function openDrawer(id){curId=id;
      <label>Proposta?<select id="le-prop">${['NÃO','SIM'].map(o=>`<option${String(l.prop)===o?' selected':''}>${o}</option>`).join('')}</select></label>
      <label>Envio<input id="le-envio" type="date" value="${esc(l.envio)}"></label>
      <label>Cliente<select id="le-tc">${['NOVO','ATUAL'].map(o=>`<option${String(l.tc)===o?' selected':''}>${o}</option>`).join('')}</select></label>
-     <label>Natureza da venda<select id="le-natureza"><option value="">Automático (${_natInfo(Object.assign({},l,{natureza:''})).lbl})</option>${['NOVA','UPSELL','CROSS'].map(o=>`<option value="${o}"${String(l.natureza||'')===o?' selected':''}>${_NAT[o].lbl}</option>`).join('')}</select></label>
+     <label>Recorrente — valor mensal<input id="le-valormensal" type="text" inputmode="decimal" value="${l.valorMensal!=null?moneyFmt(l.valorMensal):''}" placeholder="só recorrente" oninput="maskMoney(this);leRecCalc()"></label>
+     <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12" oninput="leRecCalc()"></label>
+     
+     <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
+   </div>
+   </details>
+   <details id="le-fase3"${(l.status==='VENDIDA')?' open':''} style="margin-top:6px;border:1px dashed #EADDE0;border-radius:10px;padding:8px 10px">
+   <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Dados da venda (só ao efetivar)</summary>
+   <div style="font-size:11px;color:#8A7A78;margin:8px 0 0">Ainda não é venda: nada aqui é exigido agora. Estes dados serão pedidos na efetivação (CNPJ, faturamento, evidência).</div>
+   <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:10px 0 8px">
+<label>Natureza da venda<select id="le-natureza"><option value="">Automático (${_natInfo(Object.assign({},l,{natureza:''})).lbl})</option>${['NOVA','UPSELL','CROSS'].map(o=>`<option value="${o}"${String(l.natureza||'')===o?' selected':''}>${_NAT[o].lbl}</option>`).join('')}</select></label>
      <label>Evidência da venda<select id="le-evtipo"><option value="">—</option>${_EVTIPOS.map(function(o){return '<option'+(l.evidenciaTipo===o?' selected':'')+'>'+o+'</option>'}).join('')}</select></label>      <label>Nº do pedido/contrato ou link<input id="le-evid" value="${esc(l.evidencia)}" placeholder="Obrigatório para vender"></label>      <label>Print da tela (JPEG ou PNG)<input type="file" id="le-evfile" accept="image/jpeg,image/png" onchange="evPick(this,'le-evtipo','le-evid','le-evmsg','${esc(l.spid||l.id)}')"><span id="le-evmsg" style="font-size:11px;color:#8A7A78">${_evLink(l.evidencia)}</span> <a href="#" onclick="evRemover('le-evtipo','le-evid','le-evmsg','le-evfile');return false" style="font-size:11px;color:#B23A48">remover evidência</a></label>      <label>Motivo da troca/remoção da evidência (obrigatório se já havia uma registrada)<input id="le-evmot" placeholder="Ex.: print errado, revisão do cliente"></label>      <label>CNPJ<input id="le-cnpj" value="${esc(l.cnpj)}" onblur="window.cnpjLookup&&window.cnpjLookup(this.value,document.getElementById('le-razao'),document.getElementById('le-endereco'),document.getElementById('le-cnpj-msg'))"><span id="le-cnpj-msg" style="font-size:10px;color:#8A7A78"></span></label>
      <label>Razão social<input id="le-razao" value="${esc(l.razaoSocial)}"></label>
      <label style="grid-column:1/3">Endereço<input id="le-endereco" value="${esc(l.endereco)}"></label>
@@ -5574,15 +5586,12 @@ function openDrawer(id){curId=id;
      <label>CNAE<input id="le-cnae" value="${esc(l.cnae)}"></label>
      <label>Grau de risco<select id="le-grau">${['','1','2','3','4'].map(o=>`<option value="${o}"${String(l.grauRisco||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Contato sobrenome<input id="le-sobrenome" value="${esc(l.contatoSobrenome)}"></label>
-     <label>Recorrente — valor mensal<input id="le-valormensal" type="text" inputmode="decimal" value="${l.valorMensal!=null?moneyFmt(l.valorMensal):''}" placeholder="só recorrente" oninput="maskMoney(this);leRecCalc()"></label>
-     <label>Recorrente — nº meses<input id="le-nummeses" type="number" min="3" step="1" value="${l.numMeses!=null?l.numMeses:''}" placeholder="padrão 12" oninput="leRecCalc()"></label>
      <label>Cond. pagamento<input id="le-condpag" value="${esc(l.condPagamento)}"></label>
      <label>Código de serviço<input id="le-codserv" list="dl-codserv" value="${esc(l.codServico)}" placeholder="digite p/ buscar (ex.: fisio)"></label>
      <label>Prazo mobilização<input id="le-prazomob" value="${esc(l.prazoMobilizacao)}" placeholder="ex.: 30 dias / data"></label>
      <label>Recebimento<select id="le-receb">${['','Boleto','Crédito em conta','Nota Fiscal'].map(o=>`<option value="${o}"${String(l.recebimento||'')===o?' selected':''}>${o||'—'}</option>`).join('')}</select></label>
      <label>Valor de fechamento (R$)<input id="le-fechamento" type="text" inputmode="decimal" value="${l.valorFechamento!=null?moneyFmt(l.valorFechamento):''}" placeholder="valor final da venda" oninput="maskMoney(this)"></label>
      <label>Data da venda<input id="le-datavenda" type="date" value="${esc((l.dataVenda||(l.status==='VENDIDA'&&l.alteradoEm?String(l.alteradoEm).slice(0,10):''))||'')}" title="Data oficial da venda (vale para os KPIs). Preenchida automaticamente ao mover pra VENDIDA; edite aqui pra lançar/corrigir venda retroativa."></label>
-     <div style="grid-column:1/3;font-size:11px;color:#8A7A78">Proposta: <b>${brl(l.valor)}</b>${l.valorFechamento!=null&&l.valor?` · Fechamento: <b>${brl(l.valorFechamento)}</b> · Redução: <b>${brl((l.valor||0)-(l.valorFechamento||0))}</b> (${l.valor?(((l.valor-l.valorFechamento)/l.valor)*100).toFixed(1):'0'}%)`:''}</div>
    </div>
    </details>
    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
@@ -5597,7 +5606,7 @@ function openDrawer(id){curId=id;
    ${l.alteradoEm?`<div class="fld"><b>Alterado em</b> ${fmtAlt(l.alteradoEm)} por ${l.alteradoPor||'—'}</div>`:''}
    </div>
    <div class="d-main">
-   <h4>Próximas tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
+   <div class="dtabs"><button class="on" onclick="_dTab(this,'t')">Tarefas (${ts.length})</button><button onclick="_dTab(this,'h')">Histórico</button></div><div class="dpane" id="dp-t"><h4>Próximas tarefas (${ts.length})</h4><div id="tlist">${ts.map((t,i)=>taskHtml(t,i)).join('')||'<div class="meta">Nenhuma tarefa.</div>'}</div>
    <div style="font-size:10.5px;color:#8A7A78;margin:4px 0">📌 Tarefa/Ligação = lembrete no calendário · 🟢 WhatsApp = registra o FUP (botão abre o WhatsApp) · 👥 Reunião = Teams (padrão 30min, editável). Com o fluxo de calendário ligado, o compromisso é criado <b>automaticamente</b> (sem abrir nada); sem ele, baixa um .ics.</div><h4>Nova tarefa / follow-up</h4>
    <div class="tform">
      <select id="t-tipo" onchange="onTipo()"><option>Tarefa</option><option>Ligação</option><option>WhatsApp</option><option>Reunião</option></select>
@@ -5610,8 +5619,8 @@ function openDrawer(id){curId=id;
      <textarea id="t-cont" rows="2" placeholder="Conteúdo / observações"></textarea>
      <button class="btn" onclick="addTask(${id})">+ Adicionar / Agendar</button>
    </div>
-   <h4>Histórico</h4>
-   <div id="hlist">${_historicoHtml(l)}</div>
+   </div><div class="dpane" id="dp-h" style="display:none"><h4>Histórico</h4>
+   <div id="hlist">${_historicoHtml(l)}</div></div>
    </div>
    </div>`;
   el('drawer').classList.add('on');
