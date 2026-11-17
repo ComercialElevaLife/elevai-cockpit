@@ -166,12 +166,14 @@ module.exports = async function (context, req) {
       const lidR = s(p.leadId).trim();
       if (!lidR) return erro('Falta o id do lead.');
       const ctsR = await itensRaw(lidC);
-      const alvo = ctsR.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === lidR && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
-      const stR = alvo ? s(alvo.f.Status) : '';
-      const blq = !alvo ? 'Nenhum lançamento do SIGE encontrado para este lead.' : (!live ? 'Gravação desligada (App Setting FAT_SYNC_LIVE).' : ((stR !== 'Provisório' && stR !== 'Retido') ? 'Este lançamento está "' + stR + '": só dá para reverter Provisório ou Retido. Ajuste com o Financeiro.' : ((escolhas && escolhas.indexOf('Encerrado') < 0) ? 'A lista Status de FAT_Contratos não tem "Encerrado".' : '')));
+      const alvos = ctsR.filter(function (c) { const lk = s(c.f.LeadId); return s(c.f.Origem) === 'SIGE' && (lk === lidR || lk.indexOf(lidR + '#c') === 0) && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
+const alvo = alvos[0];
+      const ruim = alvos.find(function (c) { const x = s(c.f.Status); return x !== 'Provisório' && x !== 'Retido'; });
+const stR = ruim ? s(ruim.f.Status) : (alvo ? s(alvo.f.Status) : '');
+      const blq = !alvo ? 'Nenhum lançamento do SIGE encontrado para este lead.' : (!live ? 'Gravação desligada (App Setting FAT_SYNC_LIVE).' : (ruim ? 'Este lançamento está "' + stR + '": só dá para reverter Provisório ou Retido. Ajuste com o Financeiro.' : ((escolhas && escolhas.indexOf('Encerrado') < 0) ? 'A lista Status de FAT_Contratos não tem "Encerrado".' : '')));
       if (blq) { context.res = json(200, { ok: true, modo: 'reverter', reverteu: false, bloqueio: blq }); return; }
       const sidR = await siteId();
-      await g.graph('PATCH', '/sites/' + sidR + '/lists/' + lidC + '/items/' + alvo.id + '/fields', { Status: 'Encerrado', ValidacaoStatus: 'Revertida pelo SIGE' });
+      for (const a of alvos) { await g.graph('PATCH', '/sites/' + sidR + '/lists/' + lidC + '/items/' + a.id + '/fields', { Status: 'Encerrado', ValidacaoStatus: 'Revertida pelo SIGE' }); }
       context.log('[faturamento-sync] REVERTEU lead=' + lidR + ' contrato=' + alvo.id + ' por=' + quem(req));
       const tR = await avisarTeams('↩️ SIGE reverteu o lançamento do lead ' + lidR + ' (Nº ' + s(alvo.f.Title) + ', v' + (Number(alvo.f.Versao) || 1) + ' marcada como Encerrada). Nada foi apagado.');
       await AUD.registrar(req, 'reverteu', { entidade: 'faturamento', registroId: lidR, resumo: 'Reverteu lançamento no Faturamento (lead ' + lidR + ')', detalhe: 'contrato ' + alvo.id });
@@ -179,6 +181,8 @@ module.exports = async function (context, req) {
       return;
     }
     const leadId = s(p.leadId).trim();
+const grp = s(p.grupoContrato).trim(), somar = p.somarItem === true; // 17/11/2026 -- multisserviço: grupo = contrato; somarItem = só mais um item no contrato do grupo
+const leadKey = grp ? leadId + '#c' + grp : leadId;
     let clienteId = s(p.clienteId).trim();
     const servico = s(p.servico).trim(), numero = s(p.numero).trim();
     const valor = Number(p.valor) || 0;
@@ -204,9 +208,25 @@ module.exports = async function (context, req) {
     const doCli = clienteId ? cts.filter(function (c) { return s(c.f.ClienteId) === clienteId; }) : [];
     const base = p.contratoBaseId ? doCli.find(function (c) { return c.id === s(p.contratoBaseId); }) : null;
     if (p.contratoBaseId && !base) return erro('Contrato base não pertence a esse cliente.');
-    const ja = cts.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === leadId && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
+    const ja = cts.find(function (c) { return s(c.f.Origem) === 'SIGE' && s(c.f.LeadId) === leadKey && s(c.f.ValidacaoStatus) !== 'Revertida pelo SIGE'; });
 
-    const tipo = s(p.evidenciaTipo), ref = s(p.evidenciaRef);
+    if (somar) {
+const itS = ja ? its.find(function (i) { return s(i.f.ContratoId) === ja.id && s(i.f.Title) === servico; }) : null;
+const linS = ['Item adicional do mesmo contrato (grupo ' + grp + '): "' + servico + '" · ' + moeda(valor) + (pont ? ' (valor do pedido, venda pontual)' : '/mês') + (p.oc ? ' · PO ' + s(p.oc) : ' · sem PO') + (ja ? ' · entra no contrato Nº ' + s(ja.f.Title) + ' (v' + (Number(ja.f.Versao) || 1) + ', ' + s(ja.f.Status) + ').' : ' · entra no contrato criado pela linha anterior do mesmo grupo.')];
+if (p.modo !== 'gravar' || !live) { context.res = json(200, { ok: true, modo: p.modo === 'gravar' ? 'gravar-bloqueado' : 'teste', live: live, gravou: false, bloqueio: (p.modo === 'gravar' && !live) ? 'Gravação desligada (App Setting FAT_SYNC_LIVE).' : '', plano: { somarItem: true, grupo: grp, contratoExiste: !!ja }, linhas: linS }); return; }
+if (!ja) return erro('O contrato deste grupo ainda não existe: lance antes a primeira linha do grupo (ordem das linhas).');
+if (itS) { context.res = json(200, { ok: true, modo: 'gravar-bloqueado', live: live, gravou: false, bloqueio: 'Este lead já foi lançado no Faturamento (o item "' + servico + '" já existe no contrato id ' + ja.id + ').', plano: { somarItem: true, grupo: grp }, linhas: linS }); return; }
+const sidS = await siteId();
+const nS = its.filter(function (i) { return s(i.f.ContratoId) === ja.id; }).length;
+const fiS = { Title: servico, ContratoId: ja.id, ClienteId: s(ja.f.ClienteId), ValorMensal: valor, Ordem: nS + 1 };
+if (p.oc) fiS.NumPedido = s(p.oc); if (p.cod) fiS.CodigoServicoNF = s(p.cod); if (Number(p.prazo)) fiS.PrazoFaturamento = Number(p.prazo);
+await g.graph('POST', '/sites/' + sidS + '/lists/' + lidI + '/items', { fields: fiS });
+context.log('[faturamento-sync] somou item lead=' + leadId + ' grupo=' + grp + ' contrato=' + ja.id + ' por=' + quem(req));
+await AUD.registrar(req, 'enviou', { entidade: 'faturamento', registroId: String(leadId), registroNome: cliTitulo, resumo: 'Somou item ao contrato no Faturamento: ' + cliTitulo + ' · ' + servico + ' · ' + moeda(valor), detalhe: 'contrato ' + ja.id + ' · grupo ' + grp });
+context.res = json(200, { ok: true, modo: 'gravar', live: true, gravou: true, contratoId: ja.id, plano: { status: s(ja.f.Status), somarItem: true, grupo: grp }, linhas: linS });
+return;
+}
+const tipo = s(p.evidenciaTipo), ref = s(p.evidenciaRef);
     const forte = FORTE.indexOf(tipo) >= 0, real = numReal(numero);
     const ret = [];
     if (!tipo || !ref) ret.push('sem evidência da venda registrada');
@@ -240,7 +260,7 @@ module.exports = async function (context, req) {
     const campos = base ? limpa(base.f) : { ClienteId: clienteId };
     campos.Title = numero; campos.ClienteId = clienteId; campos.Versao = versao; campos.Status = statusFinal;
     if (p.ini) campos.Inicio = s(p.ini); if (p.fim) campos.Fim = s(p.fim);
-    campos.Origem = 'SIGE'; campos.LeadId = leadId; campos.EvidenciaTipo = tipo; campos.EvidenciaRef = ref;
+    campos.Origem = 'SIGE'; campos.LeadId = leadKey; campos.EvidenciaTipo = tipo; campos.EvidenciaRef = ref;
     campos.ValidacaoStatus = nivel === 3 ? 'Retida' : (entraVigente ? 'Validada automaticamente' : 'Aguardando validação'); campos.CriadoPorSistemaEm = new Date().toISOString(); campos.LancadoPor = quemNome(req); campos.ClienteNome = cliTitulo;
     if (nomesCol.indexOf('Observacoes') >= 0) campos.Observacoes = 'Lançado pelo SIGE (lead ' + leadId + ') como ' + statusFinal + (entraVigente ? ': valor conferido com o documento (' + moeda(valorDoc) + ', tolerância ' + moeda(TOL) + ').' : ': aguardando validação do Financeiro. Não fatura até mudar o Status para Vigente.') + (quemNome(req) ? ' Lançado por ' + quemNome(req) + '.' : '');
 
