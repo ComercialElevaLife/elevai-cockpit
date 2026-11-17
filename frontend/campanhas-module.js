@@ -66,11 +66,11 @@
   /* REGRA DE OURO (10/11/2026, Léo): só entra na campanha contato de empresa TARGET ou ICP A.
      TARGET = empresas.target 'TARGET' no SIGE, ou empresaTag gravada a partir da lista TARGET_RP; ICP A = icpA SIM, empresaTag 'ICP A' ou lead com icp A na empresa. */
   function qualif(it) {
-    var emp = empresaDe(it), tg = String(it.empresaTag || '').toUpperCase(); /* classe da empresa (coluna 'classe' do cadastro) manda; o contato nao guarda copia */ var cl = emp ? String(emp.classe || '').toUpperCase().replace(/\s+/g, ' ').trim() : ''; if (cl === 'TARGET' || cl === 'ICP A') return cl; if (cl === 'FORA' || /^ICP [BCD]$/.test(cl)) return 'FORA';
+    var emp = empresaDe(it), tg = emp ? '' : String(it.empresaTag || '').toUpperCase(); /* regra 17/11/2026: com empresa cadastrada, a etiqueta do contato nao vale; so a classificacao da empresa */ /* classe da empresa (coluna 'classe' do cadastro) manda; o contato nao guarda copia */ var cl = emp ? String(emp.classe || '').toUpperCase().replace(/\s+/g, ' ').trim() : ''; if (cl === 'TARGET' || cl === 'ICP A') return cl; if (cl === 'FORA' || /^ICP [BCD]$/.test(cl)) return 'FORA';
     if (tg === 'TARGET' || tg === 'ICP A' || tg === 'FORA') return tg; /* classificação gravada (headcount, multisites e SESMT) vale mais que os campos antigos */
     if (emp && String(emp.target || '').toUpperCase() === 'TARGET') return 'TARGET';
     if (tg === 'TARGET') return 'TARGET';
-    if (it.icpA === 'SIM' || tg === 'ICP A') return 'ICP A';
+    if ((!emp && it.icpA === 'SIM') || tg === 'ICP A') return 'ICP A';
     if (!emp && !it.empresaNome) return 'SEM EMPRESA';
     if (leadsDaEmpresa(it, emp).some(function (l) { return String(l.icp || '').toUpperCase() === 'A'; })) return 'ICP A';
     return 'FORA';
