@@ -3925,6 +3925,52 @@ function _fvTeams(l,usr,done){
   }).catch(function(){clearTimeout(to);done({s:'aviso',msg:'Resultado desconhecido: confira o canal antes de reenviar.'});});
 }
 function _fvImpl(l,usr,done){
+  /* 17/11/2026 — Integração 3/3: com 2+ linhas de serviço, cria as implantações por linha. Cada combinação (implantação nº + área do serviço) vira uma implantação; unidades diferentes viram unidades da implantação; nomes nunca colidem e a API não duplica o que já existe. */
+  var ln=[];try{ln=JSON.parse(l.servicosJson||'[]')||[];}catch(e){}
+  if(!Array.isArray(ln)||ln.length<2){_fvImpl1(l,usr,done);return;}
+  var uf=_cvV('cv-uf').toUpperCase(),cidade=_cvV('cv-cidade');
+  if(!/^[A-Z]{2}$/.test(uf)||!cidade){done({s:'erro',msg:'Faltam cidade ou UF para criar as implantações (preencha no comunicado).'});return;}
+  var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||'']||'';
+  var gr=[],ix={},falta='';
+  ln.forEach(function(x){
+    var cod=String(x.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase(),area=_CV_AREA_PAINEL[cod]||'';
+    if(!area){falta=cod||'serviço sem código';return;}
+    var k=String(x.impl||'1')+'|'+area;
+    if(!ix[k]){ix[k]={n:String(x.impl||'1'),area:area,un:[],cnpj:''};gr.push(ix[k]);}
+    var u=String(x.unid||'').trim()||String(_cvUn(l)||'').trim();
+    if(ix[k].un.indexOf(u)<0)ix[k].un.push(u);
+    if(!ix[k].cnpj&&x.cnpj)ix[k].cnpj=String(x.cnpj);
+  });
+  if(falta){done({s:'erro',msg:'Não achei a área de implantação do serviço "'+falta+'". Confira o código do serviço na linha do card.'});return;}
+  gr.sort(function(a,b){return (parseInt(a.n,10)||0)-(parseInt(b.n,10)||0);});
+  var usados={},rel=[],parou=false,criou=0;
+  var data=_fvAbertura(l);
+  var post=function(g){
+    var us=g.un.map(function(nm){
+      var f=nm;
+      if(!f&&gr.length>1)f='Impl. '+g.n+' '+g.area;
+      if(usados[f.toLowerCase()])f=(f?f+' ':'')+'(impl. '+g.n+', '+g.area+')';
+      usados[f.toLowerCase()]=1;
+      return {nome:f,cidade:cidade,uf:uf,data:data};
+    });
+    var corpo={modo:'gravar',cliente:l.cliente||'',area:g.area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:g.cnpj||l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',unidades:us};
+    return fetch('/api/implantacao-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}).then(function(r){return r.json();}).then(function(j){
+      var rot='Implantação '+g.n+' ('+g.area+(g.un.filter(Boolean).length?', '+g.un.filter(Boolean).join(' + '):'')+')';
+      if(!j||!j.ok){rel.push(rot+': erro — '+String((j&&j.error)||'erro no servidor'));parou=true;return;}
+      if(j.live===false){rel.push(rot+': criação direta desligada no servidor');parou=true;return;}
+      if(j.gravou){criou++;rel.push(rot+': criada ('+j.etapasCriadas+' etapas).');return;}
+      rel.push(rot+': já existia, nada novo.');
+    }).catch(function(){rel.push('Implantação '+g.n+': falha de rede.');parou=true;});
+  };
+  var seq=Promise.resolve();
+  gr.forEach(function(g){seq=seq.then(function(){if(parou)return;return post(g);});});
+  seq.then(function(){
+    var txt=rel.join(' | ');
+    if(parou){done({s:'erro',msg:'Parei por erro. '+txt+' As já criadas não duplicam se rodar de novo.'});return;}
+    done({s:'ok',msg:'Implantações por linha (Day Zero '+_fvBR(data)+'; etapa 1 vence em 1 dia útil): '+txt+(criou?' O responsável pela etapa 1 de cada uma é avisado no Teams e por e-mail.':'')});
+  });
+}
+function _fvImpl1(l,usr,done){
   /* 10/11/2026 — Léo: a Implantação passa a ser criada direto pelo SIGE (modo gravar do /api/implantacao-sync, com aviso por fluxo). Se algo falhar ou faltar dado, cai no painel antigo (janela), sem perder o caminho manual. */
   var antigo=function(aviso){
     window._IMPL_URL='';enviarParaImplantacao();
