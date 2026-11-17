@@ -107,7 +107,8 @@ function makeHandler(kind) {
           if (hx.ok) await A.registrar(req, 'excluiu', { entidade: kind, registroId: itemId, registroNome: foto.Title || foto.cliente || foto.nome, resumo: (def.lixeira ? 'Enviou para a Lixeira ' : 'Excluiu ') + kind + ': ' + (foto.cliente || foto.Title || itemId) });
           if (!hx.ok) { context.res = json(503, { ok: false, error: 'Não foi possível registrar o histórico da exclusão; nada foi excluído. Tente de novo.' }); return; }
         }
-        if (def.lixeira) {
+        /* 17/11/2026 (Léo): exclusão definitiva só vale para item que JÁ está na Lixeira e com body.definitivo === true */
+        if (def.lixeira && !(body.definitivo === true && foto && foto.lixeiraEm)) {
           // 05/11/2026 -- Léo: exclusão liberada a todos, registrada (quem e quando) e com Lixeira de 30 dias; depois a limpeza exclui de vez.
           await g.updateItem(listId, itemId, { lixeiraEm: new Date().toISOString(), lixeiraPor: readUser(req) || 'desconhecido' });
           delete _getCache[kind];
