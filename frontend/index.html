@@ -249,6 +249,8 @@ td .up{color:var(--ok);font-weight:700}
 #view-crm .d-side{border-right:1px solid #F0E4E5;padding-right:18px}
 #view-crm .d-main{min-width:0}
 .dtabs{display:flex;gap:6px;margin:0 0 10px;border-bottom:1px solid #EADDE0}.dtabs button{border:0;background:none;padding:7px 12px;font:700 12px Montserrat,sans-serif;color:#8A7A78;cursor:pointer;border-bottom:2px solid transparent}.dtabs button.on{color:#8B3A42;border-bottom-color:#8B3A42}
+@media(min-width:861px){#view-crm .d-grid{grid-template-columns:370px 1fr}}
+@media(max-width:560px){.drawer .lead-edit{grid-template-columns:1fr!important}.drawer .db{padding:12px}}
 @media(max-width:860px){#view-crm .d-grid{grid-template-columns:1fr}#view-crm .d-side{border-right:none;border-bottom:1px solid #F0E4E5;padding-right:0;padding-bottom:10px;margin-bottom:6px}}
 /* Abas de sub-etapa (dentro de EM NEGOCIAÇÃO) — mesmo espírito do print do RD Station (Léo):
    faixa de abas no topo do card detalhado, a atual destacada. */
@@ -6096,8 +6098,11 @@ async function opSalvar(ev){
     nome:con?(con.nome||''):'',contatoSobrenome:con?(con.sobrenome||''):'',telefone:con?(con.telefone||''):'',email:con?(con.email||''):'',contatoTipo:con?(con.tipo||''):''};
   var btn=el('op-btn'); btn.disabled=true; msg.style.color='#8A7A78'; msg.textContent='Criando...';
   var ok=0, falhas=[], criados=[];
+  /* 17/11/2026 — Léo: multiserviço num card só. 2+ serviços digitados viram UMA oportunidade com linhas (servicosJson) em vez de N cards. */
+  var _lin='';
+  if(servs.length>1){ _lin=JSON.stringify(servs.map(function(s){return {serv:s,tipo:'',cargo:'',carga:'',mensal:0,meses:0,valor:0};})); servs=[servs.join(' + ')]; base.grupoNegociacaoId=''; }
   for(var i=0;i<servs.length;i++){
-    var rec=Object.assign({},base,{serv:servs[i]});
+    var rec=Object.assign({},base,{serv:servs[i]}); if(_lin)rec.servicosJson=_lin;
     try{
       var r=await fetch('/api/leads',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(rec)});
       var j=await r.json().catch(function(){return {};});
