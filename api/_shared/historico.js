@@ -60,6 +60,7 @@ function diffTarefas(antesRaw, depoisRaw) {
 }
 
 // ---- diff de campos: `antes` = campos atuais no SharePoint; `patch` = campos que serão gravados ----
+function _resServ(v) { const a = _parse(v); if (!Array.isArray(a) || !a.length) return '(vazio)'; return a.map(x => (x.serv || '?') + ' (' + (x.tipo === 'R' ? 'R, R$ ' + x.mensal + '/mês × ' + (x.meses || 12) : (x.tipo === 'P' ? 'P, R$ ' + x.valor : 'sem tipo')) + (x.cargo ? ', ' + x.cargo : '') + (x.carga ? ', ' + x.carga : '') + ')').join(' + '); }
 function diffCampos(antes, patch) {
   const out = [];
   const base = antes || {};
@@ -67,6 +68,7 @@ function diffCampos(antes, patch) {
     if (IGNORAR.has(k)) continue;
     const novo = patch[k], velho = base[k];
     if (k === 'tarefasJson2') { diffTarefas(velho, novo).forEach(d => out.push(d)); continue; }
+    if (k === 'servicosJson') { if (_eq(velho, novo)) continue; out.push({ campo: k, resumo: rotulo(k) + ': ' + _cut(_resServ(velho), 220) + ' → ' + _cut(_resServ(novo), 220), antes: _s(velho), depois: _s(novo) }); continue; }
     if (_eq(velho, novo)) continue;
     const pv = _parse(velho), pn = _parse(novo);
     if (_plain(pv) && _plain(pn)) {            // JSON de objeto (ficha da venda, contrato...): um registro por chave alterada
