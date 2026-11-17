@@ -5523,6 +5523,46 @@ function _historicoHtmlBase(l){
     return '<div class="task"><div class="t1">'+esc(e.texto||'')+'</div><div class="t2">'+qd+(e.por?' · '+esc(e.por):'')+'</div></div>';
   }).join('');
 }
+/* 17/11/2026 — Léo: multiserviço no card. Linhas de serviço (servicosJson) com tipo P/R, cargo, carga e valor próprios; os campos antigos (serv, tipo, valor, valorMensal, numMeses) viram o RESUMO calculado das linhas, para Painel, comunicado e Faturamento continuarem funcionando. Só grava quando o usuário mexe nas linhas. */
+var _SV=[],_svDirty=false,_svValor0=0;
+function _svTot(x){return x.tipo==='R'?Math.round((x.mensal||0)*(x.meses||12)*100)/100:(x.valor||0);}
+function _svParse(l){try{var a=JSON.parse(l.servicosJson||'');if(Array.isArray(a)&&a.length)return a.map(function(x){return {serv:x.serv||'',tipo:/^[PR]$/.test(x.tipo)?x.tipo:'',cargo:x.cargo||'',carga:x.carga||'',mensal:Number(x.mensal)||0,meses:Number(x.meses)||0,valor:Number(x.valor)||0};});}catch(e){}
+ var t=/^[PR]$/.test(String(l.tipo))?l.tipo:'';return [{serv:l.serv||'',tipo:t,cargo:'',carga:'',mensal:t==='R'?(Number(l.valorMensal)||0):0,meses:t==='R'?(Number(l.numMeses)||12):0,valor:t==='R'?0:(Number(l.valor)||0)}];}
+function _svDraw(){var box=el('le-svlines');if(!box)return;
+ box.innerHTML=_SV.map(function(x,i){var R=x.tipo==='R';
+  return '<div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 8px;border:1px solid #EADDE0;border-radius:8px;padding:8px;margin-bottom:6px;background:#fff">'
+  +'<label>Serviço<input id="sv-s-'+i+'" list="dl-serv" value="'+esc(x.serv)+'" oninput="_svEdit()"></label>'
+  +'<label>Tipo<select id="sv-t-'+i+'" onchange="_svTipo()"><option value=""'+(x.tipo?'':' selected')+' disabled hidden>Selecione…</option><option value="P"'+(x.tipo==='P'?' selected':'')+'>P — Pontual</option><option value="R"'+(R?' selected':'')+'>R — Recorrente</option></select></label>'
+  +'<label>Cargo<input id="sv-c-'+i+'" value="'+esc(x.cargo)+'" placeholder="ex.: Especialista Pleno" oninput="_svEdit()"></label>'
+  +'<label>Carga horária<input id="sv-h-'+i+'" value="'+esc(x.carga)+'" placeholder="ex.: 40h/sem" oninput="_svEdit()"></label>'
+  +(R?'<label>Valor mensal (R$)<input id="sv-m-'+i+'" inputmode="decimal" value="'+(x.mensal?moneyFmt(x.mensal):'')+'" oninput="maskMoney(this);_svEdit()"></label><label>Nº de meses<input id="sv-n-'+i+'" inputmode="numeric" value="'+(x.meses||12)+'" oninput="_svEdit()"></label>'
+   :'<label style="grid-column:1/3">Valor (R$)<input id="sv-v-'+i+'" inputmode="decimal" value="'+(x.valor?moneyFmt(x.valor):'')+'" oninput="maskMoney(this);_svEdit()"></label>')
+  +'<div style="grid-column:1/3;display:flex;justify-content:space-between;align-items:center;font-size:11px;color:#8A7A78"><span>Total do serviço: <b id="sv-tt-'+i+'">'+brl(_svTot(x))+'</b></span>'+(_SV.length>1?'<button type="button" class="btn ghost" onclick="_svDel('+i+')">Remover</button>':'')+'</div></div>';}).join('');
+ _svTotal();}
+function _svRead(){_SV=_SV.map(function(x,i){var g=function(p){var e=el(p+i);return e?e.value:'';};var t=g('sv-t-');
+ var o={serv:g('sv-s-').trim(),tipo:t,cargo:g('sv-c-').trim(),carga:g('sv-h-').trim(),mensal:0,meses:0,valor:0};
+ if(t==='R'){o.mensal=el('sv-m-'+i)?moneyNum('sv-m-'+i):0;o.meses=parseInt(g('sv-n-'),10)||12;}else{o.valor=el('sv-v-'+i)?moneyNum('sv-v-'+i):0;}return o;});}
+function _svTotal(){var t=el('le-svtot');if(!t)return;var R=0,P=0,n=0;_SV.forEach(function(x){if(x.tipo==='R'){R+=(x.mensal||0);}else{P+=(x.valor||0);}});var tot=_SV.reduce(function(s,x){return s+_svTot(x);},0);if(!_svDirty)tot=_svValor0;
+ t.innerHTML='<b>Total da proposta: '+brl(tot)+'</b>'+((_svDirty&&R>0&&P>0)?' <span style="color:#8A7A78">(recorrente '+brl(R)+'/mês · pontual '+brl(P)+')</span>':'');}
+function _svApply(){var set=function(id,v){var e=el(id);if(e)e.value=v;};var Rs=_SV.filter(function(x){return x.tipo==='R';});var tot=_SV.reduce(function(s,x){return s+_svTot(x);},0);
+ set('le-serv',_SV.map(function(x){return x.serv;}).filter(Boolean).join(' + '));
+ set('le-tipo',Rs.length?'R':(_SV.some(function(x){return x.tipo==='P';})?'P':''));
+ set('le-valormensal',Rs.length?moneyFmt(Rs.reduce(function(s,x){return s+(x.mensal||0);},0)):'');
+ set('le-nummeses',Rs.length?String(Math.max.apply(null,Rs.map(function(x){return x.meses||12;}))):'');
+ set('le-valor',moneyFmt(tot));
+ set('le-servjson',JSON.stringify(_SV));
+ _SV.forEach(function(x,i){var b=el('sv-tt-'+i);if(b)b.textContent=brl(_svTot(x));});_svTotal();}
+function _svEdit(){_svRead();_svDirty=true;_svApply();}
+function _svTipo(){_svRead();_svDirty=true;_svDraw();_svApply();}
+function _svAdd(){_svRead();_SV.push({serv:'',tipo:'',cargo:'',carga:'',mensal:0,meses:0,valor:0});_svDirty=true;_svDraw();_svApply();}
+function _svDel(i){_svRead();_SV.splice(i,1);if(!_SV.length)_SV.push({serv:'',tipo:'',cargo:'',carga:'',mensal:0,meses:0,valor:0});_svDirty=true;_svDraw();_svApply();}
+function _svInit(l){_SV=_svParse(l);_svDirty=false;_svValor0=Number(l.valor)||0;
+ ['le-serv','le-tipo','le-valor','le-valormensal','le-nummeses'].forEach(function(id){var e=el(id),b=e&&e.closest('label');if(b)b.style.display='none';});
+ if(!document.getElementById('dl-serv')){var d=document.createElement('datalist');d.id='dl-serv';document.body.appendChild(d);}
+ var seen={};_allLeads().forEach(function(x){String(x.serv||'').split(/\s*\+\s*/).forEach(function(s){s=s.trim();if(s)seen[s]=1;});});
+ document.getElementById('dl-serv').innerHTML=Object.keys(seen).sort().map(function(s){return '<option value="'+esc(s)+'">';}).join('');
+ _svDraw();}
+window._svEdit=_svEdit;window._svTipo=_svTipo;window._svAdd=_svAdd;window._svDel=_svDel;
 window._dTab=function(btn,p){var d=btn.closest('.d-main');d.querySelectorAll('.dtabs button').forEach(function(x){x.classList.toggle('on',x===btn)});d.querySelectorAll('.dpane').forEach(function(x){x.style.display=(x.id==='dp-'+p)?'':'none'});};
 function openDrawer(id){curId=id;
   /* 25/08/2026 — _allLeads() cobre tanto LEADS (ativas) quanto as inativadas — necessário porque
@@ -5556,6 +5596,7 @@ function openDrawer(id){curId=id;
         o status vira EM NEGOCIAÇÃO (abre o drawer com este bloco já expandido). -->
    <details id="le-fase2"${(l.status!=='LEAD'||l.cons||l.serv||(l.valor||0)>0)?' open':''} style="margin-top:6px;border:1px dashed #EADDE0;border-radius:10px;padding:8px 10px">
    <summary style="cursor:pointer;font-weight:700;color:#7A2F42">▸ Proposta e serviços</summary>
+   <div id="le-svbox" style="margin:10px 0 4px"><div style="font-weight:700;color:#7A2F42;font-size:12px;margin-bottom:6px">Serviços da proposta</div><div id="le-svlines"></div><button type="button" class="btn ghost" onclick="_svAdd()">+ Adicionar serviço</button><div id="le-svtot" style="font-size:12px;margin:8px 0 2px;color:#3A2A2E"></div><input type="hidden" id="le-servjson" value="${esc(l.servicosJson||'')}"></div>
    <div class="lead-edit" style="display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;margin:10px 0 8px">
 <label>Consultor<input id="le-cons" value="${esc(l.cons)}"></label>
      <label>Serviço<input id="le-serv" value="${esc(l.serv)}"></label>
@@ -5624,7 +5665,8 @@ function openDrawer(id){curId=id;
    </div>
    </div>`;
   el('drawer').classList.add('on');
-  var dov=el('drawer-ov'); if(dov)dov.style.display='block';
+  _svInit(l);
+ var dov=el('drawer-ov'); if(dov)dov.style.display='block';
   _bellSync();
 }
 function taskHtml(t,i){const ic=TIPOS[t.tipo]||'📌';const quando=t.data?(t.data.split('-').reverse().join('/')+(t.hora?' '+t.hora:'')):'';
@@ -5658,6 +5700,7 @@ function saveLead(id){
   // texto (que quebraria: parseFloat("1.000,00") lê só "1.000" = 1, não 1000).
   if(_vm!=='')f.valorMensal=moneyNum('le-valormensal');
   if(_nm!=='')f.numMeses=parseInt(_nm,10)||12;
+ var _sj=g('le-servjson'); if(_sj!=='')f.servicosJson=_sj;
   // 21/08/2026 — antes disso havia uma 2ª leitura de le-valor que SOBRESCREVIA o cálculo
   // automático (mensal × meses) com o texto bruto do campo, anulando o recálculo. Essa era
   // a causa raiz de recorrentes ficarem com valor = só o mensal (ex.: LIBBS). Removida: agora
