@@ -60,7 +60,7 @@ function diffTarefas(antesRaw, depoisRaw) {
 }
 
 // ---- diff de campos: `antes` = campos atuais no SharePoint; `patch` = campos que serão gravados ----
-function _resServ(v) { const a = _parse(v); if (!Array.isArray(a) || !a.length) return '(vazio)'; return a.map(x => (x.serv || '?') + ' (' + (x.tipo === 'R' ? 'R, R$ ' + x.mensal + '/mês × ' + (x.meses || 12) : (x.tipo === 'P' ? 'P, R$ ' + x.valor : 'sem tipo')) + (x.cargo ? ', ' + x.cargo : '') + (x.carga ? ', ' + x.carga : '') + ')').join(' + '); }
+function _resServ(v) { const a = _parse(v); if (!Array.isArray(a) || !a.length) return '(vazio)'; return a.map(x => (x.serv || '?') + ' (' + (x.tipo === 'R' ? 'R, R$ ' + x.mensal + '/mês × ' + (x.meses || 12) : (x.tipo === 'P' ? 'P, R$ ' + x.valor : 'sem tipo')) + (x.cargo ? ', ' + x.cargo : '') + (x.carga ? ', ' + x.carga : '') + (x.unid ? ', ' + x.unid : '') + (x.ctr ? ', contrato ' + x.ctr : '') + (x.impl ? ', implantação ' + x.impl : '') + ')').join(' + '); }
 function diffCampos(antes, patch) {
   const out = [];
   const base = antes || {};
