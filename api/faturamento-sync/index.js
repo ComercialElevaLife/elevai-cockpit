@@ -110,7 +110,11 @@ function resolverCliente(c, clis) {
   if (cnpj.length === 14) {
     let ach = clis.filter(function (x) { return dig(x.f.CNPJ) === cnpj; });
     if (ach.length > 1 && un) { const f2 = ach.filter(function (x) { return nrm(x.f.Unidade) === nrm(un) || nrm(x.f.Title).indexOf(nrm(un)) >= 0; }); if (f2.length) ach = f2; }
-    if (ach.length === 1) return { achado: ach[0], por: 'CNPJ' };
+    if (ach.length === 1) {
+// 17/11/2026 -- mesmo CNPJ, outra unidade: não reaproveita o cliente da outra unidade (multiunidades no mesmo CNPJ). Sem unidade no cadastro ou no lead, segue como antes.
+const ucad = nrm(ach[0].f.Unidade), un2 = nrm(un);
+if (!un2 || !ucad || ucad === un2 || nrm(ach[0].f.Title).indexOf(un2) >= 0 || un2.indexOf(ucad) >= 0) return { achado: ach[0], por: 'CNPJ' };
+}
     if (ach.length > 1) return { erro: 'Há ' + ach.length + ' clientes com o CNPJ ' + c.cnpj + ' no Faturamento (' + ach.map(function (x) { return String(x.f.Title || ''); }).join('; ') + '): o Financeiro precisa escolher qual usar.' };
   }
   if (cnpj.length !== 14 && !un) return { erro: 'Cliente não encontrado no Faturamento e sem CNPJ nem unidade para conferir duplicidade: informe o CNPJ (ou a unidade) no lead antes de lançar.' };
