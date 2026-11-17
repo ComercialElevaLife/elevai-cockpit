@@ -2769,6 +2769,8 @@ class App {
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
       return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id,funil:(window._funilDe?window._funilDe(l):'')};
     });
+    /* PR3: card misto (recorrente + pontual) vira um registro por tipo, com o valor de cada parte (proporcional ao fechamento). */
+    this.fV=this.fV.reduce(function(a,v){var l0=vendidosSrc.find(function(x){return x.__id===v.__id;});var p=(l0&&window._svParts)?window._svParts(l0):null;if(!p){a.push(v);return a;}var base=p.reduce(function(s,q){return s+q.valor;},0)||1;p.forEach(function(q){a.push(Object.assign({},v,{tipo:q.tipo,valor:v.valor*q.valor/base}));});return a;},[]);
     /* 08/09/2026 — Léo: "ENVIO PROPOSTA" precisa ter Envio como base, não Entrada — mesmo
        racional do fV acima (Fechamento com base em dataVenda/alteradoEm). RAW.propostas já vem
        filtrado pelo shell usando envio (fallback dt) — ver filteredLeadsPropostas. Aqui só
@@ -2782,6 +2784,7 @@ class App {
       const ey=envioDt?Number(envioDt.slice(0,4)):l.y, em=envioDt?Number(envioDt.slice(5,7)):l.m;
       return Object.assign({},l,{y:ey,m:em});
     });
+    this.fP=this.fP.reduce(function(a,v){var p=window._svParts?window._svParts(v):null;if(!p){a.push(v);return a;}p.forEach(function(q){a.push(Object.assign({},v,{tipo:q.tipo,valor:q.valor}));});return a;},[]);
     this.semSec = !cons&&!serv&&!icp&&!tc&&!prop;
     // meses do período (limitados aos dados)
     const mkey=s=>Number(s.slice(0,4))*100+Number(s.slice(5,7));
@@ -3965,7 +3968,7 @@ function _cvBlocos(l,saud,mark){
     '🚀 **'+_natInfo(l).lbl.toUpperCase()+': '+(l.cliente||'—')+' | '+_cvTxt(_cvV('cv-area'))+' | '+_cvTxt(_cvV('cv-tipo'))+'**',
     saud,
     'Fechamos a venda de **'+resumo+'** para **'+_cvCliUn(l)+'**.',
-    '**📋 ESCOPO TÉCNICO**\n- **Tipo de Venda:** '+(l.tipo==='R'?'Recorrente':(l.tipo==='P'?'Pontual':'A confirmar'))+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
+    '**📋 ESCOPO TÉCNICO**\n- **Tipo de Venda:** '+(l.tipo==='R'?'Recorrente':(l.tipo==='P'?'Pontual':'A confirmar'))+''+(window._cvServTxt?window._cvServTxt(l):'')+'\n- **Volume de Entrega:** '+_cvTxt(_cvV('cv-volume'))+'\n- **Detalhamento do Escopo:** '+_cvTxt(_cvV('cv-escopo')),
     '**⏰ CRONOGRAMA & LOGÍSTICA**\n- **Data de Início:** '+_cvTxt(_cvV('cv-inicio'))+'\n- **Mobilização:** '+_cvTxt(_cvV('cv-mob'))+'\n- **Endereço:** '+_cvTxt(_cvV('cv-endereco'))+'\n- **Horários/Frequência:** '+_cvTxt(_cvV('cv-horarios')),
     '**👥 PONTOS DE CONTATO & REQUISITOS**\n- **Pontos Focais (Cliente):** '+foc+'\n- **Requisitos de Faturamento:** '+_cvTxt(_cvV('cv-fat'))+'\n- **Requisitos Operacionais:** '+_cvTxt(_cvV('cv-docs')),
     _cvViaDupla(l),
@@ -5563,6 +5566,9 @@ function _svInit(l){_SV=_svParse(l);_svDirty=false;_svValor0=Number(l.valor)||0;
  document.getElementById('dl-serv').innerHTML=Object.keys(seen).sort().map(function(s){return '<option value="'+esc(s)+'">';}).join('');
  _svDraw();}
 window._svEdit=_svEdit;window._svTipo=_svTipo;window._svAdd=_svAdd;window._svDel=_svDel;
+/* 17/11/2026 — PR3: helpers de multiserviço para Painel e comunicado. */
+window._svParts=function(l){try{var a=JSON.parse(l.servicosJson||'');if(!Array.isArray(a)||a.length<2)return null;var R=0,P=0,hr=false,hp=false;a.forEach(function(x){if(x.tipo==='R'){hr=true;R+=Math.round((Number(x.mensal)||0)*(Number(x.meses)||12)*100)/100;}else if(x.tipo==='P'){hp=true;P+=Number(x.valor)||0;}});if(!hr||!hp)return null;return [{tipo:'R',valor:R},{tipo:'P',valor:P}];}catch(e){return null;}};
+window._cvServTxt=function(l){try{var a=JSON.parse(l.servicosJson||'');if(!Array.isArray(a)||a.length<2)return '';var m=function(n){return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});};return '\n- **Serviços vendidos:**'+a.map(function(x){var v=x.tipo==='R'?('Recorrente, '+m(x.mensal)+'/mês × '+(Number(x.meses)||12)):(x.tipo==='P'?('Pontual, '+m(x.valor)):'Tipo a confirmar');return '\n  - **'+(x.serv||'Serviço a confirmar')+'** — '+v+(x.cargo?' · '+x.cargo:'')+(x.carga?' · '+x.carga:'');}).join('');}catch(e){return '';}};
 window._dTab=function(btn,p){var d=btn.closest('.d-main');d.querySelectorAll('.dtabs button').forEach(function(x){x.classList.toggle('on',x===btn)});d.querySelectorAll('.dpane').forEach(function(x){x.style.display=(x.id==='dp-'+p)?'':'none'});};
 function openDrawer(id){curId=id;
   /* 25/08/2026 — _allLeads() cobre tanto LEADS (ativas) quanto as inativadas — necessário porque
