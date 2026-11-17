@@ -151,6 +151,20 @@ async function doUpdate(context, req, kind, listId, itemId, patchFields) {
   // 05/11/2026 -- Histórico (regra fixa): lê o registro ANTES de gravar, para registrar o que mudou (antes -> depois) e quem mudou.
   let antes = null;
   try { antes = await g.getItem(listId, itemId); } catch (e) { console.error('HISTORICO: não leu o registro antes da edição', e.message || e); }
+  /* 17/11/2026 — Léo: sistema multiusuário, um não pode sobrepor o outro. A tela manda _base (o alteradoEm que ela viu ao
+     carregar o registro). Se o registro foi alterado depois, por OUTRA pessoa, não grava e devolve 412 com quem/quando.
+     Sem _base (rotinas do servidor, sincronizações) nada muda. Alteração da própria pessoa (outra aba) não conta. */
+  const _base = req.body && req.body._base;
+  if (_base !== undefined && _base !== null && antes) {
+    const atual = String(antes.alteradoEm || ''), quem = String(antes.alteradoPor || '');
+    if (atual !== String(_base) && quem.toLowerCase() !== String(readUser(req) || '').toLowerCase()) {
+      let hora = '';
+      try { hora = new Date(atual).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit' }); } catch (e) {}
+      context.res = json(412, { ok: false, conflito: true, alteradoPor: quem, alteradoEm: atual,
+        error: 'Este registro foi alterado por ' + (quem ? quem.split('@')[0] : 'outra pessoa') + (hora ? ' às ' + hora : '') + ' depois que você o abriu. Nada foi gravado. Atualize a tela (botão ↻), abra o registro de novo e refaça sua alteração.' });
+      return;
+    }
+  }
   await g.updateItem(listId, itemId, fields);
   delete _getCache[kind];
   const restaurou = !!(def.lixeira && antes && antes.lixeiraEm && fields.lixeiraEm === '');
