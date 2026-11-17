@@ -3844,6 +3844,51 @@ function _fvFicha(l,done){
   window.persistLeadFields(l.spid,c,function(){Object.assign(l,c);done({s:'ok',msg:'Ficha, endereço, mobilização, valor e código do serviço gravados no card (uma fonte só).'});},function(){done({s:'erro',msg:'Não consegui salvar no card.'});});
 }
 function _fvFat(l,done){
+  /* 17/11/2026 — Integração 2/3: com 2+ linhas de serviço no card, lança no Faturamento linha por linha, em ordem. Cada combinação (contrato nº + CNPJ + unidade) vira um contrato; as demais linhas do mesmo grupo entram como itens dele. Nunca duplica (a API confere por linha). */
+  var ln=[];try{ln=JSON.parse(l.servicosJson||'[]')||[];}catch(e){}
+  if(!Array.isArray(ln)||ln.length<2){_fvFat1(l,done);return;}
+  _cvFatLer(function(){
+    var s=_cvFatSim(l);
+    if(!s){done({s:'erro',msg:'Faturamento indisponível agora (leitura falhou). Rode de novo em instantes.'});return;}
+    if(!s.dados.clienteId){done({s:'erro',msg:'Cliente não encontrado no Faturamento: cadastre o cliente lá (ou confira nome/CNPJ no card).'});return;}
+    if(!s.servOk){done({s:'erro',msg:'Informe o nome do serviço no "Resumo do projeto" (não só AF, GL, ACAD, AE ou GR).'});return;}
+    var b=s.dados,dg=function(v){return String(v==null?'':v).replace(/\D/g,'');};
+    var gk=function(x){return String(x.ctr||'')+'|'+dg(x.cnpj)+'|'+String(x.unid||'').trim().toLowerCase();};
+    var chaves=[];ln.forEach(function(x){var k=gk(x);if(chaves.indexOf(k)<0)chaves.push(k);});
+    var vistos={};
+    var lista=ln.map(function(x){
+      var k=gk(x),n=chaves.indexOf(k)+1,prim=!vistos[k];vistos[k]=1;
+      var cod=String(x.serv||'').trim(),nome=(_CV_SERV[cod.toUpperCase()]||cod)+' – '+String(b.servico||'').slice(0,120);
+      var pont=String(x.tipo||'').toUpperCase()==='P';
+      var d=Object.assign({},b,{servico:nome,tipo:pont?'P':'R',valor:pont?(Number(x.valor)||0):(Number(x.mensal)||0),valorDocumento:0,grupoContrato:String(n),somarItem:!prim,numero:chaves.length>1?b.numero+'-C'+n:b.numero});
+      if(x.oc)d.oc=String(x.oc);if(x.ini)d.ini=String(x.ini);if(x.fim)d.fim=String(x.fim);
+      if(n>1)d.contratoBaseId='';
+      if((x.unid||x.cnpj)&&b.cliente){d.clienteId='';d.cliente=Object.assign({},b.cliente,{unidade:x.unid||b.cliente.unidade,cnpj:x.cnpj||b.cliente.cnpj});}
+      return d;});
+    var ajustes=(typeof _AD!=='undefined'&&_AD&&_AD.res)?_AD.res.servicos.filter(function(x){return x.acao==='encerrar'||x.acao==='reajustar';}).map(function(x){return {servico:x.servico,acao:x.acao,data:x.data||'',desde:x.desde||'',valorNovo:x.valorNovo||0};}):[];
+    var rel=[],live=false,parou=false,gravou=0;
+    var post=function(d,i){
+      return fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:live?'gravar':'teste',ajustes:i===0?ajustes:[]},d))}).then(function(r){return r.json();}).then(function(j){
+        var rot='Linha '+(i+1)+' ('+String(ln[i].serv||'')+')';
+        if(!j||!j.ok){rel.push(rot+': erro — '+String((j&&j.error)||'Erro no servidor.'));parou=true;return;}
+        if(j.gravou){gravou++;rel.push(rot+': gravada'+(j.plano&&j.plano.status?' como '+j.plano.status:'')+' (contrato do grupo '+d.grupoContrato+').');return;}
+        if(/já foi lançado/i.test(j.bloqueio||'')){rel.push(rot+': já estava lançada.');return;}
+        rel.push(rot+': '+(j.bloqueio||'teste, nada gravado')+(j.linhas?' — '+j.linhas.slice(0,4).join(' ').slice(0,400):''));
+      }).catch(function(){rel.push('Linha '+(i+1)+': falha de rede.');parou=true;});
+    };
+    fetch('/api/faturamento-sync').then(function(r){return r.json();}).then(function(j){live=!!(j&&j.live);window._CVSIM_LIVE=live;}).catch(function(){live=false;}).then(function(){
+      var seq=Promise.resolve();
+      lista.forEach(function(d,i){seq=seq.then(function(){if(parou)return;return post(d,i);});});
+      return seq;
+    }).then(function(){
+      var txt=rel.join(' | ');
+      if(parou){done({s:'erro',msg:'Parei por erro. '+txt+' As linhas já gravadas não duplicam se rodar de novo.'});return;}
+      if(gravou){done({s:'ok',msg:'Faturamento por linha: '+txt+' Financeiro avisado no Teams.'});return;}
+      done({s:live?'ok':'aviso',msg:(live?'':'Modo teste (nada gravado): ')+txt});
+    });
+  });
+}
+function _fvFat1(l,done){
   _cvFatLer(function(){
     var s=_cvFatSim(l);
     if(!s){done({s:'erro',msg:'Faturamento indisponível agora (leitura falhou). Rode de novo em instantes.'});return;}
