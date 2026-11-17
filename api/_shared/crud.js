@@ -43,6 +43,7 @@ function requireDomain(context, req) {
    (e junta pedidos simultâneos num só). Qualquer gravação (POST/PATCH/DELETE) apaga a cópia na hora. */
 const _getCache = {}; // kind -> { t, p }
 const GET_TTL_MS = 8000;
+const GET_STALE_MS = 60000; // até 1 min responde com a cópia enquanto atualiza ao fundo
 
 function makeHandler(kind) {
   const def = LISTS[kind];
@@ -55,7 +56,15 @@ function makeHandler(kind) {
 
       if (method === 'GET') {
         let c = _getCache[kind];
-        if (!c || Date.now() - c.t >= GET_TTL_MS) {
+        if (c && Date.now() - c.t >= GET_TTL_MS && Date.now() - c.t < GET_STALE_MS) {
+          /* 17/11/2026 — Léo: a tela não pode esperar mais de 1 s. Cópia com até 1 min: responde na hora com ela e
+             atualiza em segundo plano. Gravação apaga a cópia (e invalida a atualização em andamento). */
+          if (!c.renovando) {
+            c.renovando = true;
+            const nv = { t: Date.now(), p: g.listItemsMeta(listId) };
+            nv.p.then(() => { if (_getCache[kind] === c) _getCache[kind] = nv; }, () => { c.renovando = false; });
+          }
+        } else if (!c || Date.now() - c.t >= GET_STALE_MS) {
           c = _getCache[kind] = { t: Date.now(), p: g.listItemsMeta(listId) };
           const cc = c; cc.p.catch(() => { if (_getCache[kind] === cc) delete _getCache[kind]; });
         }
