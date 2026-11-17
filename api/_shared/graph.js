@@ -177,7 +177,7 @@ async function addItem(listId, fields) {
 async function listItemsMeta(listId) {
   const siteId = await getSiteId();
   const out = [];
-  let url = `/sites/${siteId}/lists/${listId}/items?expand=fields&$top=200`;
+  let url = `/sites/${siteId}/lists/${listId}/items?expand=fields&$top=999`;
   while (url) { const j = await graph('GET', url); for (const it of (j.value || [])) out.push({ id: it.id, fields: it.fields || {} }); url = j['@odata.nextLink'] || null; }
   return out;
 }
