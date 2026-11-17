@@ -5969,10 +5969,11 @@ async function abrirLixeira(){
     var r=await fetch('/api/leads?lixeira=1');var j=await r.json();var it=(j&&j.items)||[];
     it.sort(function(a,b){return String(b.lixeiraEm||'').localeCompare(String(a.lixeiraEm||''));});
     var h=cx+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">🗑 Lixeira — oportunidades excluídas</b><button class="btn ghost" onclick="document.getElementById(\'lixeira-ov\').style.display=\'none\'">Fechar</button></div><p style="font-size:12px;color:#8A7A78;margin:0 0 10px">Ficam aqui por 30 dias. Passado esse prazo, sem restauração, são excluídas de vez. O histórico guarda quem excluiu e quando.</p>';
-    if(!it.length)h+='<p>A lixeira está vazia.</p>';
+    if(!it.length)h+='<p>A lixeira está vazia.</p>'
+    else h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><label style="font-size:12px"><input type="checkbox" onclick="lixMarcarTodos(this.checked)"> marcar todos</label><button class="btn" id="lix-btn-sel" onclick="excluirLixeiraLote(\'sel\')">Excluir selecionados (0)</button><button class="btn" onclick="excluirLixeiraLote(\'all\')">Excluir tudo ('+it.length+')</button></div>';
     it.forEach(function(x){
       var qd=''; try{qd=new Date(x.lixeiraEm).toLocaleString('pt-BR');}catch(e){}
-      h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><div><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||'')+' · '+esc(x.status||'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
+      h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><input type="checkbox" class="lix-sel" value="'+esc(x.__id)+'" onclick="lixAtualizaBarra()"><div style="flex:1"><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||'')+' · '+esc(x.status||'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
     });
     ov.innerHTML=h+'</div>';
   }catch(e){ov.innerHTML=cx+'<b>Não consegui abrir a lixeira.</b> Tente de novo.</div>';}
@@ -5986,6 +5987,24 @@ async function restaurarLixeira(gid){
   }catch(e){alert('Não consegui restaurar. Tente de novo.');}
 }
 window.abrirLixeira=abrirLixeira;window.restaurarLixeira=restaurarLixeira;
+  /* 17/11/2026 (Léo): excluir em lote e excluir tudo na Lixeira (exclusão definitiva, com confirmação) */
+  function lixAtualizaBarra(){var n=document.querySelectorAll('#lixeira-ov .lix-sel:checked').length;var b=document.getElementById('lix-btn-sel');if(b)b.textContent='Excluir selecionados ('+n+')';}
+  function lixMarcarTodos(on){document.querySelectorAll('#lixeira-ov .lix-sel').forEach(function(c){c.checked=on;});lixAtualizaBarra();}
+  async function excluirLixeiraLote(modo){
+    var cs=[].slice.call(document.querySelectorAll('#lixeira-ov .lix-sel'));
+    var ids=cs.filter(function(c){return modo==='all'||c.checked;}).map(function(c){return c.value;});
+    if(!ids.length){alert('Nenhum item selecionado.');return;}
+    if(!confirm('Excluir DE VEZ '+ids.length+' item(ns) da lixeira? Isso não pode ser desfeito.'))return;
+    var ok=0,falha=0;
+    for(var i=0;i<ids.length;i+=5){
+      await Promise.all(ids.slice(i,i+5).map(async function(id){
+        try{var r=await fetch('/api/leads',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,definitivo:true})});var j=await r.json();if(r.ok&&j&&j.ok&&!j.lixeira)ok++;else falha++;}catch(e){falha++;}
+      }));
+    }
+    if(typeof toast==='function')toast(ok+' excluído(s) de vez'+(falha?' ('+falha+' falharam)':'')+' ✓');
+    abrirLixeira();
+  }
+  window.lixAtualizaBarra=lixAtualizaBarra;window.lixMarcarTodos=lixMarcarTodos;window.excluirLixeiraLote=excluirLixeiraLote;
 function closeDrawer(){el('drawer').classList.remove('on');curId=null;var dov=el('drawer-ov'); if(dov)dov.style.display='none'; _bellSync();}
 /* 12/09/2026 -- ver comentário na CSS .bell-recuado: o sino fica escondido enquanto o drawer do
    Kanban OU o modal de Nova Oportunidade estiverem abertos (senão ele tampa o "x" de fechar). */
