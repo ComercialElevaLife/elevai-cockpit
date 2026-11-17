@@ -2771,8 +2771,8 @@ class App {
       const sy=saleDt?Number(saleDt.slice(0,4)):l.y, sm=saleDt?Number(saleDt.slice(5,7)):l.m;
       return {dt:saleDt,y:sy,m:sm,cliente:l.cliente,unidade:l.unidade,fonte:l.fonte,serv:l.serv,icp:l.icp,cons:l.cons,tipo:l.tipo,valor:vvPainel(l),origem:l.origem,tc:l.tc,__id:l.__id,funil:(window._funilDe?window._funilDe(l):'')};
     });
-    /* PR3: card misto (recorrente + pontual) vira um registro por tipo, com o valor de cada parte (proporcional ao fechamento). */
-    this.fV=this.fV.reduce(function(a,v){var l0=vendidosSrc.find(function(x){return x.__id===v.__id;});var p=(l0&&window._svParts)?window._svParts(l0):null;if(!p){a.push(v);return a;}var base=p.reduce(function(s,q){return s+q.valor;},0)||1;p.forEach(function(q){a.push(Object.assign({},v,{tipo:q.tipo,valor:v.valor*q.valor/base}));});return a;},[]);
+    /* PR3 (ajustado): card misto continua 1 registro (conta 1 a 1); só guarda a parte recorrente (valR) e a pontual (valP). */
+    this.fV=this.fV.map(function(v){var l0=vendidosSrc.find(function(x){return x.__id===v.__id;});var p=(l0&&window._svParts)?window._svParts(l0):null;if(!p)return v;var base=p.reduce(function(s,q){return s+q.valor;},0)||1;var r=Object.assign({},v);p.forEach(function(q){var x=v.valor*q.valor/base;if(q.tipo==='R')r.valR=x;else r.valP=x;});return r;});
     /* 08/09/2026 — Léo: "ENVIO PROPOSTA" precisa ter Envio como base, não Entrada — mesmo
        racional do fV acima (Fechamento com base em dataVenda/alteradoEm). RAW.propostas já vem
        filtrado pelo shell usando envio (fallback dt) — ver filteredLeadsPropostas. Aqui só
@@ -2786,7 +2786,6 @@ class App {
       const ey=envioDt?Number(envioDt.slice(0,4)):l.y, em=envioDt?Number(envioDt.slice(5,7)):l.m;
       return Object.assign({},l,{y:ey,m:em});
     });
-    this.fP=this.fP.reduce(function(a,v){var p=window._svParts?window._svParts(v):null;if(!p){a.push(v);return a;}p.forEach(function(q){a.push(Object.assign({},v,{tipo:q.tipo,valor:q.valor}));});return a;},[]);
     this.semSec = !cons&&!serv&&!icp&&!tc&&!prop;
     // meses do período (limitados aos dados)
     const mkey=s=>Number(s.slice(0,4))*100+Number(s.slice(5,7));
@@ -2910,8 +2909,8 @@ class App {
   exec(){
     const fV=this.fV, M=RAW.metas;
     const tot=fV.reduce((s,v)=>s+v.valor,0);
-    const rec=fV.filter(v=>v.tipo==='R').reduce((s,v)=>s+v.valor,0);
-    const pont=fV.filter(v=>v.tipo==='P').reduce((s,v)=>s+v.valor,0);
+    const rec=fV.reduce((s,v)=>s+window._vR(v),0);
+    const pont=fV.reduce((s,v)=>s+window._vP(v),0);
     const soc=fV.filter(v=>v.origem==='SÓCIOS').reduce((s,v)=>s+v.valor,0);
     /* 18/08/2026 — k-vendas e k-soc removidos daqui: duplicavam exatamente m-vend (Vendas/fechamento)
        e m-soc+m-nsoc (Vendas sócios/não-sócios) da seção "Metas & Realizado", só que contra o modelo
@@ -2951,8 +2950,8 @@ class App {
     }
     // gráfico mensal
     const keys=this.keys, labels=this.labels;
-    const recM=keys.map(k=>fV.filter(v=>v.y*100+v.m===k&&v.tipo==='R').reduce((s,v)=>s+v.valor,0));
-    const pontM=keys.map(k=>fV.filter(v=>v.y*100+v.m===k&&v.tipo==='P').reduce((s,v)=>s+v.valor,0));
+    const recM=keys.map(k=>fV.filter(v=>v.y*100+v.m===k).reduce((s,v)=>s+window._vR(v),0));
+    const pontM=keys.map(k=>fV.filter(v=>v.y*100+v.m===k).reduce((s,v)=>s+window._vP(v),0));
     const ds=[
       {type:'bar',label:'Recorrente',data:recM,backgroundColor:AZ+'DD',stack:'s',borderRadius:4},
       {type:'bar',label:'Pontual',data:pontM,backgroundColor:CO+'DD',stack:'s',borderRadius:4}
@@ -3114,8 +3113,8 @@ class App {
   pdf(){
     const fV=this.fV,fL=this.fL,props=this.fP;
     const tot=fV.reduce((s,v)=>s+v.valor,0);
-    const rec=fV.filter(v=>v.tipo==='R').reduce((s,v)=>s+v.valor,0);
-    const pont=fV.filter(v=>v.tipo==='P').reduce((s,v)=>s+v.valor,0);
+    const rec=fV.reduce((s,v)=>s+window._vR(v),0);
+    const pont=fV.reduce((s,v)=>s+window._vP(v),0);
     const soc=fV.filter(v=>v.origem==='SÓCIOS').reduce((s,v)=>s+v.valor,0);
     const img=id=>{try{return `<img class="chart" src="${this.charts[id].toBase64Image('image/png',1)}">`;}catch(e){return '';}};
     const filtros=['f-cons','f-serv','f-icp','f-tc'].map(id=>{const v=this.fval(id);const lbl={'f-cons':'Consultor','f-serv':'Serviço','f-icp':'ICP','f-tc':'Cliente'}[id];return v?lbl+': '+v:null;}).filter(Boolean).join(' · ')||'Sem filtros secundários';
@@ -5569,6 +5568,7 @@ function _svInit(l){_SV=_svParse(l);_svDirty=false;_svValor0=Number(l.valor)||0;
  _svDraw();}
 window._svEdit=_svEdit;window._svTipo=_svTipo;window._svAdd=_svAdd;window._svDel=_svDel;
 /* 17/11/2026 — PR3: helpers de multiserviço para Painel e comunicado. */
+window._vR=function(v){if(v.valR!==undefined||v.valP!==undefined)return v.valR||0;return v.tipo==='R'?v.valor:0;};window._vP=function(v){if(v.valR!==undefined||v.valP!==undefined)return v.valP||0;return v.tipo==='P'?v.valor:0;};
 window._svParts=function(l){try{var a=JSON.parse(l.servicosJson||'');if(!Array.isArray(a)||a.length<2)return null;var R=0,P=0,hr=false,hp=false;a.forEach(function(x){if(x.tipo==='R'){hr=true;R+=Math.round((Number(x.mensal)||0)*(Number(x.meses)||12)*100)/100;}else if(x.tipo==='P'){hp=true;P+=Number(x.valor)||0;}});if(!hr||!hp)return null;return [{tipo:'R',valor:R},{tipo:'P',valor:P}];}catch(e){return null;}};
 window._cvServTxt=function(l){try{var a=JSON.parse(l.servicosJson||'');if(!Array.isArray(a)||a.length<2)return '';var m=function(n){return 'R$ '+(Number(n)||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});};return '\n- **Serviços vendidos:**'+a.map(function(x){var v=x.tipo==='R'?('Recorrente, '+m(x.mensal)+'/mês × '+(Number(x.meses)||12)):(x.tipo==='P'?('Pontual, '+m(x.valor)):'Tipo a confirmar');return '\n  - **'+(x.serv||'Serviço a confirmar')+'** — '+v+(x.cargo?' · '+x.cargo:'')+(x.carga?' · '+x.carga:'');}).join('');}catch(e){return '';}};
 window._dTab=function(btn,p){var d=btn.closest('.d-main');d.querySelectorAll('.dtabs button').forEach(function(x){x.classList.toggle('on',x===btn)});d.querySelectorAll('.dpane').forEach(function(x){x.style.display=(x.id==='dp-'+p)?'':'none'});};
