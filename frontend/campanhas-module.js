@@ -153,7 +153,7 @@
       r = base ? { txt: 'Aguardar aceite (retirar o convite se passar de 30 dias)', data: addDias(base, 30) } : { txt: 'Aguardar aceite', data: '' };
     } else if (est === 'Conectado') {
       var msg = ult(['Agradecimento', 'Retomada']);
-      if (!msg) { var ac = ult(['Aceite']); var d0 = ac ? String(ac.ts).slice(0, 10) : (it.dataAceite || ''); if (!d0) r = { txt: 'Enviar agradecimento', data: h }; else { var ini = addDU(d0, 1), fim = addDU(d0, 2); r = h > fim ? { txt: 'Agradecimento atrasado (a janela de 24h a 48h terminou em ' + br(fim) + '): enviar hoje', data: fim } : { txt: 'Enviar agradecimento (janela de ' + br(ini) + ' a ' + br(fim) + ', 24h a 48h após o aceite)', data: ini }; } }
+      if (!msg) { var ac = ult(['Aceite']); var d0 = ac ? String(ac.ts).slice(0, 10) : (it.dataAceite || ''); if (!d0) r = { txt: 'Enviar agradecimento', data: h }; else { var ini = addDU(d0, 1), fim = addDU(d0, 2); r = h > fim ? { txt: 'Janela do agradecimento vencida (24h a 48h terminou em ' + br(fim) + '): enviar hoje', data: fim } : { txt: 'Enviar agradecimento (janela de ' + br(ini) + ' a ' + br(fim) + ', 24h a 48h após o aceite)', data: ini }; } }
       else {
         var base0 = String(msg.ts).slice(0, 10), fu = ult(['Follow-up']), enc = ult(['Encerramento']), mat = ev.filter(function (e) { return e.tipo === 'Material enviado'; });
         if (mat.length) {
@@ -236,7 +236,7 @@
       [convHoje + ' de ' + LIMITE_DIA, 'convites hoje (limite por dia útil)'],
       [interHoje, 'interações hoje (curtidas e comentários)'], [inter7, 'interações nos últimos 7 dias'], [ab.A + ' A / ' + ab.B + ' B', 'agradecimentos por versão do teste A/B'], [conv7, 'convites nos últimos 7 dias (referência ~100/semana)'], [pend, 'convites pendentes'],
       [conv.length ? pct(acei.length, conv.length) : '—', 'taxa de aceite (' + acei.length + ' de ' + conv.length + ' convites com data)'], [media, 'tempo médio até o aceite'],
-      [atr, 'ações atrasadas'], [hj, 'ações para hoje'], [parados, 'sem interação há mais de 15 dias']
+      [atr, 'ações com janela vencida'], [hj, 'ações para hoje'], [parados, 'sem interação há mais de 15 dias']
     ].map(function (c) { return '<div class="cmp-kpi"><b>' + c[0] + '</b><span>' + c[1] + '</span></div>'; }).join('');
     /* atividade por semana (janelas de 7 dias terminando hoje) */
     var janelas = [[0, 6, 'Últimos 7 dias'], [7, 13, '8 a 14 dias'], [14, 20, '15 a 21 dias'], [21, 27, '22 a 28 dias']];
@@ -279,7 +279,7 @@
   }
   function celProxima(p) {
     var cls = p.nivel === 'bad' ? 'bad' : (p.nivel === 'warn' ? 'warn' : (p.nivel === 'ok' ? 'ok' : 'neutro'));
-    var rot = p.nivel === 'bad' ? 'atrasada · ' + br(p.data) : (p.nivel === 'warn' ? 'hoje' : (p.data ? br(p.data) : ''));
+    var rot = p.nivel === 'bad' ? 'janela vencida · ' + br(p.data) : (p.nivel === 'warn' ? 'hoje' : (p.data ? br(p.data) : ''));
     return esc(p.txt) + (rot ? '<small><span class="cmp-tag ' + cls + '">' + rot + '</span></small>' : '');
   }
 
