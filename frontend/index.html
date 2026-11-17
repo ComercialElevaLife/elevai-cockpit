@@ -1188,19 +1188,31 @@ async function postCard(title,facts,body){
   catch(e){return false;}
 }
 
+/* 17/11/2026 — Léo: tela instantânea. Guarda no navegador (IndexedDB) a última leitura confirmada da base; ao abrir, mostra essa leitura
+   na hora e logo em seguida troca pelo dado fresco do servidor. Não é fonte de verdade: o servidor recusa gravar sobre registro alterado
+   por outra pessoa (412), então ver um dado de poucos segundos atrás nunca causa sobreposição. Copia com mais de 7 dias é ignorada. */
+(function(){
+  var DB='sige-copia',ST='kv',KEY='store-v1';
+  function abrir(){ return new Promise(function(res,rej){ var r=indexedDB.open(DB,1); r.onupgradeneeded=function(){ r.result.createObjectStore(ST); }; r.onsuccess=function(){res(r.result);}; r.onerror=function(){rej(r.error);}; }); }
+  window._copiaLer=function(){ var lim=new Promise(function(res){ setTimeout(function(){res(null);},1500); });
+    var ler=abrir().then(function(db){ return new Promise(function(res){ var t=db.transaction(ST,'readonly').objectStore(ST).get(KEY); t.onsuccess=function(){ var v=t.result; res((v&&v.t&&v.d&&(Date.now()-v.t)<7*864e5)?v.d:null); }; t.onerror=function(){res(null);}; }); }).catch(function(){return null;});
+    return Promise.race([ler,lim]); };
+  window._copiaGravar=function(d){ abrir().then(function(db){ db.transaction(ST,'readwrite').objectStore(ST).put({t:Date.now(),d:d},KEY); }).catch(function(){}); };
+})();
 /* ---- carga de dados (fonte unica) ---- */
 async function loadStore(){
   let ok=false;
   try{
+    const _rx=[fetch('/api/contratos'),fetch('/api/empresas'),fetch('/api/contatos')].map(function(p){return p.catch(function(){return null;});}); /* 17/11/2026 — pede as 6 listas ao mesmo tempo (antes eram em fila: 5 a 6 s) */
     const rs=await Promise.all([fetch('/api/leads'),fetch('/api/vendas'),fetch('/api/eventos')]);
     if(rs.every(x=>x&&x.ok)){
       const j=await Promise.all(rs.map(x=>x.json()));
       if(j[0]&&j[0].items){
         STORE={leads:j[0].items||[],vendas:(j[1]&&j[1].items)||[],eventos:(j[2]&&j[2].items)||[],contratos:[],empresas:[],contatos:[]};
         SRC='api'; ok=true;
-        try{ const cr=await fetch('/api/contratos'); if(cr&&cr.ok){ const cj=await cr.json(); STORE.contratos=(cj&&cj.items)||[]; } }catch(e){}
-        try{ const er=await fetch('/api/empresas'); if(er&&er.ok){ const ej=await er.json(); STORE.empresas=(ej&&ej.items)||[]; } }catch(e){}
-        try{ const kr=await fetch('/api/contatos'); if(kr&&kr.ok){ const kj=await kr.json(); STORE.contatos=(kj&&kj.items)||[]; } }catch(e){}
+        try{ const cr=await _rx[0]; if(cr&&cr.ok){ const cj=await cr.json(); STORE.contratos=(cj&&cj.items)||[]; } }catch(e){}
+        try{ const er=await _rx[1]; if(er&&er.ok){ const ej=await er.json(); STORE.empresas=(ej&&ej.items)||[]; } }catch(e){}
+        try{ const kr=await _rx[2]; if(kr&&kr.ok){ const kj=await kr.json(); STORE.contatos=(kj&&kj.items)||[]; } }catch(e){}
       }
     }
   }catch(e){}
@@ -1213,6 +1225,7 @@ async function loadStore(){
      pra OPORTUNIDADE (nunca pra LEAD -- LEAD começa vazio pra quem decidir curar manualmente). */
   STORE.leads.forEach((l,i)=>{ l._sid=i; if(l.status==='NA MESA')l.status='EM NEGOCIAÇÃO'; if(l.status==='NÃO ENVIADA')l.status='OPORTUNIDADE'; });
   DATA_VER++;
+  if(ok){ try{ if(window._copiaGravar)window._copiaGravar(STORE); }catch(e){} }
   /* Fase B fix: os dados de Empresa/Contato chegam de forma assíncrona; ao terminar de carregar,
      re-renderiza a lista de sugestões e os "recentes" do Cadastro (senão ficam vazios da 1ª renderização). */
   try{ if(typeof fillEmpresaDatalist==='function')fillEmpresaDatalist(); if(typeof renderEmpRecentes==='function')renderEmpRecentes(); if(typeof renderConRecentes==='function')renderConRecentes(); }catch(e){}
@@ -2650,7 +2663,9 @@ function setChipsOn(which){
     setChipsOn(F.preset);
     if(F.preset==='custom'){ q('mm-custom-row').style.display='flex'; if(_sv.de)q('mm-de').value=_sv.de; if(_sv.ate)q('mm-ate').value=_sv.ate; }
   }
-  await loadStore();
+  let _rapido=false;
+  try{ const cp=await window._copiaLer(); if(cp&&cp.leads&&cp.leads.length){ STORE=cp; SRC='api'; DATA_VER++; _rapido=true; const bd=q('elevai-src'); if(bd)bd.textContent='◐ conferindo dados…'; } }catch(e){}
+  if(_rapido){ loadStore().then(function(){ try{ fillFilters(); populateCadDatalists(); compute(); renderActive(); renderRecentes(); }catch(e){} }); } else { await loadStore(); }
   fillAno(F.ano); F.ano=q('mm-ano').value; fillMes(F.mes); fillSemana(F.semana);
   if(_sv){
     try{
