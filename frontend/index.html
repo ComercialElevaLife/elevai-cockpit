@@ -5970,7 +5970,7 @@ async function abrirLixeira(){
     it.sort(function(a,b){return String(b.lixeiraEm||'').localeCompare(String(a.lixeiraEm||''));});
     var h=cx+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">🗑 Lixeira — oportunidades excluídas</b><button class="btn ghost" onclick="document.getElementById(\'lixeira-ov\').style.display=\'none\'">Fechar</button></div><p style="font-size:12px;color:#8A7A78;margin:0 0 10px">Ficam aqui por 30 dias. Passado esse prazo, sem restauração, são excluídas de vez. O histórico guarda quem excluiu e quando.</p>';
     if(!it.length)h+='<p>A lixeira está vazia.</p>'
-    else h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><label style="font-size:12px"><input type="checkbox" onclick="lixMarcarTodos(this.checked)"> marcar todos</label><button class="btn" id="lix-btn-sel" onclick="excluirLixeiraLote(\'sel\')">Excluir selecionados (0)</button><button class="btn" onclick="excluirLixeiraLote(\'all\')">Excluir tudo ('+it.length+')</button></div>';
+    else h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><label style="font-size:12px"><input type="checkbox" id="lix-chk-todos" onclick="lixMarcarTodos(this.checked)"> marcar todos</label><button class="btn" onclick="lixMarcarTodos(true)">Selecionar todos</button><button class="btn" onclick="lixMarcarTodos(false)">Desfazer seleção</button><button class="btn" id="lix-btn-sel" onclick="excluirLixeiraLote(\'sel\')">Excluir selecionados (0)</button><button class="btn" onclick="excluirLixeiraLote(\'all\')">Excluir tudo ('+it.length+')</button></div>';
     it.forEach(function(x){
       var qd=''; try{qd=new Date(x.lixeiraEm).toLocaleString('pt-BR');}catch(e){}
       h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><input type="checkbox" class="lix-sel" value="'+esc(x.__id)+'" onclick="lixAtualizaBarra()"><div style="flex:1"><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||'')+' · '+esc(x.status||'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
@@ -5989,7 +5989,7 @@ async function restaurarLixeira(gid){
 window.abrirLixeira=abrirLixeira;window.restaurarLixeira=restaurarLixeira;
   /* 17/11/2026 (Léo): excluir em lote e excluir tudo na Lixeira (exclusão definitiva, com confirmação) */
   function lixAtualizaBarra(){var n=document.querySelectorAll('#lixeira-ov .lix-sel:checked').length;var b=document.getElementById('lix-btn-sel');if(b)b.textContent='Excluir selecionados ('+n+')';}
-  function lixMarcarTodos(on){document.querySelectorAll('#lixeira-ov .lix-sel').forEach(function(c){c.checked=on;});lixAtualizaBarra();}
+  function lixMarcarTodos(on){document.querySelectorAll('#lixeira-ov .lix-sel').forEach(function(c){c.checked=on;});var t=document.getElementById('lix-chk-todos');if(t)t.checked=on;lixAtualizaBarra();}
   async function excluirLixeiraLote(modo){
     var cs=[].slice.call(document.querySelectorAll('#lixeira-ov .lix-sel'));
     var ids=cs.filter(function(c){return modo==='all'||c.checked;}).map(function(c){return c.value;});
