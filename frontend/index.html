@@ -1132,6 +1132,38 @@ const q=id=>document.getElementById(id);
 function esc(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
 let STORE={leads:[],vendas:[],eventos:[],contratos:[]};
+/* 17/11/2026 — Léo: sistema multiusuário, um não pode sobrepor o outro. Toda gravação de registro existente leva junto
+   _base (o alteradoEm que esta tela viu ao carregar). Se outra pessoa alterou depois, o servidor responde 412 e NÃO grava;
+   aqui só avisamos. Depois de gravar com sucesso, guardamos o novo alteradoEm para a próxima gravação da mesma tela. */
+(function(){
+  var KINDS={leads:1,vendas:1,eventos:1,contratos:1,empresas:1,contatos:1};
+  var _f=window.fetch.bind(window);
+  function _it(kind,rid){return (STORE[kind]||[]).find(function(x){return String(x.__id)===String(rid);});}
+  window.fetch=async function(input,init){
+    var kind=null,rid=null;
+    try{
+      var url=typeof input==='string'?input:((input&&input.url)||'');
+      var m=url.match(/^\/api\/([a-z]+)(?:\?.*)?$/);
+      var mt=String((init&&init.method)||'GET').toUpperCase();
+      if(m&&KINDS[m[1]]&&(mt==='POST'||mt==='PATCH')&&init&&typeof init.body==='string'){
+        var b=JSON.parse(init.body); rid=(b&&(b.__id||b.id))||null;
+        if(rid&&b._base===undefined){
+          var it=_it(m[1],rid);
+          if(it){ b._base=String(it.alteradoEm||''); init=Object.assign({},init,{body:JSON.stringify(b)}); }
+        }
+        kind=m[1];
+      }
+    }catch(e){}
+    var r=await _f(input,init);
+    try{
+      if(kind&&rid){
+        if(r.status===412){ r.clone().json().then(function(j){ window.alert((j&&j.error)||'Este registro foi alterado por outra pessoa. Atualize a tela e tente de novo.'); }).catch(function(){}); }
+        else if(r.ok){ r.clone().json().then(function(j){ var it2=_it(kind,rid); if(it2&&j&&j.updated&&j.updated.alteradoEm){ it2.alteradoEm=j.updated.alteradoEm; it2.alteradoPor=j.updated.alteradoPor; } }).catch(function(){}); }
+      }
+    }catch(e){}
+    return r;
+  };
+})();
 let SRC='local';
 let ACTIVE='painel';
 let filteredLeads=[], filteredVendas=[], filteredLeadsVendidos=[], filteredLeadsPropostas=[];
