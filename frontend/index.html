@@ -2281,7 +2281,7 @@ function cancelEmpEdit(){
 window.cancelEmpEdit=cancelEmpEdit;
 async function deleteEmpresa(id){
   const it=_empresasList().find(e=>String(e.__id)===String(id)); if(!it)return;
-  if(!(await sigeConfirm('Excluir permanentemente a empresa "'+(it.cliente||it.razaoSocial||'')+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.')))return;
+  if(!(await sigeConfirm('Mover para a Lixeira a empresa "'+(it.cliente||it.razaoSocial||'')+'"? Fica 30 dias na Lixeira (🗑) e qualquer pessoa pode restaurar.')))return;
   try{
     const r=await fetch('/api/empresas',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
     const j=await r.json().catch(()=>({}));
@@ -2289,7 +2289,7 @@ async function deleteEmpresa(id){
       STORE.empresas=(STORE.empresas||[]).filter(e=>String(e.__id)!==String(id));
       if(String(window._empEditId)===String(id)) cancelEmpEdit();
       try{ fillEmpresaDatalist(); renderEmpRecentes(); }catch(e){}
-      if(typeof toast==='function')toast('Empresa excluída.'); else alert('Empresa excluída.');
+      if(typeof toast==='function')toast('Empresa enviada para a Lixeira.'); else alert('Empresa enviada para a Lixeira.');
     } else { alert('Erro ao excluir: '+(j.error||('HTTP '+r.status))); }
   }catch(e){ alert('Falha de rede ao excluir: '+e.message); }
 }
@@ -2346,7 +2346,7 @@ window.cancelConEdit=cancelConEdit;
 async function deleteContato(id){
   const it=(STORE.contatos||[]).find(c=>String(c.__id)===String(id)); if(!it)return;
   const nomeCompleto=((it.nome||'')+' '+(it.sobrenome||'')).trim();
-  if(!(await sigeConfirm('Excluir permanentemente o contato "'+nomeCompleto+'"? Isso remove o cadastro do SharePoint e não pode ser desfeito.')))return;
+  if(!(await sigeConfirm('Mover para a Lixeira o contato "'+nomeCompleto+'"? Fica 30 dias na Lixeira (🗑) e qualquer pessoa pode restaurar.')))return;
   try{
     const r=await fetch('/api/contatos',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id})});
     const j=await r.json().catch(()=>({}));
@@ -2354,7 +2354,7 @@ async function deleteContato(id){
       STORE.contatos=(STORE.contatos||[]).filter(c=>String(c.__id)!==String(id));
       if(String(window._conEditId)===String(id)) cancelConEdit();
       try{ renderConRecentes(); }catch(e){}
-      if(typeof toast==='function')toast('Contato excluído.'); else alert('Contato excluído.');
+      if(typeof toast==='function')toast('Contato enviado para a Lixeira.'); else alert('Contato enviado para a Lixeira.');
     } else { alert('Erro ao excluir: '+(j.error||('HTTP '+r.status))); }
   }catch(e){ alert('Falha de rede ao excluir: '+e.message); }
 }
@@ -5959,28 +5959,30 @@ async function delLead(id){ var l=_allLeads().find(function(x){return x.id===id;
   if(window.deleteLead){ window.deleteLead(l.spid, function(){ closeDrawer(); }, function(){ alert('Falha ao excluir. Tente novamente.'); }); }
   else { alert('Exclusão indisponível.'); } }
 /* 05/11/2026 — Lixeira (Léo): excluir manda para a Lixeira por 30 dias; qualquer pessoa restaura; passado o prazo o servidor exclui de vez. */
-async function abrirLixeira(){
+async function abrirLixeira(kind){
+  kind=(typeof kind==='string'&&kind)?kind:(window._lixKind||'leads'); window._lixKind=kind;
   var ov=el('lixeira-ov');
   if(!ov){ov=document.createElement('div');ov.id='lixeira-ov';ov.style.cssText='position:fixed;inset:0;background:rgba(58,42,46,.45);z-index:9000;display:flex;align-items:center;justify-content:center;padding:16px';ov.onclick=function(e){if(e.target===ov)ov.style.display='none';};document.body.appendChild(ov);}
   ov.style.display='flex';
   var cx='<div style="background:#fff;border-radius:12px;max-width:760px;width:100%;max-height:85vh;overflow:auto;padding:16px 18px;color:#3A2A2E">';
   ov.innerHTML=cx+'<b>Carregando a lixeira…</b></div>';
   try{
-    var r=await fetch('/api/leads?lixeira=1');var j=await r.json();var it=(j&&j.items)||[];
+    var r=await fetch('/api/'+kind+'?lixeira=1');var j=await r.json();var it=(j&&j.items)||[];
     it.sort(function(a,b){return String(b.lixeiraEm||'').localeCompare(String(a.lixeiraEm||''));});
-    var h=cx+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">🗑 Lixeira — oportunidades excluídas</b><button class="btn ghost" onclick="document.getElementById(\'lixeira-ov\').style.display=\'none\'">Fechar</button></div><p style="font-size:12px;color:#8A7A78;margin:0 0 10px">Ficam aqui por 30 dias. Passado esse prazo, sem restauração, são excluídas de vez. O histórico guarda quem excluiu e quando.</p>';
+    var h=cx+'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><b style="font-size:16px">🗑 Lixeira</b><button class="btn ghost" onclick="document.getElementById(\'lixeira-ov\').style.display=\'none\'">Fechar</button></div><p style="font-size:12px;color:#8A7A78;margin:0 0 10px">Ficam aqui por 30 dias. Passado esse prazo, sem restauração, são excluídas de vez. O histórico guarda quem excluiu e quando.</p>';
+    h+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'+[['leads','Oportunidades'],['empresas','Empresas'],['contatos','Contatos'],['campanhas','Campanhas'],['vendas','Vendas'],['contratos','Contratos'],['eventos','Eventos']].map(function(t){return '<button class="btn'+(t[0]===kind?'':' ghost')+'" onclick="abrirLixeira(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div>';
     if(!it.length)h+='<p>A lixeira está vazia.</p>'
     else h+='<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px"><label style="font-size:12px"><input type="checkbox" id="lix-chk-todos" onclick="lixMarcarTodos(this.checked)"> marcar todos</label><button class="btn" onclick="lixMarcarTodos(true)">Selecionar todos</button><button class="btn" onclick="lixMarcarTodos(false)">Desfazer seleção</button><button class="btn" id="lix-btn-sel" onclick="excluirLixeiraLote(\'sel\')">Excluir selecionados (0)</button><button class="btn" onclick="excluirLixeiraLote(\'all\')">Excluir tudo ('+it.length+')</button></div>';
     it.forEach(function(x){
       var qd=''; try{qd=new Date(x.lixeiraEm).toLocaleString('pt-BR');}catch(e){}
-      h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><input type="checkbox" class="lix-sel" value="'+esc(x.__id)+'" onclick="lixAtualizaBarra()"><div style="flex:1"><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||'')+' · '+esc(x.status||'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
+      h+='<div style="border:1px solid #EADDE0;border-radius:8px;padding:8px 10px;margin-bottom:6px;display:flex;justify-content:space-between;gap:10px;align-items:center"><input type="checkbox" class="lix-sel" value="'+esc(x.__id)+'" onclick="lixAtualizaBarra()"><div style="flex:1"><b>'+esc(x.cliente||x.nome||'(sem nome)')+(x.unidade?' — '+esc(x.unidade):'')+'</b> <span style="color:#8A7A78">· '+esc(x.serv||x.cnpj||x.empresaNome||x.cargo||x.email||'')+(x.status?' · '+esc(x.status):'')+'</span><br><span style="font-size:12px;color:#8A7A78">Excluído por '+esc(x.lixeiraPor||'—')+' em '+esc(qd)+' · restam '+(x.lixeiraRestam==null?'—':x.lixeiraRestam)+' dia(s)</span></div><button class="btn" onclick="restaurarLixeira(\''+esc(x.__id)+'\')">↩ Restaurar</button></div>';
     });
     ov.innerHTML=h+'</div>';
   }catch(e){ov.innerHTML=cx+'<b>Não consegui abrir a lixeira.</b> Tente de novo.</div>';}
 }
 async function restaurarLixeira(gid){
   try{
-    var r=await fetch('/api/leads',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:gid,fields:{lixeiraEm:'',lixeiraPor:''}})});
+    var r=await fetch('/api/'+(window._lixKind||'leads'),{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:gid,fields:{lixeiraEm:'',lixeiraPor:''}})});
     var j=await r.json();
     if(r.ok&&j&&j.ok){if(typeof toast==='function')toast('Restaurado ✓ — recarregando…');setTimeout(function(){location.reload();},700);}
     else alert('Não consegui restaurar. Tente de novo.');
@@ -5998,7 +6000,7 @@ window.abrirLixeira=abrirLixeira;window.restaurarLixeira=restaurarLixeira;
     var ok=0,falha=0;
     for(var i=0;i<ids.length;i+=5){
       await Promise.all(ids.slice(i,i+5).map(async function(id){
-        try{var r=await fetch('/api/leads',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,definitivo:true})});var j=await r.json();if(r.ok&&j&&j.ok&&!j.lixeira)ok++;else falha++;}catch(e){falha++;}
+        try{var r=await fetch('/api/'+(window._lixKind||'leads'),{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:id,definitivo:true})});var j=await r.json();if(r.ok&&j&&j.ok&&!j.lixeira)ok++;else falha++;}catch(e){falha++;}
       }));
     }
     if(typeof toast==='function')toast(ok+' excluído(s) de vez'+(falha?' ('+falha+' falharam)':'')+' ✓');
