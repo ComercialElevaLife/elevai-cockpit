@@ -193,8 +193,11 @@ const LISTS = {
   },
   vendas: {
     displayName: 'Vendas_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'cliente',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'y', type: 'number' },
       { name: 'm', type: 'number' },
       { name: 'dt', type: 'text' },          // YYYY-MM-DD
@@ -214,8 +217,11 @@ const LISTS = {
   },
   eventos: {
     displayName: 'Eventos_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'nome',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'nome', type: 'text' },
       { name: 'data', type: 'text' },         // MM/YYYY
       { name: 'leads', type: 'number' },      // int | null
@@ -228,8 +234,11 @@ const LISTS = {
   },
   contratos: {
     displayName: 'Contratos_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'cliente',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'cnpj', type: 'text' },
       { name: 'cliente', type: 'text' },
       { name: 'servico', type: 'text' },
@@ -252,8 +261,11 @@ const LISTS = {
   // --- Redesenho CRM (05/08/2026): Empresa / Contato / Oportunidade (padrão de CRM) ---
   empresas: {
     displayName: 'Empresas_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'cliente',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'cliente', type: 'text' },        // nome de exibição / carteira (chave-ponte com leads.cliente)
       { name: 'cnpj', type: 'text' },
       { name: 'razaoSocial', type: 'text' },
@@ -288,8 +300,11 @@ const LISTS = {
   },
   contatos: {
     displayName: 'Contatos_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'nome',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'nome', type: 'text' },
       { name: 'sobrenome', type: 'text' },
       { name: 'telefone', type: 'text' },       // WhatsApp
@@ -309,8 +324,11 @@ const LISTS = {
   // Nomes de coluna SEM dígito no final (ver aviso em observacoesLead: SharePoint mutila nomes assim).
   campanhas: {
     displayName: 'Campanhas_Comercial',
+    lixeira: true, // 18/11/2026 — Léo: Lixeira (30 dias, restaura) para todos os cadastros
     titleFrom: 'nome',
     columns: [
+      { name: 'lixeiraEm', type: 'text' },
+      { name: 'lixeiraPor', type: 'text' },
       { name: 'nome', type: 'text' },
       { name: 'sobrenome', type: 'text' },
       { name: 'cargo', type: 'text' },
