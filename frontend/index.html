@@ -3687,7 +3687,7 @@ function _cvFatSim(l){
   pl.push('Aviso ao Financeiro: cartão no chat "Faturamento + BPO" (a partir da Fase 3).');
   var iso=function(d){var q=/^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(d||'').trim());return q?q[3]+'-'+q[2]+'-'+q[1]:'';};
   var servOk=!!serv&&!/^(AF|AE|GL|ACAD|GR)$/i.test(serv.trim())&&!/^servi.o a confirmar$/i.test(serv.trim());
-  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc,retemISS:gv('ft-retemiss','retemiss'),colabAlocado:gv('ft-colab','colab'),tipo:(_pont?'P':'R'),cliente:{leadId:String(l.id||l._sid||''),nome:String(l.cliente||'').trim(),razao:String(l.razaoSocial||'').trim(),cnpj:String(l.cnpj||'').trim(),unidade:String(l.unidade||'').trim(),canalNF:gv('ft-canalnf','canalnf'),emailNF:gv('ft-emailnf','emailnf'),portalNF:gv('ft-portalnf','portalnf'),grupo:gv('ft-grupo','grupo'),area:({AF:'Atividades Físicas',ACAD:'Atividades Físicas',GL:'Atividades Físicas',AE:'Ergonomia',QM:'Terapias'})[String(l.serv||'').trim().toUpperCase()]||''}};
+  var dados={leadId:String(l.id||l._sid||''),clienteId:cli?String(cli.id):'',contratoBaseId:ct?String(ct.id):'',natureza:nat,numero:numFinal,ini:iso(ini),fim:iso(fim),valor:valor,servico:serv,oc:oc,cod:cod,prazo:prazo,evidenciaTipo:tipo,evidenciaRef:ref,valorDocumento:vdoc,retemISS:gv('ft-retemiss','retemiss'),colabAlocado:gv('ft-colab','colab'),tipo:(_pont?'P':'R'),cliente:{leadId:String(l.id||l._sid||''),nome:String(l.cliente||'').trim(),razao:String(l.razaoSocial||'').trim(),cnpj:String(l.cnpj||'').trim(),unidade:String(l.unidade||'').trim(),local:_cvV('cv-cidade'),coordenador:gv('ft-coord','coord'),coordenadorEmail:gv('ft-coordmail','coordmail'),aprovadorNome:gv('ft-aprov','aprov'),aprovadorEmail:gv('ft-aprovmail','aprovmail'),canalNF:gv('ft-canalnf','canalnf'),emailNF:gv('ft-emailnf','emailnf'),portalNF:gv('ft-portalnf','portalnf'),grupo:gv('ft-grupo','grupo'),area:({AF:'Atividades Físicas',ACAD:'Atividades Físicas',GL:'Atividades Físicas',AE:'Ergonomia',QM:'Terapias'})[String(l.serv||'').trim().toUpperCase()]||''}};
   return {nivel:nivel,rotulo:nivel===1?'entra direto, Vigente':(nivel===2?'provisório, não fatura':'retido, exige análise do Financeiro'),motivos:ret,avisos:av,plano:pl,dados:dados,servOk:servOk};
 }
 function _cvFatSimHtml(l){
@@ -3699,8 +3699,8 @@ function _cvFatSimHtml(l){
   h+='<div style="margin-top:4px"><b>O que seria gravado:</b>'+ul(s.plano)+'</div>';
   if(s.avisos.length)h+='<div style="margin-top:4px;color:#8A7A78"><b>Observações:</b>'+ul(s.avisos)+'</div>';
   if(window._CVSIM_LIVE===undefined&&!window._CVSIM_BUSY){window._CVSIM_BUSY=1;fetch('/api/faturamento-sync').then(function(r){return r.json();}).then(function(j){window._CVSIM_LIVE=!!(j&&j.live);window._CVSIM_INFO=j;}).catch(function(){window._CVSIM_LIVE=false;}).then(function(){window._CVSIM_BUSY=0;if(_cvId)cvRender();});}
-  var pode=!!s.dados.clienteId&&s.servOk;
-  h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+(s.dados.clienteId?'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.':'Cliente não encontrado no Faturamento: não dá para lançar.')+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':(s.nivel===1?'Vigente':'Provisório'))+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
+  var pode=!!s.servOk;
+  h+='<div style="margin-top:6px">'+(pode?'':'<span style="color:#C9822B">'+'Preencha o "Resumo do projeto" com o nome do serviço (não só AF/GL/ACAD/AE/GR) para habilitar o envio.'+'</span> ')+'<button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'teste\')">Validar no servidor (teste, não grava)</button>'+(window._CVSIM_LIVE?' <button type="button" class="btn" style="font-size:11px;padding:2px 8px"'+(pode?'':' disabled')+' onclick="cvSimEnviar(\'gravar\')">Gravar no Faturamento ('+(s.nivel===3?'Retido':(s.nivel===1?'Vigente':'Provisório'))+')</button>':' <span style="color:#8A7A78">(gravação ainda desligada no servidor)</span>')+'<div id="cv-sim-res" style="margin-top:4px">'+(window._CVSIM_HTML||'')+'</div></div>';
   return h+'</details>';
 }
 /* ===== 03/11/2026 — FLUXO ÚNICO DA VENDA (Léo): marcou VENDIDA, o SIGE dispara tudo — ficha salva no card, Faturamento, comunicado no Teams e Implantação — e mostra um resumo.
@@ -3729,7 +3729,7 @@ function _saleDtOf(l){
   return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
 }
 /* 05/11/2026 — Léo: trava em 2 níveis. MÍNIMO bloqueia o "Efetivar venda"; PENDÊNCIA PERMITIDA deixa efetivar e viaja como "concluído com pendência" (registrada no card e no histórico). Ex.: contrato do recorrente que ainda não chegou; dados de kick-off (horários, requisitos, pontos focais). */
-var _FV_PEND_IDS=['ft-canalnf','ft-emailnf','ft-portalnf','ft-retemiss','ft-colab','cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
+var _FV_PEND_IDS=['ft-aprovmail','ft-canalnf','ft-emailnf','ft-portalnf','ft-retemiss','ft-colab','cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
 function _fvFaltam(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])<0;});}
 function _fvPend(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])>=0;});}
 function _fvPendJson(){var p=_fvPend();return JSON.stringify({ids:p.map(function(r){return r[0];}),itens:p.map(function(r){return r[1];})});}
@@ -3760,7 +3760,7 @@ function _fvMarcar(falt){
   var ov=el('ov-venda');if(ov)ov.classList.add('fv-compacto');
   falt.forEach(function(r){var e=el(r[0]);if(e){e.classList.add('fv-falta');var lb=e.closest&&e.closest('label');if(lb)lb.classList.remove('fv-pronto');}});
   if(falt.some(function(r){return /^ft-/.test(r[0]);})){var bx=el('ft-box');if(bx)bx.open=true;}
-  var p=falt.length?el(falt[0][0]):null;if(p){try{p.scrollIntoView({block:'center',behavior:'smooth'});p.focus();}catch(e){}}
+  var _rb=el('fv-res');if(_rb){try{_rb.scrollIntoView({block:'start',behavior:'smooth'});}catch(e){}}
 }
 function _fvCompactar(){
   var ov=el('ov-venda');if(!ov)return;
@@ -3811,7 +3811,7 @@ var _FV_ROT={ficha:'Ficha salva no card',fat:'Faturamento',teams:'Comunicado no 
 function _fvResumo(falt){
   var box=el('fv-res'),l=_cvLead();if(!box||!l)return;
   var P=_FV.passos,h='',ks=['ficha','fat','teams','impl'],tem=ks.some(function(k){return P[k];});
-  if(falt&&falt.length){h+='<div style="border:1px solid #B23A48;background:#FFF3F3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#B23A48">Nada foi disparado: faltam '+falt.length+' campo(s) obrigatório(s), destacados em vermelho abaixo.</b><ul style="margin:4px 0 0 18px;padding:0">'+falt.map(function(r){return '<li>'+esc(r[1])+'</li>';}).join('')+'</ul></div>';}
+  if(falt&&falt.length){h+='<div style="border:1px solid #B23A48;background:#FFF3F3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#B23A48">Nada foi disparado: faltam '+falt.length+' campo(s) obrigatório(s), destacados em vermelho abaixo.</b><ul style="margin:4px 0 0 18px;padding:0">'+falt.map(function(r){return '<li><a href="#" onclick="fvIr(\''+r[0]+'\');return false" style="color:#B23A48">'+esc(r[1])+'</a></li>';}).join('')+'</ul></div>';}
   if(tem&&_FV.pend){
     if(_FV.pend.length)h+='<div style="border:1px solid #C9822B;background:#FBF1E3;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#C9822B">⚠ Venda CONCLUÍDA COM PENDÊNCIA ('+_FV.pend.length+')</b> — segue para Implantação e Faturamento com estes itens identificados como pendentes (registrados no card):<ul style="margin:4px 0 0 18px;padding:0">'+_FV.pend.map(function(x){return '<li>'+esc(x)+'</li>';}).join('')+'</ul></div>';
     else h+='<div style="border:1px solid #2E7D5B;background:#EEF7F2;border-radius:8px;padding:8px 10px;margin-bottom:8px"><b style="color:#2E7D5B">✓ Venda concluída: 100% das informações enviadas.</b></div>';
@@ -3873,7 +3873,6 @@ function _fvFat(l,done){
   _cvFatLer(function(){
     var s=_cvFatSim(l);
     if(!s){done({s:'erro',msg:'Faturamento indisponível agora (leitura falhou). Rode de novo em instantes.'});return;}
-    if(!s.dados.clienteId){done({s:'erro',msg:'Cliente não encontrado no Faturamento: cadastre o cliente lá (ou confira nome/CNPJ no card).'});return;}
     if(!s.servOk){done({s:'erro',msg:'Informe o nome do serviço no "Resumo do projeto" (não só AF, GL, ACAD, AE ou GR).'});return;}
     var b=s.dados,dg=function(v){return String(v==null?'':v).replace(/\D/g,'');};
     var gk=function(x){return String(x.ctr||'')+'|'+dg(x.cnpj)+'|'+String(x.unid||x.cid||'').trim().toLowerCase();};
@@ -3915,7 +3914,6 @@ function _fvFat1(l,done){
   _cvFatLer(function(){
     var s=_cvFatSim(l);
     if(!s){done({s:'erro',msg:'Faturamento indisponível agora (leitura falhou). Rode de novo em instantes.'});return;}
-    if(!s.dados.clienteId){done({s:'erro',msg:'Cliente não encontrado no Faturamento: cadastre o cliente lá (ou confira nome/CNPJ no card).'});return;}
     if(!s.servOk){done({s:'erro',msg:'Informe o nome do serviço no "Resumo do projeto" (não só AF, GL, ACAD, AE ou GR).'});return;}
     var ajustes=(typeof _AD!=='undefined'&&_AD&&_AD.res)?_AD.res.servicos.filter(function(x){return x.acao==='encerrar'||x.acao==='reajustar';}).map(function(x){return {servico:x.servico,acao:x.acao,data:x.data||'',desde:x.desde||'',valorNovo:x.valorNovo||0};}):[];
     var go=function(live){
@@ -4037,8 +4035,9 @@ async function fvReverterFat(){
   }).catch(function(){if(typeof toast==='function')toast('Falha de rede ao reverter.');});
 }
 window.fluxoVendaRodar=fluxoVendaRodar;window.fvMostrarTudo=fvMostrarTudo;window.fvReverterFat=fvReverterFat;
+window.fvIr=function(id){var e=el(id);if(!e)return;try{var d=e.closest&&e.closest('details');if(d)d.open=true;var o=el('ov-venda');if(o)o.classList.remove('fv-compacto');e.scrollIntoView({block:'center',behavior:'smooth'});e.focus();}catch(x){}};
 async function cvSimEnviar(modo){
-  var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.dados.clienteId||!s.servOk)return;
+  var l=_cvLead();if(!l)return;var s=_cvFatSim(l),box=el('cv-sim-res');if(!s||!box||!s.servOk)return;
   if(modo==='gravar'&&!(await sigeConfirm(s.nivel===1?'Gravar no Faturamento como VIGENTE (valor conferido com o documento)? Se a lista Status não aceitar Vigente, entra como Provisório. O Financeiro será avisado.':('Gravar no Faturamento como '+(s.nivel===3?'RETIDO':'PROVISÓRIO')+' (não fatura)? O Financeiro será avisado para conferir.'))))return;
   box.textContent='Enviando…';
   fetch('/api/faturamento-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.assign({modo:modo},s.dados))})
