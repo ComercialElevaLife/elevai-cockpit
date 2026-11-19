@@ -1058,8 +1058,8 @@ td .up{color:var(--ok);font-weight:700}
       <label>UF<input id="cv-uf" maxlength="2" placeholder="SP" style="text-transform:uppercase"></label>
       <label style="grid-column:1/3">Horários / frequência<input id="cv-horarios" placeholder="ex.: Seg a Sex, 08:00 às 17:00"></label>
 <input id="cv-contrata" type="hidden" value="Sim">
-<label>Cargo vendido<select id="cv-cargo"><option value="">— escolha —</option><option>Especialista em Ergonomia Júnior</option><option>Especialista em Ergonomia Pleno</option><option>Especialista em Ergonomia Sênior</option><option>Não se aplica</option></select></label>
-<label>Step / nível (opcional)<input id="cv-perfil" placeholder="ex.: Step 2"></label>
+<label>Cargo vendido<select id="cv-cargo"><option value="">— escolha —</option><option>Especialista em Ergonomia Júnior</option><option>Especialista em Ergonomia Pleno</option><option>Especialista em Ergonomia Sênior</option><option>Professor de Ginástica Laboral</option><option>Orientador de Atividades Físicas</option><option>Não se aplica</option></select></label>
+<label>Step / nível (opcional)<select id="cv-perfil"><option value="">— opcional —</option><option>Step 1</option><option>Step 2</option><option>Step 3</option></select></label>
 
 <label>Carga horária semanal (recorrente)<input id="cv-cargahor" placeholder="ex.: 40"></label>
 
@@ -3738,7 +3738,6 @@ function _fvFaltamTudo(){
   var f=_FV_REQ.filter(function(r){return !_cvV(r[0]);});
   var _lt=_cvLead();if(!_lt||!/^[PR]$/.test(String(_lt.tipo||'')))f.push(['cv-tipopr','Tipo da venda (P ou R): defina no card do lead']);
   try{var _sl=JSON.parse((_cvLead()||{}).servicosJson||'[]');if(Array.isArray(_sl)&&_sl.length>1&&_sl.some(function(x){return !x.ctr||!x.impl;}))f.push(['cv-estr','Estrutura da venda: em cada serviço do card, escolha em qual contrato e em qual implantação ele entra ("Mais dados do serviço")']);}catch(e){}
-  var _cs=_COORD_AREA[_cvV('cv-area')]||[];if(_cs.length>1&&!_cvV('cv-coord'))f.push(['cv-coord','Coordenador da carteira: escolha qual coordenador atende esta carteira']);
   /* 09/11/2026 — Léo: o comercial não decide vaga; informa só serviço e cargo vendido (Júnior/Pleno/Sênior) e a carga horária (recorrente). Sem pergunta de contratação, sem nº de vagas, remuneração ou benefício. */
   /* 04/11/2026 — trava Faturamento (PR 1): cadastro do cliente + dados do contrato recorrente que o SIGE já tem */
   var _lg=_cvLead()||{};
@@ -4125,15 +4124,27 @@ function _catPilarDe(txt){var t=_catN(txt).trim();if(!t)return '';var p=_CAT_SER
 var _CAT_RESP={'Ergonomia':'alexandre','Ginástica Laboral':'dhanilo','Academia':'dhanilo','Fisioterapia':'dhanilo','Quiropraxia':'dhanilo','Massoterapia':'cristiano','Enfermagem':'cristiano','Medicina do Trabalho':'cristiano'};
 var _COORD_AREA={'Ergonomia':['daniele','alexandre'],'Atividades Físicas':['geovane','william']};
 function _catRespKey(serv){var r=_CAT_SERV.filter(function(x){return x[2]===serv;})[0];if(!r)return '';return r[0]==='Ergonomia'?'alexandre':(_CAT_RESP[r[1]]||'');}
+/* 19/11/2026 — Léo: cargo e nível seguem o serviço vendido (Ergonomia: Júnior/Pleno/Sênior; Atividades Físicas: Professor de Ginástica Laboral ou Orientador de Atividades Físicas, Step 1/2/3) */
+function _cvCargos(){
+  var sel=el('cv-cargo');if(!sel)return;
+  var ar=_cvV('cv-area'),sv=_cvV('cv-tipo'),prev=sel.value,cat='';
+  _CAT_SERV.forEach(function(r){if(r[2]===sv)cat=r[1];});
+  var op=[];
+  if(ar==='Ergonomia')op=['Especialista em Ergonomia Júnior','Especialista em Ergonomia Pleno','Especialista em Ergonomia Sênior'];
+  else if(ar==='Atividades Físicas')op=['Professor de Ginástica Laboral','Orientador de Atividades Físicas'];
+  op.push('Não se aplica');
+  if(op.indexOf(prev)<0)prev='';
+  if(!prev&&ar==='Atividades Físicas'&&cat)prev=(cat==='Ginástica Laboral')?'Professor de Ginástica Laboral':'Orientador de Atividades Físicas';
+  sel.innerHTML='<option value="">— escolha —</option>'+op.map(function(x){return '<option'+(x===prev?' selected':'')+'>'+esc(x)+'</option>';}).join('');
+}
 function cvEquipe(keep){
   var box=el('cv-equipe');if(!box)return;
   var prev=(keep===undefined)?_cvV('cv-coord'):String(keep||'');
   var k=_cvRespKey(_cvLead()||{}),cs=_COORD_AREA[_cvV('cv-area')]||[],h='';
   if(k)h+='<div><b>Líder de Área:</b> '+esc(_cvPessoa(k).nome)+'</div>';
-  if(cs.length===1){h+='<div><b>Coordenador da carteira:</b> '+esc(_cvPessoa(cs[0]).nome)+' (automático)</div><input type="hidden" id="cv-coord" value="'+esc(cs[0])+'">';}
-  else if(cs.length>1){h+='<label>Coordenador da carteira (obrigatório)<select id="cv-coord"><option value="" disabled selected hidden>Selecione…</option>'+cs.map(function(x){return '<option value="'+esc(x)+'"'+(x===prev?' selected':'')+'>'+esc(_cvPessoa(x).nome)+'</option>';}).join('')+'</select></label>';}
-  else{h+='<input type="hidden" id="cv-coord" value="">';}
-  box.innerHTML=h;
+  /* 19/11/2026 — Léo: coordenador da carteira não é perguntado; o responsável é o Líder de Área da área do serviço */
+  h+='<input type="hidden" id="cv-coord" value="">';
+  box.innerHTML=h;_cvCargos();
 }
 function cvCatPilar(){
   var a=el('cv-area'),s=el('cv-tipo');if(!a||!s)return;
