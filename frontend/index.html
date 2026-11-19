@@ -1465,6 +1465,26 @@ function _saleDtReal(l){
   try{var a=JSON.parse(l.histEventosJson||'[]');if(Array.isArray(a)){var d='';a.forEach(function(e){if(e&&e.ts&&/→\s*VENDIDA\s*$/.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s<d)d=s;}});if(d)return d;}}catch(e){}
   return '';
 }
+/* 19/11/2026 — Léo: o filtro de período do Kanban usa a data DA COLUNA em que o card está:
+   Reativar = quando foi reativado; Lead = entrada; Oportunidade = criação; Em negociação = envio da proposta;
+   Pausada = quando foi movida para pausada; Vendida = data da venda; Perdida = quando foi movida para perdida.
+   As datas de movimento vêm do histórico (eventos "→ STATUS"); sem evento, cai na data de entrada (como antes).
+   Só vale para o Kanban: Painel, Tarefas e demais telas seguem com a regra anterior. */
+function _kbUltEvento(r,re){
+  try{var a=JSON.parse(r.histEventosJson||'[]'),d='';if(Array.isArray(a))a.forEach(function(e){if(e&&e.ts&&re.test(String(e.texto||''))){var s=String(e.ts).slice(0,10);if(!d||s>d)d=s;}});return d;}catch(x){return '';}
+}
+function _kbDataColuna(r){
+  var st=String(r.status||'').toUpperCase();
+  if(st==='VENDIDA')return _saleDtReal(r)||r.dt;
+  if(st==='EM NEGOCIAÇÃO'||st==='NA MESA')return (r.envio?String(r.envio).slice(0,10):'')||r.dt;
+  if(st==='PAUSADA')return _kbUltEvento(r,/→\s*PAUSADA\s*$/)||r.dt;
+  if(st==='PERDIDA')return _kbUltEvento(r,/→\s*PERDIDA\s*$/)||r.dt;
+  if(st==='REATIVAR')return _kbUltEvento(r,/(→\s*REATIVAR\s*$|^Reativado)/)||r.dt;
+  return r.dt;
+}
+function _kbLeads(){
+  return STORE.leads.filter(function(r){return passDims(r,true)&&r.inativo!=='SIM'&&inRange({dt:_kbDataColuna(r)});});
+}
 function compute(){
   /* 25/08/2026 — leads inativados (backlog: nem perdidos nem pausados, "Inativar" no drawer do
      Kanban) ficam de fora deste filtro compartilhado — que alimenta o Painel KPI, o Kanban e a
@@ -1519,7 +1539,7 @@ function renderActive(force){
     try{ PAINEL.render({leads:filteredLeads,vendas:filteredVendas,vendidos:filteredLeadsVendidos,propostas:filteredLeadsPropostas,eventos:STORE.eventos,
       de:(F.de||'2024-01-01'),ate:(F.ate||'2026-12-31')}); }catch(e){console.error('painel',e);}
   }else if(ACTIVE==='crm'){
-    try{ CRM.render(filteredLeads); }catch(e){console.error('crm',e);}
+    try{ CRM.render(_kbLeads()); }catch(e){console.error('crm',e);}
   }else if(ACTIVE==='renov'){ renderRenov();
   }else if(ACTIVE==='qual'){ renderQual();
   }else if(ACTIVE==='tarefas'){ renderTarefas();
