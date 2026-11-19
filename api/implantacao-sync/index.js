@@ -172,6 +172,9 @@ module.exports = async function (context, req) {
       // implantação já existente e, se qualquer etapa falhar, apaga o que acabou de criar (nada fica pela metade).
       if (process.env.IMPL_SYNC_LIVE !== '1') { context.res = json(200, { ok: true, modo: 'gravar', gravou: false, live: false, aviso: 'Gravação desligada (IMPL_SYNC_LIVE). Use o modo simular.' }); return; }
       const clienteG = s(p.cliente).trim();
+      // 19/11/2026 — Léo: a etapa 1 (Vendas: reunião de passagem) acompanha o envio do comunicado: Concluido se não há pendência, Em andamento se há.
+      const stE1 = /^conclu/i.test(s(p.statusEtapa1)) ? 'Concluido' : (/andamento/i.test(s(p.statusEtapa1)) ? 'Em andamento' : '');
+      const atualizadas = [];
       if (!clienteG) return erro('Falta o nome do cliente.');
       if (!s(p.area).trim()) return erro('Falta a área de serviço.');
       if (!modelo.length) return erro('Modelo de etapas não encontrado na lista.');
@@ -186,7 +189,23 @@ module.exports = async function (context, req) {
       let falha = '';
       for (const u of unidG) {
         const nomeFinal = u.nome ? clienteG + ' - ' + s(u.nome).trim() : clienteG;
-        if (existG[nomeFinal.toLowerCase()]) { puladas.push({ cliente: nomeFinal, motivo: 'já existe implantação com esse nome (não duplica)' }); continue; }
+        if (existG[nomeFinal.toLowerCase()]) {
+          puladas.push({ cliente: nomeFinal, motivo: 'já existe implantação com esse nome (não duplica)' });
+          if (stE1) {
+            const et1 = todos.filter(function (i) { return s(i.f.field_1).trim().toLowerCase() === nomeFinal.toLowerCase() && parseInt(i.f.field_3, 10) === 1; })[0];
+            if (et1) {
+              const atual = s(et1.f.field_12);
+              const sobe = stE1 === 'Concluido' ? atual !== 'Concluido' : (atual === 'A fazer' || atual === 'A definir');
+              if (sobe) {
+                const up = { field_12: stE1 };
+                if (stE1 === 'Concluido' && !et1.f.field_11) up.field_11 = iso(new Date()) + 'T12:00:00Z';
+                try { await g.graph('PATCH', '/sites/' + sidG + '/lists/' + LISTA_ID + '/items/' + et1.id + '/fields', up); atualizadas.push({ cliente: nomeFinal, de: atual, para: stE1 }); }
+                catch (e) { avisosG.push(nomeFinal + ': não consegui atualizar o status da etapa 1 (' + (e && e.message ? e.message : e) + ').'); }
+              }
+            }
+          }
+          continue;
+        }
         let ab = parseData(u.data);
         if (!ab) { ab = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate(), 12)); avisosG.push(nomeFinal + ': data de abertura não informada; usada a data de hoje.'); }
         const P = prazos(ab, u.uf, u.cidade, u.feriados);
@@ -197,6 +216,7 @@ module.exports = async function (context, req) {
           const campos = { Title: s(m.f.Title), field_1: nomeFinal, field_2: s(p.area), field_3: m.f.field_3, field_4: m.f.field_4, field_5: visual ? 'RH' : areaResp,
             field_12: (/VENDAS|MARKETING/i.test(areaResp) || visual) ? 'A fazer' : 'A definir' };
           if (n === 1 && P[1]) campos.field_10 = iso(P[1]);
+          if (n === 1 && stE1) { campos.field_12 = stE1; if (stE1 === 'Concluido') campos.field_11 = iso(new Date()) + 'T12:00:00Z'; }
           ['field_7', 'field_8', 'field_9', 'field_13'].forEach(function (c) { if (nomesG[c] && m.f[c] !== undefined && m.f[c] !== null && m.f[c] !== '') campos[c] = m.f[c]; });
           if (n === 1 && nomesG.field_13) campos.field_13 = 'Criada pelo SIGE por ' + (s(p.usuario) || 'SIGE') + ' em ' + iso(new Date()) + (s(m.f.field_13) ? ' | ' + s(m.f.field_13) : '');
           const extra = { EmailResponsavel: emailEtapa(visual ? 'RH' : areaResp, p.area, s(p.tipoVenda), s(p.usuario)), EmailCoordenador: s(p.coordenadorEmail), CriadoPor: s(p.usuario) || 'SIGE',
@@ -216,7 +236,7 @@ module.exports = async function (context, req) {
         return;
       }
       try { AUD.registrar(req, 'gravou', { entidade: 'implantacao', registroId: clienteG, resumo: 'Criou implantação (' + clienteG + ')', detalhe: criadas.length + ' etapa(s); ' + puladas.length + ' unidade(s) puladas' }); } catch (e) { /* auditoria é best-effort */ }
-      context.res = json(200, { ok: true, modo: 'gravar', gravou: criadas.length > 0, live: true, etapasCriadas: criadas.length, itens: criadas, puladas: puladas, avisos: avisosG });
+      context.res = json(200, { ok: true, modo: 'gravar', gravou: criadas.length > 0, live: true, etapasCriadas: criadas.length, itens: criadas, puladas: puladas, atualizadas: atualizadas, statusEtapa1: stE1, avisos: avisosG });
       return;
     }
     // modo 'simular' (padrão)

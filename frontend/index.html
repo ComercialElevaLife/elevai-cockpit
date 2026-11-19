@@ -3975,13 +3975,13 @@ function _fvImpl(l,usr,done){
       usados[f.toLowerCase()]=1;
       var lc=g.loc[nm]||{};return {nome:f,cidade:lc.cid||cidade,uf:lc.uf||uf,data:data};
     });
-    var corpo={modo:'gravar',cliente:l.cliente||'',area:g.area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:g.cnpj||l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',unidades:us};
+    var corpo={modo:'gravar',cliente:l.cliente||'',area:g.area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:g.cnpj||l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',statusEtapa1:_fvStE1(),unidades:us};
     return fetch('/api/implantacao-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}).then(function(r){return r.json();}).then(function(j){
       var rot='Implantação '+g.n+' ('+g.area+(g.un.filter(Boolean).length?', '+g.un.filter(Boolean).join(' + '):'')+')';
       if(!j||!j.ok){rel.push(rot+': erro — '+String((j&&j.error)||'erro no servidor'));parou=true;return;}
       if(j.live===false){rel.push(rot+': criação direta desligada no servidor');parou=true;return;}
-      if(j.gravou){criou++;rel.push(rot+': criada ('+j.etapasCriadas+' etapas).');return;}
-      rel.push(rot+': já existia, nada novo.');
+      if(j.gravou){criou++;rel.push(rot+': criada ('+j.etapasCriadas+' etapas).'+_fvStTxt(j));return;}
+      rel.push(rot+((j.atualizadas&&j.atualizadas.length)?': já existia;'+_fvStTxt(j):': já existia, nada novo.'));
     }).catch(function(){rel.push('Implantação '+g.n+': falha de rede.');parou=true;});
   };
   var seq=Promise.resolve();
@@ -3992,6 +3992,9 @@ function _fvImpl(l,usr,done){
     done({s:'ok',msg:'Implantações por linha (Day Zero '+_fvBR(data)+'; etapa 1 vence em 1 dia útil): '+txt+(criou?' O responsável pela etapa 1 de cada uma é avisado no Teams e por e-mail.':'')});
   });
 }
+/* 19/11/2026 — Léo: ao enviar, a etapa 1 do painel (Vendas) vira Concluída se não restou pendência, ou Em andamento se o comunicado foi com pendência. */
+function _fvStE1(){try{return _fvFaltamTudo().length?'Em andamento':'Concluido';}catch(e){return 'Em andamento';}}
+function _fvStTxt(j){return (j&&j.statusEtapa1)?' Etapa 1 (Vendas) no painel: '+(j.statusEtapa1==='Concluido'?'Concluída':'Em andamento (há pendências)')+'.':'';}
 function _fvImpl1(l,usr,done){
   /* 10/11/2026 — Léo: a Implantação passa a ser criada direto pelo SIGE (modo gravar do /api/implantacao-sync, com aviso por fluxo). Se algo falhar ou faltar dado, cai no painel antigo (janela), sem perder o caminho manual. */
   var antigo=function(aviso){
@@ -4002,12 +4005,12 @@ function _fvImpl1(l,usr,done){
   var area=_CV_AREA_PAINEL[cod]||'',uf=_cvV('cv-uf').toUpperCase(),cidade=_cvV('cv-cidade');
   if(!area||!/^[A-Z]{2}$/.test(uf)||!cidade){antigo('Faltam dados para criar direto (área, cidade ou UF).');return;}
   var tv={UPSELL:'Up Sell',CROSS:'Cross Sell',NOVA:'Nova Venda'}[((_natInfo(l)||{}).k)||'']||'';
-  var corpo={modo:'gravar',cliente:l.cliente||'',area:area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',unidades:[{nome:_cvUn(l),cidade:cidade,uf:uf,data:_fvAbertura(l)}]};
+  var corpo={modo:'gravar',cliente:l.cliente||'',area:area,tipoVenda:tv,usuario:(usr&&usr.email)||'',empresa:l.razaoSocial||l.cliente||'',cnpj:l.cnpj||'',coordenadorEmail:_cvV('ft-coordmail')||'',statusEtapa1:_fvStE1(),unidades:[{nome:_cvUn(l),cidade:cidade,uf:uf,data:_fvAbertura(l)}]};
   fetch('/api/implantacao-sync',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(corpo)}).then(function(r){return r.json();}).then(function(j){
     if(!j||!j.ok){antigo('A criação direta falhou ('+String((j&&j.error)||'erro no servidor')+').');return;}
     if(j.live===false){antigo('A criação direta está desligada no servidor.');return;}
-    if(j.gravou){done({s:'ok',msg:'Implantação criada direto na lista: '+j.etapasCriadas+' etapas (Day Zero '+_fvBR(_fvAbertura(l))+'; a etapa 1 vence em 1 dia útil). O responsável pela etapa 1 é avisado no Teams e por e-mail.'});return;}
-    done({s:'ok',msg:'Já existia implantação com esse nome. Nada novo foi gravado.'});
+    if(j.gravou){done({s:'ok',msg:'Implantação criada direto na lista: '+j.etapasCriadas+' etapas (Day Zero '+_fvBR(_fvAbertura(l))+'; a etapa 1 vence em 1 dia útil). O responsável pela etapa 1 é avisado no Teams e por e-mail.'+_fvStTxt(j)});return;}
+    done({s:'ok',msg:(j.atualizadas&&j.atualizadas.length)?('Já existia a implantação;'+_fvStTxt(j)):'Já existia implantação com esse nome. Nada novo foi gravado.'});
   }).catch(function(){antigo('Falha de rede ao criar a implantação.');});
 }
 function fluxoVendaRodar(){
