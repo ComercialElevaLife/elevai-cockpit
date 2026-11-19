@@ -1085,6 +1085,7 @@ td .up{color:var(--ok);font-weight:700}
         <label>Coordenador do contrato (cliente)<input id="ft-coord"></label>
         <label>E-mail do coordenador<input id="ft-coordmail"></label>
         <label>Aprovador da medição<input id="ft-aprov"></label>
+        <label>E-mail do aprovador<input id="ft-aprovmail" type="email"></label>
         
         <label>Canal de envio da NF<select id="ft-canalnf"><option value="">—</option><option value="E-mail">E-mail</option><option value="Portal">Portal</option></select></label>
         <label>E-mail(s) que recebem a NF <span style="font-weight:400;color:#8A7A78">— separar com ;</span><input id="ft-emailnf"></label>
@@ -3729,7 +3730,7 @@ function _saleDtOf(l){
   return (l.alteradoEm?String(l.alteradoEm).slice(0,10):l.dt)||l.dt;
 }
 /* 05/11/2026 — Léo: trava em 2 níveis. MÍNIMO bloqueia o "Efetivar venda"; PENDÊNCIA PERMITIDA deixa efetivar e viaja como "concluído com pendência" (registrada no card e no histórico). Ex.: contrato do recorrente que ainda não chegou; dados de kick-off (horários, requisitos, pontos focais). */
-var _FV_PEND_IDS=['ft-aprovmail','ft-canalnf','ft-emailnf','ft-portalnf','ft-retemiss','ft-colab','cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
+var _FV_PEND_IDS=['ft-canalnf','ft-emailnf','ft-portalnf','ft-retemiss','ft-colab','cv-focais','cv-fat','cv-docs','cv-horarios','cv-mob','cv-endereco','ft-ctr','ft-fim'];
 function _fvFaltam(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])<0;});}
 function _fvPend(){return _fvFaltamTudo().filter(function(r){return _FV_PEND_IDS.indexOf(r[0])>=0;});}
 function _fvPendJson(){var p=_fvPend();return JSON.stringify({ids:p.map(function(r){return r[0];}),itens:p.map(function(r){return r[1];})});}
@@ -4322,6 +4323,8 @@ function _ftDados(l){
   d.cod=l.codServico||'';d.coord=f0?[f0.nome,f0.sobrenome].filter(Boolean).join(' '):'';d.coordmail=f0?(f0.email||''):'';
   ['canalnf','emailnf','portalnf','grupo'].forEach(function(k){(typeof LEADS!=='undefined'?LEADS:[]).some(function(x){if(x===l||!x.ftDados)return false;var same=l.cnpj?String(x.cnpj||'')===String(l.cnpj):(String(x.cliente||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase());if(!same)return false;var o=_ftJ(x.ftDados)||{};if(o[k]){d[k]=String(o[k]);return true;}return false;});});
   var g=_ftJ(l.ftDados)||{};Object.keys(g).forEach(function(k){if(g[k]!=null)d[k]=String(g[k]);});
+  /* 19/11/2026 — Léo: o aprovador não pode ser pedido de novo se já está no cadastro. Sem e-mail do aprovador: acha o contato da empresa pelo nome do aprovador; sem nome, e havendo um único contato, usa-o (continua editável). */
+  if(!d.aprovmail){var _fl=(_opContatos()||[]).filter(function(c){return (l.empresaId&&String(c.empresaId||'')===String(l.empresaId))||String(c.empresaNome||'').trim().toLowerCase()===String(l.cliente||'').trim().toLowerCase();});var _nm=_cvSemAcento(d.aprov).trim();var _ct=_nm?_fl.filter(function(c){return _cvSemAcento([c.nome,c.sobrenome].filter(Boolean).join(' ')).trim()===_nm;})[0]:(_fl.length===1?_fl[0]:null);if(_ct&&_ct.email){if(!d.aprov)d.aprov=[_ct.nome,_ct.sobrenome].filter(Boolean).join(' ');d.aprovmail=_ct.email;}}
   return d;
 }
 function _ftAreaDe(l){return _CV_AREA_FAT[String(l.serv||'').split(/\s*[;,]\s*/)[0].trim().toUpperCase()]||'';}
