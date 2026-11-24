@@ -8,6 +8,9 @@
 // Acesso: somente contas @elevalife.com.br logadas (requireDomain).
 const g = require('../_shared/graph');
 const AUD = require('../_shared/auditoria');
+const BUD = require('../_shared/budget');
+const SIGE_SENDER = process.env.SIGE_SENDER || 'sige@elevalife.com.br';
+const RH_TO = process.env.BUDGET_RH_TO || 'gisleiny@elevalife.com.br';
 const { json, requireDomain } = require('../_shared/crud');
 const HOST = process.env.IMPL_SP_HOSTNAME || process.env.FAT_SP_HOSTNAME || 'elevalife.sharepoint.com';
 const PATH = process.env.IMPL_SP_SITEPATH || process.env.FAT_SP_SITEPATH || '/sites/BUSINESSPROCESSMANAGEMENT';
@@ -186,6 +189,8 @@ module.exports = async function (context, req) {
       const nomesG = {};
       (colsG.value || []).forEach(function (c) { nomesG[c.name] = 1; });
       const criadas = [], puladas = [], avisosG = [];
+      // 24/11/2026 — Léo: Budget por vaga/escopo (planilha de orçamento). BG = resumo calculado no servidor (não confia nas contas do navegador).
+      const BG = BUD.resumir(p.budget);
       let falha = '';
       for (const u of unidG) {
         const nomeFinal = u.nome ? clienteG + ' - ' + s(u.nome).trim() : clienteG;
@@ -220,7 +225,8 @@ module.exports = async function (context, req) {
           ['field_7', 'field_8', 'field_9', 'field_13'].forEach(function (c) { if (nomesG[c] && m.f[c] !== undefined && m.f[c] !== null && m.f[c] !== '') campos[c] = m.f[c]; });
           if (n === 1 && nomesG.field_13) campos.field_13 = 'Criada pelo SIGE por ' + (s(p.usuario) || 'SIGE') + ' em ' + iso(new Date()) + (s(m.f.field_13) ? ' | ' + s(m.f.field_13) : '');
           const extra = { EmailResponsavel: emailEtapa(visual ? 'RH' : areaResp, p.area, s(p.tipoVenda), s(p.usuario)), EmailCoordenador: s(p.coordenadorEmail), CriadoPor: s(p.usuario) || 'SIGE',
-            TipoVenda: s(p.tipoVenda), Unidade: s(u.nome), Empresa: s(p.empresa), CNPJ: s(p.cnpj), UFPrestacaoServico: s(u.uf) };
+            TipoVenda: s(p.tipoVenda), Unidade: s(u.nome), Empresa: s(p.empresa), CNPJ: s(p.cnpj), UFPrestacaoServico: s(u.uf),
+            Cargo: s(p.cargo), NumeroVagas: BG ? BG.nVagas : '', BudgetMo: BG ? BUD.r2(BG.total.moMes) : '', BudgetBen: BG ? BUD.r2(BG.total.ben) : '', BudgetCustos: BG ? BUD.r2(BG.total.custos) : '' };
           Object.keys(extra).forEach(function (c) { if (nomesG[c] && extra[c]) campos[c] = extra[c]; });
           try {
             const r = await g.graph('POST', '/sites/' + sidG + '/lists/' + LISTA_ID + '/items', { fields: campos });
@@ -234,6 +240,15 @@ module.exports = async function (context, req) {
         for (const id of criadas) { try { await g.graph('DELETE', '/sites/' + sidG + '/lists/' + LISTA_ID + '/items/' + id); apagadas++; } catch (e) { /* segue apagando as demais */ } }
         context.res = json(500, { ok: false, modo: 'gravar', gravou: false, error: falha, desfeitas: apagadas, criadasAntesDaFalha: criadas.length });
         return;
+      }
+      // 24/11/2026 — aviso confidencial ao RH (só ela recebe: tem remuneração). Só quando criou implantação nova (não repete em 'já existia').
+      if (BG && criadas.length) {
+        try {
+          await g.graph('POST', '/users/' + encodeURIComponent(SIGE_SENDER) + '/sendMail', { message: { subject: '[Confidencial] Nova implantação/vaga: ' + clienteG + ' (' + s(p.area) + ')',
+            body: { contentType: 'HTML', content: BUD.emailHtml(BG, { cliente: clienteG, area: p.area, tipoVenda: p.tipoVenda, cargo: p.cargo, perfil: p.perfil }) },
+            toRecipients: [{ emailAddress: { address: RH_TO } }] }, saveToSentItems: true });
+          avisosG.push('Aviso confidencial com o Budget enviado ao RH.');
+        } catch (e) { avisosG.push('Não consegui enviar o aviso do Budget ao RH (' + (e && e.message ? String(e.message).slice(0, 120) : e) + ').'); }
       }
       try { AUD.registrar(req, 'gravou', { entidade: 'implantacao', registroId: clienteG, resumo: 'Criou implantação (' + clienteG + ')', detalhe: criadas.length + ' etapa(s); ' + puladas.length + ' unidade(s) puladas' }); } catch (e) { /* auditoria é best-effort */ }
       context.res = json(200, { ok: true, modo: 'gravar', gravou: criadas.length > 0, live: true, etapasCriadas: criadas.length, itens: criadas, puladas: puladas, atualizadas: atualizadas, statusEtapa1: stE1, avisos: avisosG });
