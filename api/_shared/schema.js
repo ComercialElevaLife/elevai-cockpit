@@ -98,6 +98,8 @@ const LISTS = {
       // ftEnviado = último envio ao Faturamento (quando, quem e o que foi enviado) — base do alerta "alterado desde o último envio".
       { name: 'ftDados', type: 'text', long: true },
       { name: 'ftEnviado', type: 'text', long: true },
+      // 24/11/2026 — Léo: Budget por vaga/escopo da venda (JSON {linhas:[{vaga,escopo,regime,moH,hDia,freq,entrada,saida,custos}]}); o que foi vendido, para RH/operação distribuir.
+      { name: 'budgetJson', type: 'text', long: true },
       // 03/11/2026 — Léo: fluxo único da venda. vendaFicha = ficha da venda salva no card (JSON: resumo, volume, escopo, início, horários, focais, requisitos); fluxoVenda = resultado de cada passo (JSON).
       { name: 'vendaFicha', type: 'text', long: true },
       { name: 'fluxoVenda', type: 'text', long: true },
