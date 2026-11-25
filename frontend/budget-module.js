@@ -24,7 +24,14 @@
     return { pj: pj, hSem: hSem, hMes: hMes, mo: mo, ben: pj ? 0 : mo * BEN, custos: num(l.custos), svv: mo * (pj ? 2.5 : 3) };
   }
   function nova() { return { vaga: '', escopo: '', regime: 'CLT', moH: '', hDia: '', freq: '', entrada: '', saida: '', custos: '' }; }
-  function lead() { try { return typeof window._cvLead === 'function' ? window._cvLead() : null; } catch (e) { return null; } }
+  /* _cvLead não é público no index; usa o resumo público do card aberto (dadosComunicadoVenda) e localiza a linha na base (STORE.leads). */
+  function lead() {
+    try {
+      var d = typeof window.dadosComunicadoVenda === 'function' ? window.dadosComunicadoVenda() : null; if (!d || !d.leadId) return null;
+      var raw = (window.STORE && STORE.leads || []).find(function (x) { return String(x.__id) === String(d.leadId); });
+      return { id: d.leadId, spid: raw ? raw.__id : d.leadId, budgetJson: raw ? raw.budgetJson : '' };
+    } catch (e) { return null; }
+  }
   function lerLead(l) {
     try { var j = JSON.parse((l && l.budgetJson) || '{}'); return Array.isArray(j.linhas) ? j.linhas : []; } catch (e) { return []; }
   }
