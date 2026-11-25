@@ -110,8 +110,10 @@
   function carregar() {
     var d = montar(); if (!d) return;
     var l = lead(); var id = l ? l.id : null;
-    if (id === leadId && linhas.length) return;
-    if (id !== leadId) { leadId = id; sujo = false; linhas = lerLead(l); if (!linhas.length) linhas = [nova()]; desenhar(); }
+    if (id !== leadId) { leadId = id; sujo = false; linhas = lerLead(l); }
+    if (!linhas.length) linhas = [nova()];
+    /* o card é redesenhado a cada render: se a caixa nova veio vazia, redesenha com o que já está na memória (não perde o que o usuário digitou) */
+    var c = $('bud-corpo'); if (c && !c.children.length) desenhar();
   }
   /* Anexa o Budget ao envio da Implantação (modo gravar). Na venda com várias implantações (uma por área), só a primeira chamada leva o Budget, para o aviso ao RH não repetir. */
   function anexar(corpo) {
@@ -139,6 +141,10 @@
       } catch (e) { /* nunca bloqueia o envio por causa do Budget */ }
       return f0.call(this, u, o);
     };
+    /* o index chama cvRender por dentro (sem passar por window), então observa o card: quando a caixa do contrato aparece sem a do Budget, monta. */
+    var agenda = false;
+    function checar() { agenda = false; try { if ($('ft-box') && !$('bud-box')) carregar(); } catch (e) {} }
+    try { new MutationObserver(function () { if (!agenda) { agenda = true; setTimeout(checar, 60); } }).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
     var cr = window.cvRender;
     if (typeof cr === 'function') { window.cvRender = function () { var r = cr.apply(this, arguments); try { carregar(); } catch (e) {} return r; }; }
     window.sigeBudget = { linhas: function () { return limpas(); }, salvo: function () { return !sujo; } };
