@@ -948,7 +948,49 @@ function gerar(){
   $('preview').querySelectorAll('.pg').forEach(function(p){p.setAttribute('contenteditable','true');p.setAttribute('spellcheck','false');});
   fit();
 }
+/* 26/11/2026 -- Léo: editor 100% editável. Cada página ganha barra de ações (subir, descer, duplicar, nova em branco, excluir).
+   A barra fica no .slot, FORA do .pg: não vai para o PDF, a impressão, o e-mail nem o estado salvo. */
+function renumerar(){
+  [].forEach.call(R.querySelectorAll('#preview .slot'),function(sl,i){
+    var n=sl.querySelector('.pg .foot span:last-child');if(n&&/^\s*\d+\s*$/.test(n.textContent))n.textContent=String(i+1);});
+}
+function paginaBranco(){
+  var cli=escH($('f-cliente').value.trim()||'Cliente'),un=$('f-unid').value.trim();
+  return pageWrap(head('Nova página','Título da página','Escreva aqui o texto desta página.','Proposta')+'<p class="note">Clique no texto para editar. Use a barra acima da página para mover, duplicar ou excluir.</p>'+
+    '<div class="foot"><span>ElevaLife · Proposta '+cli+(un?' · '+escH(un):'')+'</span><span>0</span></div>');
+}
+function novoSlot(html){
+  var d=document.createElement('div');d.className='slot';d.innerHTML=html;
+  var p=d.querySelector('.pg');if(p){p.setAttribute('contenteditable','true');p.setAttribute('spellcheck','false');}
+  return d;
+}
+function acaoPagina(slot,acao){
+  var pv=$('preview'),slots=[].slice.call(pv.querySelectorAll('.slot')),i=slots.indexOf(slot);if(i<0)return;
+  if(acao==='del'){
+    if(slots.length<2){alert('A proposta precisa ter ao menos uma página.');return;}
+    if(!confirm('Excluir a página '+(i+1)+'? (Para voltar, gere a proposta de novo.)'))return;
+    slot.remove();
+  }else if(acao==='up'){if(i>0)pv.insertBefore(slot,slots[i-1]);}
+  else if(acao==='down'){if(i<slots.length-1)pv.insertBefore(slots[i+1],slot);}
+  else if(acao==='dup'){var c=slot.querySelector('.pg').cloneNode(true);c.style.transform='';var n=novoSlot('');n.appendChild(c);pv.insertBefore(n,slot.nextSibling);}
+  else if(acao==='add'){pv.insertBefore(novoSlot(paginaBranco()),slot.nextSibling);}
+  renumerar();fit();
+}
+function barras(){
+  [].forEach.call(R.querySelectorAll('#preview .slot'),function(sl){
+    if(sl.querySelector('.pgbar'))return;
+    sl.style.position='relative';
+    var b=document.createElement('div');b.className='pgbar';b.setAttribute('contenteditable','false');
+    b.style.cssText='position:absolute;top:6px;right:6px;z-index:5;display:flex;gap:4px;background:rgba(255,255,255,.94);border:1px solid #EADDE0;border-radius:8px;padding:3px;box-shadow:0 2px 8px rgba(0,0,0,.18)';
+    [['up','↑','Mover para cima'],['down','↓','Mover para baixo'],['dup','⧉','Duplicar esta página'],['add','＋','Inserir página em branco depois desta'],['del','🗑','Excluir esta página']].forEach(function(x){
+      var bt=document.createElement('button');bt.type='button';bt.textContent=x[1];bt.title=x[2];
+      bt.style.cssText='border:0;background:'+(x[0]==='del'?'#B3261E':'#6B1F2A')+';color:#fff;border-radius:6px;min-width:30px;height:28px;font-size:15px;cursor:pointer';
+      bt.onclick=function(e){e.stopPropagation();acaoPagina(sl,x[0]);};b.appendChild(bt);});
+    sl.appendChild(b);
+  });
+}
 function fit(){
+  barras();
   var main=R.querySelector('.ui-main');var w=Math.max(480,main.clientWidth-40);var sc=Math.min(1,w/1280);
   R.querySelectorAll('#preview .slot').forEach(function(s){s.style.width=(1280*sc)+'px';s.style.height=(720*sc)+'px';var p=s.querySelector('.pg');if(p)p.style.transform='scale('+sc+')';});
 }
@@ -1211,6 +1253,11 @@ $('f-unid').addEventListener('change',function(){completarUnidade();leadEsc=fals
 $('f-cliente').addEventListener('input',function(){clearTimeout(tmr);tmr=setTimeout(function(){listarOportunidades();},400);});
 $('f-cliente').addEventListener('change',function(){clearTimeout(tmr);listarOportunidades();});
 $('e-contato').addEventListener('change',function(){if(!$('e-assunto').value)aplicarModelo();else{$('e-corpo').value=preencherTpl(TPL_CORPO).replace('Olá, tudo bem, tudo bem?','Olá, tudo bem?');}});
+function abrirCardKanban(id){
+  var go=function(){try{if(typeof window.tkOpen==='function'&&(typeof STORE!=='undefined'&&(STORE.leads||[]).some(function(x){return String(x.__id)===String(id);}))){window.tkOpen(String(id));return;}}catch(e){}location.href='/?card='+encodeURIComponent(id);};
+  try{if(typeof window.reloadData==='function'){window.reloadData().then(go,go);return;}}catch(e){}
+  go();
+}
 $('e-send').onclick=function(){
   var f=$('f-pdf').files[0];
   if(!$('e-para').value.trim()){eMsg('Informe o e-mail do destinatário.',true);return;}
@@ -1240,6 +1287,12 @@ $('e-send').onclick=function(){
     var fp=k.fup;
     if(fp){ t+=' '+fp.titulo+' criado para '+String(fp.data||'').split('-').reverse().join('/')+' às '+(fp.hora||'')+(fp.agenda&&fp.agenda.ok?' e lançado no seu calendário.':' — mas não foi possível lançar no calendário ('+((fp.agenda&&fp.agenda.error)||'erro')+'). A tarefa está no card do Kanban.'); }
     eMsg(t,!k.ok||!!(fp&&fp.agenda&&!fp.agenda.ok));leadsCache=null;
+    if(k.ok&&k.id){ /* 26/11/2026 -- Léo: ao enviar, o card tem de abrir no Kanban (antes não abria nem atualizava a tela) */
+      var m=$('e-msg'),bt=document.createElement('button');bt.type='button';bt.textContent='Abrir o card no Kanban';
+      bt.style.cssText='display:block;margin-top:8px;padding:8px 14px;border:0;border-radius:8px;background:#6B1F2A;color:#fff;font-weight:700;cursor:pointer';
+      bt.onclick=function(){abrirCardKanban(k.id);};m.appendChild(bt);
+      abrirCardKanban(k.id);
+    }
   }).catch(function(e){$('e-send').disabled=false;eMsg('Falha ao enviar: '+e.message,true);});
 };
 /* 21/10/2026 — "Gerar proposta" no card do Kanban: abre a proposta já com cliente, unidade, serviços e a oportunidade do card. Preço continua vindo das calculadoras. */
