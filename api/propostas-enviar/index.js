@@ -212,7 +212,8 @@ async function atualizarKanban(lead, b, user) {
     y: d.getFullYear(), m: d.getMonth() + 1, dt: hoje,
     nome: String(lead.nome || '').trim(), cliente: String(lead.cliente || '').trim(),
     unidade: String(lead.unidade || '').trim(), fonte: String(lead.fonte || 'Proposta SIGE'),
-    cons: consDoUsuario(user, lead.cons), serv, prop: 'SIM', valor, tipo: String(lead.tipo || 'N/A'),
+    cons: consDoUsuario(user, lead.cons), serv, prop: 'SIM', valor, tipo: String(lead.tipo || (valorMensal && numMeses > 1 ? 'R' : (valor ? 'P' : 'N/A'))),
+    tc: String(lead.tc || 'NOVO'), icp: String(lead.icp || 'NA'), campanha: String(lead.campanha || 'NA'), // 26/11/2026 -- card nasce completo (antes ficava sem tipo/tc/icp/campanha)
     envio: hoje, status: 'EM NEGOCIAÇÃO', subEtapa: 'FUP', fupSeq: 1, origemFunil: 'NOVO',
     email: lista(b.para)[0] || '',
     histEventosJson: histAppend(histAppend('[]', 'Oportunidade criada pelo envio de proposta · ' + texto, por), 'Proposta enviada — sub-etapa FUP iniciada, FUP 1 agendado automaticamente', por),
